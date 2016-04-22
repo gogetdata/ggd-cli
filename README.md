@@ -1,9 +1,21 @@
 # ggd-cli
 The command-line interface to GGD
 
+### Installation
+
+```
+$ pip install ggd
+```
+
+Then the `ggd` executable will be available.
+
 ## make\_bash
 
 Make a recipe from a bash script that is likely to pass the tests in ggd-recipes.
+
+Most of the arguments are required. For example, we don't want a recipe to litter
+the user-space with extra files so if the recipe downloads a `.zip`, and processes
+the files inside of it, it should clean-up (`rm`) the .zip file upon completion.
 
 ```
 usage: ggd from_bash [-h] --species

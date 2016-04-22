@@ -1,7 +1,7 @@
 from setuptools import setup
 import re
 
-with open('requests/__init__.py', 'r') as fd:
+with open('ggd/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 
