@@ -37,7 +37,7 @@ def add_make_bash(p):
 def make_bash(parser, args):
 
     name = args.name.replace(args.species, "").replace(args.genome_build, "").strip("- ")
-    name = "{0}-{1}".format(args.genome_build, name)
+    name = "{0}-{1}".format(args.genome_build, name).lower()
     assert args.summary.strip() != ""
 
     try:
@@ -48,7 +48,7 @@ def make_bash(parser, args):
 
     recipe_bash = open(args.script).read()
     look = {'tabix': 'htslib', 'bgzip': 'htslib', 'perl': 'perl', 'samtools':
-            'samtools', 'gzip': 'zlib', 'zcat': 'zlib', 'gunzip': 'zlib'}
+            'samtools', 'gzip': 'zlib', 'zcat': 'zlib', 'gunzip': 'zlib', 'vt': 'vt'}
     deps = sorted(
               set([look.get(p, p) for p in args.dependency] +
                   [look[prog] for prog in look if prog in recipe_bash]))
@@ -57,6 +57,7 @@ def make_bash(parser, args):
                   "binary_relocation": False,
                   "detect_binary_files_with_prefix": False,
                   "number": 0},
+              "source": {"path": "."},
               "extra": {
                   "authors": args.authors,
                   "genome-build": args.genome_build,
@@ -80,15 +81,21 @@ set -eo pipefail -o nounset
 
 CONDA_ROOT={CONDA_ROOT}
 
-mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/
-cd $CONDA_ROOT/share/ggd/{species}/{build}/
+pushd `dirname $0` > /dev/null
+HERE=`pwd`
+popd > /dev/null
 
+mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/
+(cd $CONDA_ROOT/share/ggd/{species}/{build}/ && bash $HERE/../info/recipe/recipe.sh)
+
+echo 'SUCCESS!'
 """.format(CONDA_ROOT=CONDA_ROOT,
            species=args.species,
            build=args.genome_build))
 
+    with open(os.path.join(name, "recipe.sh"), "w") as fh:
+        fh.write("#!/bin/bash\nset -e o pipefail -o nounset\n")
         fh.write(open(args.script).read())
-        fh.write("echo 'SUCCESS!'\n")
 
     print("wrote output to %s/" % name)
     print("build with 'conda build %s/" % name)
