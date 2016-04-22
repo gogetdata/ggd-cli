@@ -46,6 +46,13 @@ def make_bash(parser, args):
         shutil.rmtree(name)
         os.makedirs(name)
 
+    recipe_bash = open(args.script).read()
+    look = {'tabix': 'htslib', 'bgzip': 'htslib', 'perl': 'perl', 'samtools':
+            'samtools', 'gzip': 'zlib', 'zcat': 'zlib', 'gunzip': 'zlib'}
+    deps = sorted(
+              set([look.get(p, p) for p in args.dependency] +
+                  [look[prog] for prog in look if prog in recipe_bash]))
+
     recipe = {"build": {
                   "binary_relocation": False,
                   "detect_binary_files_with_prefix": False,
@@ -59,8 +66,8 @@ def make_bash(parser, args):
                   },
               "about": {"summary": args.summary},
               "package": {"name": name, "version": args.version},
-              "requirements": {"build": args.dependency[:],
-                               "run": args.dependency[:]},
+              "requirements": {"build": deps[:],
+                               "run": deps[:]},
               }
 
     with open(os.path.join(name, "meta.yaml"), "w") as fh:
