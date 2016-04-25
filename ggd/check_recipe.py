@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 import os
 import os.path as op
+import tarfile
 
 import subprocess as sp
 import yaml
@@ -21,7 +22,7 @@ def list_files(dir):
 def add_check_recipe(p):
 
     c = p.add_parser('check-recipe', help="build, install, and check a recipe")
-    c.add_argument("recipe_path")
+    c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2")
     c.set_defaults(func=check_recipe)
 
 
@@ -41,12 +42,27 @@ def _install(bz2):
     sp.check_call(['conda', 'install', bz2], stderr=sys.stderr,
                   stdout=sys.stdout)
 
+def get_recipe_from_bz2(fbz2):
+    info = None
+    with tarfile.open(fbz2, mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/meta.yaml":
+                break
+        else:
+            raise KeyError
+
+        recipe = tf.extractfile(info)
+        recipe = yaml.load(recipe.read().decode())
+    return recipe
 
 def check_recipe(parser, args):
-
-    recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
+    if args.recipe_path.endswith(".bz2"):
+        recipe = get_recipe_from_bz2(args.recipe_path)
+        bz2 = args.recipe_path
+    else:
+        recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
+        bz2 = _build(args.recipe_path)
     species, build = check_yaml(recipe)
-    bz2 = _build(args.recipe_path)
     install_path = op.join(conda_root(), "share", "ggd", species, build)
 
     before = list_files(install_path)

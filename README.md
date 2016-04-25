@@ -1,5 +1,6 @@
 # ggd-cli
-The command-line interface to GGD
+
+The command-line interface to GGD. Build and check recipes.
 
 ### Installation
 
