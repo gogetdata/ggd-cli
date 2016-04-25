@@ -10,7 +10,7 @@ def conda_root():
     return sp.check_output(['conda', 'info', '--root']).strip()
 
 def add_make_bash(p):
-    c = p.add_parser('from_bash', help="make a new ggd/conda recipe give a bash script")
+    c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
     c.add_argument("--species", help="species recipe is for", choices=species,
                    required=True)
     c.add_argument("--genome-build", help="genome-build the recipe is for",

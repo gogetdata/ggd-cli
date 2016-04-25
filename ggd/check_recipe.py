@@ -30,8 +30,7 @@ def conda_root():
 
 
 def _build(path):
-
-    out = sp.check_output(['conda', 'build', path], stderr=sys.stderr)
+    out = sp.check_output(['conda', 'build', '--no-anaconda-upload', path], stderr=sys.stderr)
     upload = [x for x in out.split("\n") if "$ anaconda upload" in x]
     assert len(upload) == 1, upload
     bz2 = upload[0].split("upload ")[1].strip()

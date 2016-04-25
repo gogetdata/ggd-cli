@@ -9,7 +9,7 @@ $ pip install ggd
 
 Then the `ggd` executable will be available.
 
-## from\_bash
+## from-bash
 
 Make a recipe from a bash script that is likely to pass the tests in ggd-recipes.
 
@@ -18,7 +18,7 @@ the user-space with extra files so if the recipe downloads a `.zip`, and process
 the files inside of it, it should clean-up (`rm`) the .zip file upon completion.
 
 ```
-usage: ggd from_bash [-h] --species
+usage: ggd from-bash [-h] --species
                      {Homo_sapiens,Mus_musculus,Canis_familiaris}
                      --genome-build GENOME_BUILD [--authors AUTHORS] --version
                      VERSION [--dependency DEPENDENCY]
@@ -51,3 +51,16 @@ optional arguments:
                         specified more that once.
 
 ```
+
+## check-recipe
+
+After you make a new recipe, likely with the `ggd from-bash`. Running `ggd check-recipe` will
+run the same checks as our testing framework. It will build and install the recipe.
+
+It may miss dependencies if you have them installed on your system, but they are not specified in
+the recipe.
+
+```
+usage: ggd check-recipe /path/to/my/recipe/
+```
+
