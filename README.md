@@ -9,7 +9,7 @@ $ pip install ggd
 
 Then the `ggd` executable will be available.
 
-## make\_bash
+## from\_bash
 
 Make a recipe from a bash script that is likely to pass the tests in ggd-recipes.
 
