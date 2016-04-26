@@ -3,6 +3,8 @@ import sys
 import os
 import os.path as op
 import tarfile
+import re
+from fnmatch import fnmatch
 
 import subprocess as sp
 import yaml
