@@ -9,6 +9,11 @@ from fnmatch import fnmatch
 import subprocess as sp
 import yaml
 
+if sys.version_info[0] < 3:
+    import urllib
+    urlopen = urllib.urlopen
+else:
+    from urllib.request import urlopen
 
 def list_files(dir):
     rfiles = []
@@ -105,7 +110,12 @@ def check_files(install_path, species, build, recipe_name,
     # ignore gzi
     nons = [n for n in nons if not n.endswith('.gzi')]
 
-    gf = op.join("genomes", "{build}", "{build}.genome").format(build=build)
+    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{build}/{build}.genome".format(build=build)
+    try:
+        urlopen(gf)
+    except:
+        sys.stderr.write("ERROR: url %s not found\n" % gf)
+        raise
 
     for tbx in tbxs:
         print("> checking %s" % tbx)
