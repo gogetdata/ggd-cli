@@ -62,6 +62,16 @@ def get_recipe_from_bz2(fbz2):
         recipe = yaml.load(recipe.read().decode())
     return recipe
 
+def _check_build(build):
+    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{build}/{build}.genome".format(build=build)
+    try:
+        ret = urlopen(gf)
+        if ret.getcode() >= 400:
+            raise Exception("%s at url: %s" % (ret.getcode(), gf))
+    except:
+        sys.stderr.write("ERROR: genome-build: %s not found in github repo.\n" % build)
+        raise
+
 def check_recipe(parser, args):
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
@@ -70,6 +80,9 @@ def check_recipe(parser, args):
         recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
         bz2 = _build(args.recipe_path)
     species, build = check_yaml(recipe)
+
+    _check_build(build)
+
     install_path = op.join(conda_root(), "share", "ggd", species, build)
 
     before = list_files(install_path)
@@ -111,11 +124,7 @@ def check_files(install_path, species, build, recipe_name,
     nons = [n for n in nons if not n.endswith('.gzi')]
 
     gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{build}/{build}.genome".format(build=build)
-    try:
-        urlopen(gf)
-    except:
-        sys.stderr.write("ERROR: url %s not found\n" % gf)
-        raise
+    _check_build(build)
 
     for tbx in tbxs:
         print("> checking %s" % tbx)
@@ -160,5 +169,5 @@ def check_yaml(recipe):
 
     species, build = recipe['extra']['species'], recipe['extra']['genome-build']
 
-    assert op.exists(op.join("genomes", build)), ("build directory: %s does not exist in ggd-recipes. new genomes must be added to the repo." % build)
+    _check_build(build)
     return species, build

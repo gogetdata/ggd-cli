@@ -46,6 +46,10 @@ def make_bash(parser, args):
         shutil.rmtree(name)
         os.makedirs(name)
 
+    from .check_recipe import _check_build
+    print("checking", args.genome_build)
+    _check_build(args.genome_build)
+
     recipe_bash = open(args.script).read()
     look = {'tabix': 'htslib', 'bgzip': 'htslib', 'perl': 'perl', 'samtools':
             'samtools', 'gzip': 'zlib', 'zcat': 'zlib', 'gunzip': 'zlib', 'vt': 'vt'}
