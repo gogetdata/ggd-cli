@@ -4,6 +4,21 @@ The command-line interface to GGD. Build and check recipes.
 
 ### Installation
 
+This assumes that you have installed [anaconda](https://www.continuum.io/downloads) or at
+least [conda](http://conda.pydata.org/docs/download.html)
+
+To get the required software, use:
+
+```
+$ conda config --add channels bioconda
+$ conda config --add channels conda-forge
+$ conda install -y conda-build-all --channel conda-forge
+$ conda install -y anaconda-client
+$ pip install -r requirements.txt
+$ conda install -y "gsort>=0.0.2" samtools htslib zlib
+```
+
+Finally:
 ```
 $ pip install ggd
 ```
