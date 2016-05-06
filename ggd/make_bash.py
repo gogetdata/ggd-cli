@@ -97,7 +97,7 @@ echo 'SUCCESS!'
            build=args.genome_build))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
-        fh.write("#!/bin/bash\nset -e o pipefail -o nounset\n")
+        fh.write("#!/bin/bash\nset -eo pipefail -o nounset\n")
         fh.write(open(args.script).read())
 
     print("wrote output to %s/" % name)
