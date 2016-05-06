@@ -83,7 +83,7 @@ def make_bash(parser, args):
         fh.write("""#!/bin/bash
 set -eo pipefail -o nounset
 
-CONDA_ROOT={CONDA_ROOT}
+CONDA_ROOT=$(conda info --root)
 
 pushd `dirname $0` > /dev/null
 HERE=`pwd`
@@ -93,8 +93,7 @@ mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/
 (cd $CONDA_ROOT/share/ggd/{species}/{build}/ && bash $HERE/../info/recipe/recipe.sh)
 
 echo 'SUCCESS!'
-""".format(CONDA_ROOT=CONDA_ROOT,
-           species=args.species,
+""".format(species=args.species,
            build=args.genome_build))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
