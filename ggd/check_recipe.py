@@ -36,13 +36,21 @@ def add_check_recipe(p):
 def conda_root():
     return sp.check_output(['conda', 'info', '--root']).strip()
 
+def conda_platform():
+    vs = [x for x in sp.check_output(['conda', 'info']).strip().split("\n") if
+            "platform :" in x]
+    assert len(vs) == 1, vs
+    return vs[0].split("platform :")[1].strip()
 
-def _build(path):
-    out = sp.check_output(['conda', 'build', '--no-anaconda-upload', path], stderr=sys.stderr)
-    upload = [x for x in out.split("\n") if "$ anaconda upload" in x]
-    assert len(upload) == 1, upload
-    bz2 = upload[0].split("upload ")[1].strip()
-    return bz2
+def _build(path, recipe):
+    out = sp.check_output(['conda', 'build', "--no-anaconda-upload", path], stderr=sys.stderr)
+    platform = conda_platform()
+    path = op.join(conda_root(), "conda-bld", platform)
+
+    name = "{name}-{version}-{number}.tar.bz2".format(name=recipe['package']['name'],
+                                     version=recipe['package']['version'],
+                                     number=recipe['build'].get('number', 0))
+    return os.path.join(path, name)
 
 
 def _install(bz2):
@@ -78,7 +86,7 @@ def check_recipe(parser, args):
         bz2 = args.recipe_path
     else:
         recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
-        bz2 = _build(args.recipe_path)
+        bz2 = _build(args.recipe_path, recipe)
     species, build = check_yaml(recipe)
 
     _check_build(build)

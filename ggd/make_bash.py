@@ -2,6 +2,7 @@ import os
 import shutil
 import yaml
 import subprocess as sp
+
 # TODO: get this by querying the git repo.
 species = ('Homo_sapiens', 'Mus_musculus', 'Canis_familiaris')
 
@@ -51,8 +52,11 @@ def make_bash(parser, args):
     _check_build(args.genome_build)
 
     recipe_bash = open(args.script).read()
-    look = {'tabix': 'htslib', 'bgzip': 'htslib', 'perl': 'perl', 'samtools':
-            'samtools', 'gzip': 'zlib', 'zcat': 'zlib', 'gunzip': 'zlib', 'vt': 'vt'}
+    # use these to automate inserting some dependencies.
+    look = {'tabix': 'htslib', 'bgzip': 'htslib', 'perl': 'perl',
+            'gsort': 'gsort',
+            'samtools': 'samtools', 'gzip': 'zlib',
+            'zcat': 'zlib', 'gunzip': 'zlib', 'vt': 'vt'}
     deps = sorted(
               set([look.get(p, p) for p in args.dependency] +
                   [look[prog] for prog in look if prog in recipe_bash]))
@@ -83,17 +87,19 @@ def make_bash(parser, args):
         fh.write("""#!/bin/bash
 set -eo pipefail -o nounset
 
-CONDA_ROOT=$(conda info --root)
+export CONDA_ROOT=$(conda info --root)
 
 pushd `dirname $0` > /dev/null
 HERE=`pwd`
 popd > /dev/null
 
-mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/
-(cd $CONDA_ROOT/share/ggd/{species}/{build}/ && bash $HERE/../info/recipe/recipe.sh)
+export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
+
+(cd $RECIPE_DIR && bash $HERE/../info/recipe/recipe.sh)
 
 echo 'SUCCESS!'
 """.format(species=args.species,
+           name=name,
            build=args.genome_build))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
