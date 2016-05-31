@@ -58,13 +58,20 @@ def _install(bz2):
                   stdout=sys.stdout)
 
 def get_recipe_from_bz2(fbz2):
-    info = None
+    rinfo, info = None, None
     with tarfile.open(fbz2, mode="r|bz2") as tf:
         for info in tf:
+            # this was chaned recently in conda/conda-build
             if info.name == "info/recipe/meta.yaml":
+                rinfo = info
+            elif info.name == "info/meta.yaml":
                 break
         else:
-            raise KeyError
+            if rinfo is None:
+                sys.stderr.write("no meta.yaml found\n")
+                raise KeyError
+            else:
+                info = rinfo
 
         recipe = tf.extractfile(info)
         recipe = yaml.load(recipe.read().decode())
