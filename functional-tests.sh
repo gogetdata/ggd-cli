@@ -28,3 +28,5 @@ run from_good python -m ggd from-bash --species Homo_sapiens --genome-build hg19
 assert_exit_code 0
 
 run check_recipe python -m ggd check-recipe hg19-hello-script
+assert_exit_code 130
+assert_in_stderr "ERROR"

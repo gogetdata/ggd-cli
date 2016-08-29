@@ -2,6 +2,8 @@
 
 The command-line interface to GGD. Build and check recipes.
 
+[![Build Status](https://travis-ci.org/gogetdata/ggd-cli.svg?branch=master)](https://travis-ci.org/gogetdata/ggd-cli)
+
 ### Installation
 
 This assumes that you have installed [anaconda](https://www.continuum.io/downloads) or at
