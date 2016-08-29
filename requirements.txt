@@ -1,2 +1,0 @@
-git+git://github.com/conda/conda.git
-git+git://github.com/conda/conda-build.git
