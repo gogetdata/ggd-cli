@@ -15,7 +15,7 @@ $ conda config --add channels conda-forge
 $ conda install -y conda-build-all --channel conda-forge
 $ conda install -y anaconda-client
 $ pip install -r requirements.txt
-$ conda install -y "gsort>=0.0.2" samtools htslib zlib
+$ conda install -y "gsort>=0.0.2" samtools htslib zlib check-sort-order
 ```
 
 Finally:
