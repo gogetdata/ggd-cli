@@ -13,6 +13,7 @@ def main(args=None):
                         action="version",
                         version="%(prog)s " + str(__version__))
     sub = parser.add_subparsers(title='[sub-commands]', dest='command')
+    sub.required = True
     add_make_bash(sub)
 
     add_check_recipe(sub)
