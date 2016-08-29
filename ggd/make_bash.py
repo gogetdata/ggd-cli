@@ -6,9 +6,10 @@ import subprocess as sp
 # TODO: get this by querying the git repo.
 species = ('Homo_sapiens', 'Mus_musculus', 'Canis_familiaris')
 
+from .check_recipe import check_output
 
 def conda_root():
-    return sp.check_output(['conda', 'info', '--root']).strip()
+    return check_output(['conda', 'info', '--root']).strip()
 
 def add_make_bash(p):
     c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
@@ -93,6 +94,7 @@ pushd `dirname $0` > /dev/null
 HERE=`pwd`
 popd > /dev/null
 
+mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/{name}
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
 
 (cd $RECIPE_DIR && bash $HERE/../info/recipe/recipe.sh)
