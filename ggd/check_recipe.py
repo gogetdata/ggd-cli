@@ -8,12 +8,16 @@ from fnmatch import fnmatch
 
 import subprocess as sp
 import yaml
+import locale
 
 if sys.version_info[0] < 3:
     import urllib
     urlopen = urllib.urlopen
 else:
     from urllib.request import urlopen
+
+def check_output(args, **kwargs):
+    return _to_str(sp.check_output(args, **kwargs).strip())
 
 def list_files(dir):
     rfiles = []
@@ -34,16 +38,21 @@ def add_check_recipe(p):
 
 
 def conda_root():
-    return sp.check_output(['conda', 'info', '--root']).strip()
+    return check_output(['conda', 'info', '--root'])
+
+def _to_str(s, enc=locale.getpreferredencoding()):
+    if isinstance(s, bytes):
+        return s.decode(enc)
+    return s
 
 def conda_platform():
-    vs = [x for x in sp.check_output(['conda', 'info']).strip().split("\n") if
+    vs = [x for x in check_output(['conda', 'info']).split("\n") if
             "platform :" in x]
     assert len(vs) == 1, vs
     return vs[0].split("platform :")[1].strip()
 
 def _build(path, recipe):
-    out = sp.check_output(['conda', 'build', "--no-anaconda-upload", path], stderr=sys.stderr)
+    out = check_output(['conda', 'build', "--no-anaconda-upload", path], stderr=sys.stderr)
     platform = conda_platform()
     path = op.join(conda_root(), "conda-bld", platform)
 
