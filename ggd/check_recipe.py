@@ -86,8 +86,8 @@ def get_recipe_from_bz2(fbz2):
         recipe = yaml.load(recipe.read().decode())
     return recipe
 
-def _check_build(build):
-    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{build}/{build}.genome".format(build=build)
+def _check_build(species, build):
+    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build)
     try:
         ret = urlopen(gf)
         if ret.getcode() >= 400:
@@ -105,7 +105,7 @@ def check_recipe(parser, args):
         bz2 = _build(args.recipe_path, recipe)
     species, build = check_yaml(recipe)
 
-    _check_build(build)
+    _check_build(species, build)
 
     install_path = op.join(conda_root(), "share", "ggd", species, build)
 
@@ -148,7 +148,7 @@ def check_files(install_path, species, build, recipe_name,
     nons = [n for n in nons if not n.endswith('.gzi')]
 
     gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{build}/{build}.genome".format(build=build)
-    _check_build(build)
+    _check_build(species, build)
 
     for tbx in tbxs:
         print("> checking %s" % tbx)
@@ -193,5 +193,5 @@ def check_yaml(recipe):
 
     species, build = recipe['extra']['species'], recipe['extra']['genome-build']
 
-    _check_build(build)
+    _check_build(species, build)
     return species, build
