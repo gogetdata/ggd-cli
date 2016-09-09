@@ -2,9 +2,9 @@ import os
 import shutil
 import yaml
 import subprocess as sp
+from .utils import get_species 
 
-# TODO: get this by querying the git repo.
-species = ('Homo_sapiens', 'Mus_musculus', 'Canis_familiaris')
+SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 
 from .check_recipe import check_output
 
@@ -13,7 +13,7 @@ def conda_root():
 
 def add_make_bash(p):
     c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
-    c.add_argument("--species", help="species recipe is for", choices=species,
+    c.add_argument("--species", help="species recipe is for", choices=SPECIES_LIST,
                    required=True)
     c.add_argument("--genome-build", help="genome-build the recipe is for",
                    required=True)
