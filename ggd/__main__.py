@@ -3,6 +3,7 @@ import argparse
 from .__init__ import __version__
 from . make_bash import add_make_bash
 from . check_recipe import add_check_recipe
+from . list_files import add_list_files
 
 def main(args=None):
     if args is None:
@@ -18,6 +19,8 @@ def main(args=None):
 
     add_check_recipe(sub)
 
+    add_list_files(sub)
+
     args = parser.parse_args(args)
     args.func(parser, args)
 
@@ -30,3 +33,4 @@ def main(args=None):
 
 if __name__ == "__main__":
     sys.exit(main() or 0)
+
