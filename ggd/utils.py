@@ -1,6 +1,7 @@
 import requests
 
-ENDPOINT= "https://api.github.com/repos/gogetdata/ggd-recipes/git/trees/master"
+# TODO modified the branch for testing only
+ENDPOINT= "https://api.github.com/repos/gogetdata/ggd-recipes/git/trees/structure-revision"
 
 def get_species():
     """
