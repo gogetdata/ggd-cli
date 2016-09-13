@@ -3,6 +3,7 @@ import os
 import glob
 from .make_bash import conda_root
 from .utils import get_species 
+from .utils import get_builds
 
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 
@@ -20,6 +21,15 @@ def list_files(parser, args):
     name = args.name
     species = args.species if args.species else "*"
     build = args.genome_build if args.genome_build else "*"
+    if build != "*":
+        builds_list = [x.encode('ascii') for x in get_builds(species)]
+        if build not in builds_list:
+            if species != "*":
+                sys.stderr.write("Unknown build " + "'" + build + "'" + " for " + species + '\n')
+            else:
+                sys.stderr.write("Unknown build " + "'" + build + "'" + '\n')
+            sys.stderr.write("Available builds: " + ", ".join(builds_list) + "\n")
+            exit(1)
     pattern = args.pattern if args.pattern else "*"
    
     path = os.path.join(CONDA_ROOT, "share/ggd", species, build, name, pattern)
@@ -29,6 +39,3 @@ def list_files(parser, args):
     else:
         sys.stderr.write("No matching files found\n")
         exit(1)
-
-
-#get_builds -> optional arg (species)

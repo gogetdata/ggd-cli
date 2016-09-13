@@ -14,7 +14,26 @@ def get_species():
     json = requests.get(genomes_url).json()
     return [x['path'].decode('ascii') for x in json['tree']]
 
+def get_builds(species):
+    json = requests.get(ENDPOINT).json()
+    tree = json['tree']
+    genomes_url = next(t for t in tree if t['path'] == "genomes")['url']
+    json = requests.get(genomes_url).json()
+    subtree = json['tree']
+    builds = []
+    if species == "*":
+        for branch in subtree:
+            builds_url = branch['url']
+            json = requests.get(builds_url).json()
+            builds = builds + [x['path'].decode('ascii') for x in json['tree']]
+    else:
+        builds_url = next (t for t in subtree if t['path'] == species)['url']
+        json = requests.get(builds_url).json()
+        builds = builds + [x['path'].decode('ascii') for x in json['tree']]
+
+    return builds
+
+
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-
