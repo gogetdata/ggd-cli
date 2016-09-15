@@ -4,6 +4,7 @@ from .__init__ import __version__
 from . make_bash import add_make_bash
 from . check_recipe import add_check_recipe
 from . list_files import add_list_files
+from . search import add_search
 
 def main(args=None):
     if args is None:
@@ -20,6 +21,8 @@ def main(args=None):
     add_check_recipe(sub)
 
     add_list_files(sub)
+
+    add_search(sub)
 
     args = parser.parse_args(args)
     args.func(parser, args)

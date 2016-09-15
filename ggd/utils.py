@@ -1,38 +1,55 @@
-import requests
+from __future__ import print_function
+import os
 
-# TODO modified the branch for testing only
-ENDPOINT= "https://api.github.com/repos/gogetdata/ggd-recipes/git/trees/structure-revision"
+import sys
+import glob
+from git import Repo
+
+LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/"))
+RECIPE_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-recipes")
+GITHUB_URL = "https://github.com/gogetdata/ggd-recipes.git"
 
 def get_species():
-    """
-    >>> get_species()
-    [u'GRCh37', u'canFam3', u'dm3', u'dm6', u'hg19', u'hg38', u'mm10', u'mm9']
-    """
-    json = requests.get(ENDPOINT).json()
-    tree = json['tree']
-    genomes_url = next(t for t in tree if t['path'] == "genomes")['url']
-    json = requests.get(genomes_url).json()
-    return [x['path'].decode('ascii') for x in json['tree']]
+    update_local_repo()
+    genomes_dir = os.path.join(RECIPE_REPO_DIR, "genomes")
+    return os.listdir(genomes_dir)
 
 def get_builds(species):
-    json = requests.get(ENDPOINT).json()
-    tree = json['tree']
-    genomes_url = next(t for t in tree if t['path'] == "genomes")['url']
-    json = requests.get(genomes_url).json()
-    subtree = json['tree']
-    builds = []
+    update_local_repo()
+    species_dir = os.path.join(RECIPE_REPO_DIR, "genomes", species)
+
     if species == "*":
-        for branch in subtree:
-            builds_url = branch['url']
-            json = requests.get(builds_url).json()
-            builds = builds + [x['path'].decode('ascii') for x in json['tree']]
+        paths = glob.glob(species_dir)
+        builds = []
+        for path in paths:
+            builds.extend(os.listdir(path))
+        return builds
     else:
-        builds_url = next (t for t in subtree if t['path'] == species)['url']
-        json = requests.get(builds_url).json()
-        builds = builds + [x['path'].decode('ascii') for x in json['tree']]
+        if os.path.isdir(species_dir):
+            return os.listdir(species_dir)
 
-    return builds
 
+#this needs error checking
+def update_local_repo():
+    if not os.path.isdir(LOCAL_REPO_DIR):
+        os.makedirs(LOCAL_REPO_DIR)
+    if not os.path.isdir(RECIPE_REPO_DIR):
+        Repo.clone_from(GITHUB_URL, RECIPE_REPO_DIR)
+    Repo(RECIPE_REPO_DIR).remotes.origin.pull()
+
+def validate_build(build, species):
+    if build != "*":
+        builds_list = get_builds(species)
+        if not builds_list or build not in builds_list:
+            if species != "*":
+                print("Unknown build '%s' for species '%s'" % (build, species), file=sys.stderr)
+            else:
+                print("Unknown build '%s'" % (build), file=sys.stderr)
+            if (builds_list):
+                print("Available builds: '%s'" % ("', '".join(builds_list)), file=sys.stderr)
+            return False
+    return True
+   
 
 if __name__ == "__main__":
     import doctest
