@@ -29,7 +29,6 @@ def get_builds(species):
             return os.listdir(species_dir)
 
 
-#this needs error checking
 def update_local_repo():
     if not os.path.isdir(LOCAL_REPO_DIR):
         os.makedirs(LOCAL_REPO_DIR)

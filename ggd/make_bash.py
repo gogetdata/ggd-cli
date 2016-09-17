@@ -13,21 +13,21 @@ def conda_root():
 
 def add_make_bash(p):
     c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
-    c.add_argument("--species", help="species recipe is for", choices=SPECIES_LIST,
+    c.add_argument("-s", "--species", help="species recipe is for", choices=SPECIES_LIST,
                    required=True)
-    c.add_argument("--genome-build", help="genome-build the recipe is for",
+    c.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
                    required=True)
     c.add_argument("--authors", help="authors of the recipe", default=os.environ.get("USER", ""))
     c.add_argument("--version", help="version of data itself, e.g. dbsnp-127",
                    required=True)
-    c.add_argument("--dependency", default=[], action="append",
+    c.add_argument("-d", "--dependency", default=[], action="append",
         help="any software dependencies (in bioconda, conda-forge) or data-dependency (in ggd)" +
         ". May be as many times as needed.")
-    c.add_argument("--extra-file", default=[], action="append",
+    c.add_argument("-e", "--extra-file", default=[], action="append",
         help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair. May be used more than once")
     c.add_argument("--summary", help="a comment describing the recipe",
                    default="", required=True)
-    c.add_argument("--keyword", help="a keyword to associate with the recipe." +
+    c.add_argument("-k", "--keyword", help="a keyword to associate with the recipe." +
         " may be specified more that once.", action="append", default=[],
                    required=True)
     c.add_argument("name", help="name of recipe")

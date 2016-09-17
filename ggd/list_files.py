@@ -11,10 +11,10 @@ SPECIES_LIST = get_species()
 
 def add_list_files(p):
     c = p.add_parser('list-files', help="list files in ggd for a given recipe")
-    c.add_argument("--species", help="species recipe is for", choices=SPECIES_LIST)
-    c.add_argument("--genome-build", help="genome build the recipe is for")
-    c.add_argument("--pattern", help="regular expression pattern to match the name of the file desired")
-    c.add_argument("name", help="name of recipe")
+    c.add_argument("-s", "--species", help="species recipe is for", choices=SPECIES_LIST)
+    c.add_argument("-g", "--genome-build", help="genome build the recipe is for")
+    c.add_argument("-p", "--pattern", help="regular expression pattern to match the name of the file desired")
+    c.add_argument("name", help="name of recipe or regular expression to match name")
     c.set_defaults(func=list_files)
 
 # TODO need to make this find in a case-insensitive manner
