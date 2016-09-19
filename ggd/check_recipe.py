@@ -87,7 +87,7 @@ def get_recipe_from_bz2(fbz2):
     return recipe
 
 def _check_build(species, build):
-    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build)
+    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
     try:
         ret = urlopen(gf)
         if ret.getcode() >= 400:
