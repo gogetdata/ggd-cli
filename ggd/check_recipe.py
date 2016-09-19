@@ -174,7 +174,7 @@ def check_files(install_path, species, build, recipe_name,
                 not_faidxed.append("ERROR: with: %s(%s) fasta files must have an associated fai.\n" % (P, n))
 
         elif op.basename(n) not in extra_files and not any(fnmatch(op.basename(n), e) for e in extra_files):
-                missing.append("ERROR: %s(%s) uknown file and not in the extra/extra-files section of the yaml\n" % (P, n))
+                missing.append("ERROR: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n" % (P, n))
 
     if missing or not_tabixed or not_faidxed:
         print("\n".join(missing + not_tabixed + not_faidxed), file=sys.stderr)
