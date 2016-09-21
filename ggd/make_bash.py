@@ -12,7 +12,7 @@ from .check_recipe import conda_root
 
 def add_make_bash(p):
     c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
-    c.add_argument("-s", "--species", help="species recipe is for", choices=SPECIES_LIST,
+    c.add_argument("-s", "--species", help="species recipe is for", choices=[x.decode('ascii') for x in SPECIES_LIST],
                    required=True)
     c.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
                    required=True)

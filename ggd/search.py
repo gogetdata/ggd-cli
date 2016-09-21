@@ -9,6 +9,7 @@ from .utils import get_species
 from .utils import get_builds
 from .utils import validate_build
 from .utils import RECIPE_REPO_DIR
+from .check_recipe import _to_str
 
 SPECIES_LIST = get_species()
 
@@ -33,7 +34,9 @@ def search(parser, args):
     for i in range(len(files)):
         files[i] = os.path.split(files[i])[1]
 
-    conda_json = check_output(["conda", "search", "-c", "ggd-alpha", "--override-channels", "--json", name])
+    conda_json = _to_str(check_output(["conda", "search", "-c",
+		"ggd-alpha", "--override-channels", "--json", name]))
+
     matches = json.loads(conda_json)
     conda_recipes = []
     for matches_key in matches:

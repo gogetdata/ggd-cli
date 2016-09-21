@@ -70,7 +70,7 @@ def get_recipe_from_bz2(fbz2):
     rinfo, info = None, None
     with tarfile.open(fbz2, mode="r|bz2") as tf:
         for info in tf:
-            # this was chaned recently in conda/conda-build
+            # this was changed recently in conda/conda-build
             if info.name == "info/recipe/meta.yaml":
                 rinfo = info
             elif info.name == "info/meta.yaml":
