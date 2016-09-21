@@ -13,10 +13,10 @@ from .utils import RECIPE_REPO_DIR
 SPECIES_LIST = get_species()
 
 def add_search(p):
-    c = p.add_parser('search', help="search conda's available recipes")
+    c = p.add_parser('search', help="search conda's available recipes. ")
     c.add_argument("-s", "--species", help="species recipe is for", choices=SPECIES_LIST)
     c.add_argument("-g", "--genome-build", help="genome build the recipe is for")
-    c.add_argument("name", help="string or regular expression pattern to match the name of the recipe desired")
+    c.add_argument("name", help="pattern to match the name of the recipe desired. Ex. `ggd search \"hg19*\" -s \"Homo_sapiens\" -g \"hg19\"`")
     c.set_defaults(func=search)
 
 
