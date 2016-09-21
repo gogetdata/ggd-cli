@@ -30,3 +30,51 @@ assert_exit_code 0
 run check_recipe python -m ggd check-recipe hg19-hello-script
 assert_exit_code 2
 assert_in_stderr "ERROR"
+
+###test search
+run bad_search_no_args python -m ggd search 
+assert_exit_code 2
+
+run bad_search_invalid_recipe python -m ggd search "BAD"
+assert_exit_code 1
+
+run good_search_simple python -m ggd search "hg19*"
+assert_exit_code 0
+assert_in_stdout "hg19-repeatmasker"
+
+run bad_search_invalid_build python -m ggd search "hg19*" -g "BAD"
+assert_exit_code 1
+
+run bad_search_invalid_species python -m ggd search "hg19*" -s "BAD"
+assert_exit_code 2
+
+run good_search python -m ggd search "hg19-*" -s "Homo_sapiens" -g "hg19" 
+assert_exit_code 0
+assert_in_stdout "hg19-repeatmasker"
+
+###test list-files (depends on the hg19 hello-script)
+run bad_list_no_args python -m ggd list_files
+assert_exit_code 2
+
+run bad_list_invalid_recipe python -m ggd list-files "BAD"
+assert_exit_code 1
+assert_in _stderr "No matching files found"
+
+run good_list_simple python -m ggd list-files "hg19*"
+assert_exit_code 0
+assert_in_stdout "output"
+assert_in_stdout "hg19-hello-script"
+
+run bad_list_invalid_build python -m ggd list-files "hg19*" -g "BAD"
+assert_exit_code 1
+
+run bad_list_invalid_species python -m ggd list-files "hg19*" -s "BAD"
+assert_exit_code 2
+
+run bad_list_invalid_pattern python -m ggd list-files "hg19*" -p "BAD"
+assert_exit_code 1
+
+run good_list python -m ggd list-files "hg19*" -s "Homo_sapiens" -g "hg19" 
+assert_exit_code 0
+assert_in_stdout "output"
+assert_in_stdout "hg19-hello-script"
