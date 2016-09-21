@@ -7,9 +7,7 @@ from .utils import get_species
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 
 from .check_recipe import check_output
-
-def conda_root():
-    return check_output(['conda', 'info', '--root']).strip()
+from .check_recipe import conda_root
 
 def add_make_bash(p):
     c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
