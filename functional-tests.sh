@@ -58,7 +58,7 @@ assert_exit_code 2
 
 run bad_list_invalid_recipe python -m ggd list-files "BAD"
 assert_exit_code 1
-assert_in _stderr "No matching files found"
+assert_in_stderr "No matching files found"
 
 run good_list_simple python -m ggd list-files "hg19*"
 assert_exit_code 0
