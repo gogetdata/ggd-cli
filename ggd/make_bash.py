@@ -96,6 +96,11 @@ popd > /dev/null
 mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/{name}
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
 
+recipe_envi_name="ggd_{species}_{name}"
+recipe_envi_name="$(echo "$recipe_envi_name" | sed 's/-/_/g')"
+echo "export $recipe_envi_name=$RECIPE_DIR" >> ~/.bashrc
+source ~/.bashrc
+
 (cd $RECIPE_DIR && bash $HERE/../info/recipe/recipe.sh)
 
 echo 'SUCCESS!'
