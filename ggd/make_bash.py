@@ -4,6 +4,7 @@ import shutil
 import yaml
 import subprocess as sp
 from .utils import get_species 
+from .show_env import get_conda_env 
 
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 
@@ -83,6 +84,8 @@ def make_bash(parser, args):
         fh.write(yaml.dump(recipe, default_flow_style=False))
 
     CONDA_ROOT = conda_root()
+    conda_env_path = get_conda_env()[1]
+
     with open(os.path.join(name, "pre-link.sh"), "w") as fh:
         fh.write("""#!/bin/bash
 set -eo pipefail -o nounset
@@ -96,24 +99,26 @@ popd > /dev/null
 mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/{name}
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
 
-recipe_envi_name="ggd_{name}"
-recipe_envi_name="$(echo "$recipe_envi_name" | sed 's/-/_/g')"
+recipe_env_name="ggd_{name}"
+recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
 
-activate_dir="$CONDA_ROOT/etc/conda/activate.d"
-deactivate_dir="$CONDA_ROOT/etc/conda/deactivate.d"
+activate_dir="{conda_env_path}/etc/conda/activate.d"
+deactivate_dir="{conda_env_path}/etc/conda/deactivate.d"
 
 mkdir -p $activate_dir
 mkdir -p $deactivate_dir
 
-echo "export $recipe_envi_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
-echo "unset $recipe_envi_name">> $deactivate_dir/env_vars.sh
+echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
+ggd show-env
 
 (cd $RECIPE_DIR && bash $HERE/../info/recipe/recipe.sh)
 
 echo 'SUCCESS!'
 """.format(species=args.species,
            name=name,
-           build=args.genome_build))
+           build=args.genome_build,
+           conda_env_path=conda_env_path))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
         fh.write("#!/bin/bash\nset -eo pipefail -o nounset\n")

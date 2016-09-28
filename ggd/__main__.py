@@ -5,6 +5,7 @@ from . make_bash import add_make_bash
 from . check_recipe import add_check_recipe
 from . list_files import add_list_files
 from . search import add_search
+from . show_env import add_show_env
 
 def main(args=None):
     if args is None:
@@ -23,6 +24,8 @@ def main(args=None):
     add_list_files(sub)
 
     add_search(sub)
+    
+    add_show_env(sub)
 
     args = parser.parse_args(args)
     args.func(parser, args)
