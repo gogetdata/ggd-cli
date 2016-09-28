@@ -96,10 +96,17 @@ popd > /dev/null
 mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/{name}
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
 
-recipe_envi_name="ggd_{species}_{name}"
+recipe_envi_name="ggd_{name}"
 recipe_envi_name="$(echo "$recipe_envi_name" | sed 's/-/_/g')"
-echo "export $recipe_envi_name=$RECIPE_DIR" >> ~/.bashrc
-source ~/.bashrc
+
+activate_dir="$CONDA_ROOT/etc/conda/activate.d"
+deactivate_dir="$CONDA_ROOT/etc/conda/deactivate.d"
+
+mkdir -p $activate_dir
+mkdir -p $deactivate_dir
+
+echo "export $recipe_envi_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+echo "unset $recipe_envi_name">> $deactivate_dir/env_vars.sh
 
 (cd $RECIPE_DIR && bash $HERE/../info/recipe/recipe.sh)
 
