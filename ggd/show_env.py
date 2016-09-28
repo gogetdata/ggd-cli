@@ -1,4 +1,5 @@
 from __future__ import print_function
+import sys
 import os
 from .check_recipe import check_output
 
@@ -49,4 +50,5 @@ def get_conda_env():
             env = field.split()
             if len(env) > 0 and "*" in env:
                 return env[0],env[-1]
-    #TODO add exception and die here
+    print("Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
+    exit()
