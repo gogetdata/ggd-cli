@@ -50,7 +50,7 @@ def search(parser, args):
 
     if (files):
         print ("\n".join(files))
-        print("\ninstall a recipe with: \nconda install {recipe-name}")
+        print("\ninstall a recipe with: \nconda install -c ggd-alpha --override-channels {recipe-name}")
     else:
         print("No matching recipes found", file=sys.stderr)
         exit(1)
