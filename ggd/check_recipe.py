@@ -73,6 +73,7 @@ def get_recipe_from_bz2(fbz2):
             # this was changed recently in conda/conda-build
             if info.name == "info/recipe/meta.yaml":
                 rinfo = info
+                break
             elif info.name == "info/meta.yaml":
                 break
         else:
