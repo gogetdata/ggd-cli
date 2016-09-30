@@ -71,7 +71,7 @@ def get_recipe_from_bz2(fbz2):
     with tarfile.open(fbz2, mode="r|bz2") as tf:
         for info in tf:
             # this was changed recently in conda/conda-build
-            if info.name in ("info/recipe/meta.yaml", "info/meth.yaml"):
+            if info.name in ("info/recipe/meta.yaml", "info/meta.yaml"):
                 break
         recipe = tf.extractfile(info)
         recipe = yaml.load(recipe.read().decode())
