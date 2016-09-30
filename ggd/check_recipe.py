@@ -147,7 +147,7 @@ def check_files(install_path, species, build, recipe_name,
     # ignore gzi
     nons = [n for n in nons if not n.endswith('.gzi')]
 
-    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{build}/{build}.genome".format(build=build)
+    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
     _check_build(species, build)
 
     for tbx in tbxs:
