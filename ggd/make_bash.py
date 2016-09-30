@@ -83,9 +83,6 @@ def make_bash(parser, args):
     with open(os.path.join(name, "meta.yaml"), "w") as fh:
         fh.write(yaml.dump(recipe, default_flow_style=False))
 
-    CONDA_ROOT = conda_root()
-    conda_env_path = get_conda_env()[1]
-
     with open(os.path.join(name, "pre-link.sh"), "w") as fh:
         fh.write("""#!/bin/bash
 set -eo pipefail -o nounset
@@ -102,8 +99,19 @@ export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
 recipe_env_name="ggd_{name}"
 recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
 
-activate_dir="{conda_env_path}/etc/conda/activate.d"
-deactivate_dir="{conda_env_path}/etc/conda/deactivate.d"
+conda_info=$(conda info --envs)
+while IFS=$'\\n' read -ra conda_info; do
+    for line in "${{conda_info[@]}}"; do
+        if grep -q "*" <<<$line; then
+            IFS=' ' read -r -a parsed_stuff <<< "$line"
+            env_dir="${{parsed_stuff[2]}}"
+        fi
+    done
+done <<< "$conda_info"
+
+
+activate_dir="$env_dir/etc/conda/activate.d"
+deactivate_dir="$env_dir/etc/conda/deactivate.d"
 
 mkdir -p $activate_dir
 mkdir -p $deactivate_dir
@@ -117,8 +125,7 @@ ggd show-env
 echo 'SUCCESS!'
 """.format(species=args.species,
            name=name,
-           build=args.genome_build,
-           conda_env_path=conda_env_path))
+           build=args.genome_build))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
         fh.write("#!/bin/bash\nset -eo pipefail -o nounset\n")
