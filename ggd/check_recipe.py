@@ -73,6 +73,9 @@ def get_recipe_from_bz2(fbz2):
             # this was changed recently in conda/conda-build
             if info.name in ("info/recipe/meta.yaml", "info/meta.yaml"):
                 break
+        else:
+            print("Error: Incorrect tar.bz format.", file=sys.stderr)
+            exit(1)
         recipe = tf.extractfile(info)
         recipe = yaml.load(recipe.read().decode())
     return recipe
