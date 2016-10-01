@@ -16,6 +16,7 @@ def show_env(parser, args):
     try:
         with open(env_filename, "r") as env_file:
             for var in env_file:
+                #parsing with checks in case there is a nonstandard/corrupt line in env file
                 var_array = var.strip().split()
                 if len(var_array) >= 2:
                     var_item_array = var_array[1].split("=")
