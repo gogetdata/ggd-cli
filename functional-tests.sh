@@ -13,7 +13,6 @@ ls -l > output
 
 trap cleanup EXIT
 
-
 run from_bad_build python -m ggd from-bash --species Homo_sapiens --genome-build BAD --authors asdf \
 	--version 1 --keyword xx --summary hello hello-script ottt.sh
 assert_exit_code 1
@@ -52,7 +51,7 @@ run good_search python -m ggd search "hg19-*" -s "Homo_sapiens" -g "hg19"
 assert_exit_code 0
 assert_in_stdout "hg19-repeatmasker"
 
-###test list-files (depends on the hg19 hello-script)
+###test list-files (depends on the hg19-hello-script)
 run bad_list_no_args python -m ggd list_files
 assert_exit_code 2
 
@@ -78,3 +77,28 @@ run good_list python -m ggd list-files "hg19*" -s "Homo_sapiens" -g "hg19"
 assert_exit_code 0
 assert_in_stdout "output"
 assert_in_stdout "hg19-hello-script"
+
+
+run good_list python -m ggd show-env 
+assert_exit_code 0
+assert_in_stdout "ggd_hg19_hello_script"
+
+#have to find the current conda env name to test show-env
+conda_info=$(conda info --envs)
+while IFS=$'\n' read -ra conda_info; do
+    for line in "${conda_info[@]}"; do
+        if grep -q "*" <<<$line; then
+            IFS=' ' read -r -a parsed_stuff <<< "$line"
+            env_name="${parsed_stuff[0]}"
+        fi
+    done
+done <<< "$conda_info"
+
+source activate "$env_name"
+run good_env_var ls "$ggd_hg19_hello_script"
+assert_exit_code 0
+assert_in_stdout "output"
+
+source deactivate "$env_name"
+run ls "$ggd_hg19_hello_script"
+assert_exit_code 127
