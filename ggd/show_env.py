@@ -16,7 +16,11 @@ def show_env(parser, args):
     try:
         with open(env_filename, "r") as env_file:
             for var in env_file:
-                env_vars.add(var.strip().split()[1].split("=")[0])
+                var_array = var.strip().split()
+                if len(var_array) >= 2:
+                    var_item_array = var_array[1].split("=")
+                    if len(var_item_array) >= 1:
+                        env_vars.add(var_item_array[0])
         active_vars,inactive_vars = test_vars(env_vars)
         if len(active_vars) > 0:
             print ("Active environment variables:")
