@@ -29,11 +29,15 @@ def search(parser, args):
     if not validate_build(build, species):
         exit(1)
 
+    # if empty string, use star expansion for glob
+    if name == "":
+        name = "*"
+
     path = os.path.join(RECIPE_REPO_DIR, "recipes", species, build, name)
     files = glob.glob(path)
     for i in range(len(files)):
         files[i] = os.path.split(files[i])[1]
-    # if using start expansion, should search all items in conda channel
+    # if using star (*) expansion, should search all items in conda channel
     if name == "*":
         name = ""
     conda_json = _to_str(check_output(["conda", "search", "-c",
