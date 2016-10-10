@@ -97,7 +97,7 @@ def check_recipe(parser, args):
     else:
         recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
         bz2 = _build(args.recipe_path, recipe)
-    species, build = check_yaml(recipe)
+    species, build, version = check_yaml(recipe)
 
     _check_build(species, build)
 
@@ -178,6 +178,7 @@ def check_files(install_path, species, build, recipe_name,
 
 def check_yaml(recipe):
 
+    assert 'package' in recipe, ("must specify 'package:' section with data version")
     assert 'extra' in recipe, ("must specify 'extra:' section with genome-build and species")
     assert 'genome-build' in recipe['extra'], ("must specify 'extra:' section with species")
     assert 'species' in recipe['extra'], ("must specify 'extra:' section with species")
@@ -185,7 +186,9 @@ def check_yaml(recipe):
         isinstance(recipe['extra']['keywords'], list), ("must specify 'extra:' section with keywords")
     assert 'about' in recipe and 'summary' in recipe['about'], ("must specify an 'about/summary' section")
 
-    species, build = recipe['extra']['species'], recipe['extra']['genome-build']
+    species, build, version = recipe['extra']['species'], recipe['extra']['genome-build'], recipe['package']['version']
+    version = version.replace(" ", "")
+    version = version.replace(" ", "'")
 
     _check_build(species, build)
-    return species, build
+    return species, build, version
