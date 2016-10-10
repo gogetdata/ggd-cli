@@ -93,8 +93,8 @@ pushd `dirname $0` > /dev/null
 HERE=`pwd`
 popd > /dev/null
 
-mkdir -p $CONDA_ROOT/share/ggd/{species}/{build}/{name}
-export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
+export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
+mkdir -p $RECIPE_DIR
 
 recipe_env_name="ggd_{name}"
 recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
@@ -118,7 +118,8 @@ ggd show-env
 echo 'SUCCESS!'
 """.format(species=args.species,
            name=name,
-           build=args.genome_build))
+           build=args.genome_build,
+           version=args.version))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
         fh.write("#!/bin/bash\nset -eo pipefail -o nounset\n")
