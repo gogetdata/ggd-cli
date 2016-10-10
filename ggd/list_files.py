@@ -13,7 +13,8 @@ def add_list_files(p):
     c = p.add_parser('list-files', help="list files in ggd for a given recipe")
     c.add_argument("-s", "--species", help="species recipe is for", choices=SPECIES_LIST)
     c.add_argument("-g", "--genome-build", help="genome build the recipe is for")
-    c.add_argument("-p", "--pattern", help="regular expression pattern to match the name of the file desired")
+    c.add_argument("-v", "--version", help="pattern to match the version of the file desired")
+    c.add_argument("-p", "--pattern", help="pattern to match the name of the file desired")
     c.add_argument("name", help="pattern to match recipe name(s)."+
         " Ex. `ggd list-files \"hg19-hello*\" -s \"Homo_sapiens\" -g \"hg19\" -p \"out*\"`")
     c.set_defaults(func=list_files)
@@ -26,9 +27,10 @@ def list_files(parser, args):
     build = args.genome_build if args.genome_build else "*"
     if not validate_build(build, species):
         exit(1)
+    version = args.version if args.version else "*"
     pattern = args.pattern if args.pattern else "*"
    
-    path = os.path.join(CONDA_ROOT, "share", "ggd", species, build, name, pattern)
+    path = os.path.join(CONDA_ROOT, "share", "ggd", species, build, name, version, pattern)
     files = glob.glob(path)
     if (files):
         print ("\n".join(files))
