@@ -33,7 +33,9 @@ def search(parser, args):
     files = glob.glob(path)
     for i in range(len(files)):
         files[i] = os.path.split(files[i])[1]
-
+    # if using start expansion, should search all items in conda channel
+    if name == "*":
+        name = ""
     conda_json = _to_str(check_output(["conda", "search", "-c",
 		"ggd-alpha", "--override-channels", "--json", name]))
 
