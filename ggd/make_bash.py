@@ -99,15 +99,8 @@ export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}
 recipe_env_name="ggd_{name}"
 recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
 
-conda_info=$(conda info --envs)
-while IFS=$'\\n' read -ra conda_info; do
-    for line in "${{conda_info[@]}}"; do
-        if grep -q "*" <<<$line; then
-            IFS=' ' read -r -a parsed_stuff <<< "$line"
-            env_dir="${{parsed_stuff[2]}}"
-        fi
-    done
-done <<< "$conda_info"
+
+env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
 
 
 activate_dir="$env_dir/etc/conda/activate.d"
