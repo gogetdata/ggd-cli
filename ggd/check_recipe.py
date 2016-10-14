@@ -52,13 +52,19 @@ def conda_platform():
     return vs[0].split("platform :")[1].strip()
 
 def _build(path, recipe):
-    out = check_output(['conda', 'build', "--no-anaconda-upload", path], stderr=sys.stderr)
+    #TODO this has a faulty assumption regarding the filename
+    out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-alpha", path], stderr=sys.stderr)
+    
+    pattern = "Package:.+"
+    result = re.search(pattern, out)
+    name = result.group().split()[1] + ".tar.bz2"
+
     platform = conda_platform()
     path = op.join(conda_root(), "conda-bld", platform)
 
-    name = "{name}-{version}-{number}.tar.bz2".format(name=recipe['package']['name'],
-                                     version=recipe['package']['version'],
-                                     number=recipe['build'].get('number', 0))
+#    name = "{name}-{version}-{number}.tar.bz2".format(name=recipe['package']['name'],
+#                                     version=recipe['package']['version'],
+#                                     number=recipe['build'].get('number', 0))
     return os.path.join(path, name)
 
 
@@ -97,6 +103,7 @@ def check_recipe(parser, args):
     else:
         recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
         bz2 = _build(args.recipe_path, recipe)
+
     species, build, version = check_yaml(recipe)
 
     _check_build(species, build)
