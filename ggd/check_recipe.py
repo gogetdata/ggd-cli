@@ -52,7 +52,6 @@ def conda_platform():
     return vs[0].split("platform :")[1].strip()
 
 def _build(path, recipe):
-    #TODO this has a faulty assumption regarding the filename
     out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-alpha", path], stderr=sys.stderr)
     
     pattern = "Package:.+"
@@ -62,9 +61,6 @@ def _build(path, recipe):
     platform = conda_platform()
     path = op.join(conda_root(), "conda-bld", platform)
 
-#    name = "{name}-{version}-{number}.tar.bz2".format(name=recipe['package']['name'],
-#                                     version=recipe['package']['version'],
-#                                     number=recipe['build'].get('number', 0))
     return os.path.join(path, name)
 
 
