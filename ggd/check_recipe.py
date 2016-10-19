@@ -130,22 +130,24 @@ def check_files(install_path, species, build, recipe_name,
         sys.exit(2)
     print("modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
 
-    tbis = [x for x in files if x.endswith(".tbi")]
-    nons = [x for x in files if not x.endswith(".tbi")]
+    tbis = [x for x in files if x.endswith(".tbi")] # all tbi files
+    nons = [x for x in files if not x.endswith(".tbi")] # all non tbi files
 
-    tbxs = [x[:-4] for x in tbis if x[:-4] in nons]
+    tbxs = [x[:-4] for x in tbis if x[:-4] in nons] # names of files tabixed 
 
-    nons = [x for x in nons if not x in tbxs]
+    nons = [x for x in nons if not x in tbxs] # files not tabixed or tbi
     # check for fais?
-    fais = [x for x in nons if x.endswith(".fai")]
-    nons = [x for x in nons if not x in fais]
+    fais = [x for x in nons if x.endswith(".fai")] #all fai files not tabixed or tbi
+    nons = [x for x in nons if not x in fais] # all non-fai files not tabixed or tbi
     fais = map(op.basename, fais)
 
     # ignore gzi
-    nons = [n for n in nons if not n.endswith('.gzi')]
+    nons = [n for n in nons if not n.endswith('.gzi')] # just ignore gzi files
 
     gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
-    _check_build(species, build)
+    
+    # TODO is this just repeating the _check_build call performed in the previous function?
+    # _check_build(species, build)
 
     for tbx in tbxs:
         print("> checking %s" % tbx)
@@ -193,4 +195,5 @@ def check_yaml(recipe):
     version = version.replace(" ", "")
     version = version.replace(" ", "'")
 
+    _check_build(species, build)
     return species, build, version
