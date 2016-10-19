@@ -181,7 +181,7 @@ def check_files(install_path, species, build, recipe_name,
 
 def check_yaml(recipe):
 
-    assert 'package' in recipe, ("must specify 'package:' section with data version")
+    assert 'package' in recipe and "version" in recipe['package'], ("must specify 'package:' section with data version")
     assert 'extra' in recipe, ("must specify 'extra:' section with genome-build and species")
     assert 'genome-build' in recipe['extra'], ("must specify 'extra:' section with species")
     assert 'species' in recipe['extra'], ("must specify 'extra:' section with species")
