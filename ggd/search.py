@@ -10,6 +10,7 @@ from .utils import get_builds
 from .utils import validate_build
 from .utils import RECIPE_REPO_DIR
 from .check_recipe import _to_str
+import yaml
 
 SPECIES_LIST = get_species()
 
@@ -76,7 +77,6 @@ def check_keywords(keywords, file_path):
     meta_yaml = os.path.join(file_path, "meta.yaml")
     if os.path.isfile(meta_yaml):
         with open(meta_yaml, "r") as metastream:
-            import yaml
             metadata = yaml.safe_load(metastream)
             if "keywords" in metadata['extra']:
                 for keyword in keywords:
