@@ -52,20 +52,25 @@ def conda_platform():
     return vs[0].split("platform :")[1].strip()
 
 def _build(path, recipe):
+    sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
     out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-alpha", path], stderr=sys.stderr)
     
     pattern = "Package:.+"
     result = re.search(pattern, out)
-    name = result.group().split()[1] + ".tar.bz2"
+    if result == None: ## If pattern not found
+        pattern = "updating:.+"
+        result = re.search(pattern, out)
+    
+    name = result.group().split()[1].replace(".tar.bz2","") + ".tar.bz2"
 
-    platform = conda_platform()
+    platform = "noarch" if "noarch" in recipe['build'] else conda_platform() ## Check for noarch platform
     path = op.join(conda_root(), "conda-bld", platform)
 
     return os.path.join(path, name)
 
 
-def _install(bz2):
-    sp.check_call(['conda', 'install', bz2], stderr=sys.stderr,
+def _install(bz2,recipeName):
+    sp.check_call(['conda', 'install', '--use-local', '-y', recipeName], stderr=sys.stderr,
                   stdout=sys.stdout)
 
 def get_recipe_from_bz2(fbz2):
@@ -108,7 +113,7 @@ def check_recipe(parser, args):
 
     before = list_files(install_path)
 
-    _install(bz2)
+    _install(bz2,str(recipe['package']['name']))
 
     check_files(install_path, species, build, recipe['package']['name'],
                 recipe['extra'].get('extra-files', []), before)
@@ -196,4 +201,4 @@ def check_yaml(recipe):
     version = version.replace(" ", "'")
 
     _check_build(species, build)
-    return species, build, version
+    return species, build, version,
