@@ -63,6 +63,7 @@ def make_bash(parser, args):
                   [look[prog] for prog in look if prog in recipe_bash]))
 
     recipe = {"build": {
+                  "noarch": "generic",
                   "binary_relocation": False,
                   "detect_binary_files_with_prefix": False,
                   "number": 0},
@@ -94,14 +95,17 @@ HERE=`pwd`
 popd > /dev/null
 
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
+
+if [ -d $RECIPE_DIR ]; then
+    rm -r $RECIPE_DIR
+fi
+
 mkdir -p $RECIPE_DIR
 
 recipe_env_name="ggd_{name}"
 recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
 
-
 env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
-
 
 activate_dir="$env_dir/etc/conda/activate.d"
 deactivate_dir="$env_dir/etc/conda/deactivate.d"
