@@ -201,4 +201,4 @@ def check_yaml(recipe):
     version = version.replace(" ", "'")
 
     _check_build(species, build)
-    return species, build, version,
+    return species, build, version
