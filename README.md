@@ -62,7 +62,7 @@ optional arguments:
 hg19-cosmic
 
 install a recipe with: 
-conda install -c ggd-alpha --override-channels {recipe-name}
+conda install -c ggd-dev --override-channels {recipe-name}
 
   -e EXTRA_FILE, --extra-file EXTRA_FILE
                         any files that the recipe creates that are not a *.gz
@@ -105,7 +105,7 @@ Using Anaconda API: https://api.anaconda.org
 hg19-cosmic
 
 install a recipe with: 
-conda install -c ggd-alpha --override-channels {recipe-name}
+conda install -c ggd-dev --override-channels {recipe-name}
 
 To activate inactive or out-of-date vars, run:
 source activate root
@@ -156,7 +156,7 @@ usage: ggd list-files "hg19-hello*" -s "Homo_sapiens" -g "hg19" -p "out*" -v "1"
 
 ## search
 
-Allows user to search available ggd recipes. Performs a two-part search, first checking a locally-managed copy of the ggd-recipes repository and then going to the ggd-alpha channel to verify that only fully tested packages are reported. The `keyword` arguments, if provided, are matched against the keywords stored in the meta.yaml `extra` section.
+Allows user to search available ggd recipes. Performs a two-part search, first checking a locally-managed copy of the ggd-recipes repository and then going to the ggd-dev channel to verify that only fully tested packages are reported. The `keyword` arguments, if provided, are matched against the keywords stored in the meta.yaml `extra` section.
 
 ```
 $ ggd search -h
@@ -191,5 +191,5 @@ Using Anaconda API: https://api.anaconda.org
 hg19-cosmic
 
 install a recipe with: 
-conda install -c ggd-alpha --override-channels {recipe-name}
+conda install -c ggd-dev --override-channels {recipe-name}
 ```
