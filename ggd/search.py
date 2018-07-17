@@ -52,7 +52,7 @@ def search(parser, args):
     if name == "*":
         name = ""
     conda_json = _to_str(check_output(["conda", "search", "-c",
-		"ggd-alpha", "--override-channels", "--json", name]))
+		"ggd-dev", "--override-channels", "--json", name]))
 
     matches = json.loads(conda_json)
     conda_recipes = []
@@ -67,7 +67,7 @@ def search(parser, args):
 
     if files:
         print ("\n".join(files))
-        print("\ninstall a recipe with: \nconda install -c ggd-alpha " + 
+        print("\ninstall a recipe with: \nconda install -c ggd-dev " + 
             "--override-channels {recipe-name}")
     else:
         print("No matching recipes found", file=sys.stderr)
