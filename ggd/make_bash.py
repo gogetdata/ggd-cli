@@ -84,15 +84,13 @@ def make_bash(parser, args):
     with open(os.path.join(name, "meta.yaml"), "w") as fh:
         fh.write(yaml.dump(recipe, default_flow_style=False))
 
-    with open(os.path.join(name, "pre-link.sh"), "w") as fh:
+    with open(os.path.join(name, "post-link.sh"), "w") as fh:
         fh.write("""#!/bin/bash
 set -eo pipefail -o nounset
 
 export CONDA_ROOT=$(conda info --root)
 
-pushd `dirname $0` > /dev/null
-HERE=`pwd`
-popd > /dev/null
+PKG_DIR="$PREFIX/pkgs/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM/"
 
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 
@@ -117,7 +115,7 @@ echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
 echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
 ggd show-env
 
-(cd $RECIPE_DIR && bash $HERE/../info/recipe/recipe.sh)
+(cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
 echo 'SUCCESS!'
 """.format(species=args.species,
@@ -126,7 +124,7 @@ echo 'SUCCESS!'
            version=args.version))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
-        fh.write("#!/bin/bash\nset -eo pipefail -o nounset\n")
+        fh.write("#!/bin/sh\nset -eo pipefail -o nounset\n")
         fh.write(open(args.script).read())
 
     print("wrote output to %s/" % name)
