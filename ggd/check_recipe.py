@@ -58,10 +58,10 @@ def _build(path, recipe):
     pattern = "Package:.+"
     result = re.search(pattern, out)
     if result == None: ## If pattern not found
-        pattern = "updating:.+"
-        result = re.search(pattern, out)
+        pattern = "Packaging.+"
+        result = re.findall(pattern, out)
     
-    name = result.group().split()[1].replace(".tar.bz2","") + ".tar.bz2"
+    name = result[-1].split()[1].replace(".tar.bz2","") + ".tar.bz2" #name of the file: exapmle = hg19-phastcons-1-0.tar.bz2
 
     platform = "noarch" if "noarch" in recipe['build'] else conda_platform() ## Check for noarch platform
     path = op.join(conda_root(), "conda-bld", platform)
@@ -117,7 +117,8 @@ def check_recipe(parser, args):
 
     check_files(install_path, species, build, recipe['package']['name'],
                 recipe['extra'].get('extra-files', []), before)
-    print("OK")
+
+    print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
 
 def get_modified_files(files, before_files):
     before_files = dict(before_files)
