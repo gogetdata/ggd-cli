@@ -90,7 +90,7 @@ set -eo pipefail -o nounset
 
 export CONDA_ROOT=$(conda info --root)
 
-PKG_DIR="$PREFIX/pkgs/$PKG_NAME-$PKG_VERSION-$PKG_BUILDNUM/"
+PKG_DIR=`find "$PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep "_$PKG_BUILDNUM\|-$PKG_BUILDNUM" |  grep -v ".tar.bz2"`
 
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 
@@ -117,7 +117,7 @@ ggd show-env
 
 (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
-echo 'SUCCESS!'
+echo 'Recipe successfully built!'
 """.format(species=args.species,
            name=name,
            build=args.genome_build,
