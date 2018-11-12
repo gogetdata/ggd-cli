@@ -4,32 +4,37 @@ import shutil
 import yaml
 import subprocess as sp
 from .utils import get_species 
+from .utils import get_ggd_channels
 from .show_env import get_conda_env 
 
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
+CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 
 from .check_recipe import check_output
 from .check_recipe import conda_root
 
 def add_make_bash(p):
     c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
-    c.add_argument("-s", "--species", help="species recipe is for", choices=[x.decode('ascii') for x in SPECIES_LIST],
-                   required=True)
-    c.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
-                   required=True)
-    c.add_argument("--authors", help="authors of the recipe", default=os.environ.get("USER", ""))
-    c.add_argument("--version", help="version of data itself, e.g. dbsnp-127",
-                   required=True)
-    c.add_argument("-d", "--dependency", default=[], action="append",
-        help="any software dependencies (in bioconda, conda-forge) or data-dependency (in ggd)" +
-        ". May be as many times as needed.")
-    c.add_argument("-e", "--extra-file", default=[], action="append",
-        help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair. May be used more than once")
-    c.add_argument("--summary", help="a comment describing the recipe",
-                   default="", required=True)
-    c.add_argument("-k", "--keyword", help="a keyword to associate with the recipe." +
-        " may be specified more that once.", action="append", default=[],
-                   required=True)
+    c.add_argument("-c", "--channel", help="the ggd channel to use. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
+					default='genomics')
+    c2 = c.add_argument_group("required arguments")
+    c2.add_argument("-s", "--species", help="species recipe is for", choices=[x.decode('ascii') for x in SPECIES_LIST],
+					required=True)
+    c2.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
+					required=True)
+    c2.add_argument("--authors", help="authors of the recipe", default=os.environ.get("USER", ""))
+    c2.add_argument("--version", help="version of data itself, e.g. dbsnp-127",
+					required=True)
+    c2.add_argument("-d", "--dependency", default=[], action="append",
+					help="any software dependencies (in bioconda, conda-forge) or data-dependency (in ggd)" +
+					". May be as many times as needed.")
+    c2.add_argument("-e", "--extra-file", default=[], action="append",
+					help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair. May be used more than once")
+    c2.add_argument("--summary", help="a comment describing the recipe",
+				default="", required=True)
+    c2.add_argument("-k", "--keyword", help="a keyword to associate with the recipe." +
+					" may be specified more that once.", action="append", default=[],
+					required=True)
     c.add_argument("name", help="name of recipe")
     c.add_argument("script", help="bash script that contains the commands that build the recipe")
 
@@ -70,12 +75,16 @@ def make_bash(parser, args):
               "source": {"path": "."},
               "extra": {
                   "authors": args.authors,
-                  "genome-build": args.genome_build,
-                  "species": args.species,
-                  "keywords": args.keyword,
                   "extra-files": args.extra_file,
                   },
-              "about": {"summary": args.summary},
+              "about": {
+				  "identifiers": {
+				      "species": args.species,
+					  "genome-build": args.genome_build
+				  },
+			      "keywords": args.keyword,
+			      "summary": args.summary
+				  },
               "package": {"name": name, "version": args.version},
               "requirements": {"build": deps[:],
                                "run": deps[:]},

@@ -14,6 +14,13 @@ def get_species():
     genomes_dir = os.path.join(RECIPE_REPO_DIR, "genomes")
     return os.listdir(genomes_dir)
 
+## Recipe dir is flattened. Subdirs = channels
+def get_ggd_channels():
+	update_local_repo()
+	#recipe_dir = os.path.join(RECIPE_REPO_DIR, "recipes")
+	recipe_dir = os.path.join("/uufs/chpc.utah.edu/common/home/u1138933/QuinlanLab/ggd/post-link-recipes/ggd-recipes","recipes")
+	return os.listdir(recipe_dir)
+
 def get_builds(species):
     update_local_repo()
     species_dir = os.path.join(RECIPE_REPO_DIR, "genomes", species)

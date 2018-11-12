@@ -191,13 +191,13 @@ def check_yaml(recipe):
 
     assert 'package' in recipe and "version" in recipe['package'], ("must specify 'package:' section with data version")
     assert 'extra' in recipe, ("must specify 'extra:' section with genome-build and species")
-    assert 'genome-build' in recipe['extra'], ("must specify 'extra:' section with species")
-    assert 'species' in recipe['extra'], ("must specify 'extra:' section with species")
-    assert 'keywords' in recipe['extra'] and \
-        isinstance(recipe['extra']['keywords'], list), ("must specify 'extra:' section with keywords")
     assert 'about' in recipe and 'summary' in recipe['about'], ("must specify an 'about/summary' section")
+    assert 'genome-build' in recipe['about']['identifiers'], ("must specify 'about:' section with species")
+    assert 'species' in recipe['about']['identifiers'], ("must specify 'about:' section with species")
+    assert 'keywords' in recipe['about'] and \
+        isinstance(recipe['about']['keywords'], list), ("must specify 'about:' section with keywords")
 
-    species, build, version = recipe['extra']['species'], recipe['extra']['genome-build'], recipe['package']['version']
+    species, build, version = recipe['about']['identifiers']['species'], recipe['about']['identifiers']['genome-build'], recipe['package']['version']
     version = version.replace(" ", "")
     version = version.replace(" ", "'")
 
