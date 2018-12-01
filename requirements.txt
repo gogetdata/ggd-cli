@@ -1,4 +1,4 @@
-requests
+requests>=2.20.0
 gitpython
 conda-build=3.16.2
 conda>=4.5.11
