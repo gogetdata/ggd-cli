@@ -1,87 +1,218 @@
+#-------------------------------------------------------------------------------------------------------------
+## Import Statements
+#-------------------------------------------------------------------------------------------------------------
 from __future__ import print_function
-import sys
+import sys 
 import os
+import argparse
 import glob
 import json
-from subprocess import check_output
-from subprocess import call
-from .utils import get_species 
-from .utils import get_builds
-from .utils import validate_build
-from .utils import RECIPE_REPO_DIR
-from .check_recipe import _to_str
-import yaml
+from fuzzywuzzy import fuzz
+from fuzzywuzzy import process
+from .utils import get_species
+from .utils import get_ggd_channels
+from .utils import get_channel_data
 
 SPECIES_LIST = get_species()
+CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
+#CHANNEL_DATA = get_channel_data()
+## TODO: 
+## get_ggd_channels and get_channel_data in .utils needs to be update when ggd-recipes is pushed and merged into master
 
+#-------------------------------------------------------------------------------------------------------------
+## Argument Parser
+#-------------------------------------------------------------------------------------------------------------
 def add_search(p):
-    c = p.add_parser('search', help="search conda's available recipes. ")
-    c.add_argument("-s", "--species", help="species recipe is for", choices=SPECIES_LIST)
-    c.add_argument("-g", "--genome-build", help="genome build the recipe is for")
-    c.add_argument("-k", "--keyword", action="append", help="keywords to narrow search. " + 
-        "Repeat argument to use multiple keywords")
-    c.add_argument("name", help="pattern to match the name of the recipe desired. Ex. `ggd " + 
-        "search \"hg19*\" -s \"Homo_sapiens\" -g \"hg19\"`")
-    c.set_defaults(func=search)
+	c = p.add_parser("search", help="Search for a data recipe stored in ggd")
+	c.add_argument("-t", "--term", nargs="+", required=True, help="**Required** The term(s) to search for. Multiple terms can be used. Example: '-t grch37 reference genome'")
+	c.add_argument("-j", "--json", required=True, help="**Required** path to the channeldata.json file")
+	c.add_argument("-g", "--genome_build", help="(Optional) The genome build of the desired recipe")
+	c.add_argument("-s", "--species", help="(Optional) The species for the desired recipe")
+	c.add_argument("-k", "--keyword", nargs="+", help="(Optional) Keyword(s) the are used to describe the recipe. Multiple keywords can be used. Example: '-k ref reference genome'")
+	c.add_argument("-m", "--match_score", default="50", help="(Optional) A score between 0 and 100 to use percent match between the search term(s) and the ggd-recipes")
+	c.add_argument("-c", "--channel", help="(Optional) The ggd channel to search. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
+					default="genomics")
+	c.set_defaults(func=search)
 
 
-def search(parser, args):   
-    name = args.name
-    species = args.species if args.species else "*"
-    build = args.genome_build if args.genome_build else "*"
-    keywords = args.keyword if args.keyword else False
+#-------------------------------------------------------------------------------------------------------------
+## Functions/Methods
+#-------------------------------------------------------------------------------------------------------------
 
-    if not validate_build(build, species):
-        exit(1)
+# load_json
+# =========
+# Method to load a json file 
+#
+# Parameters:
+# ---------
+# 1) jfile: The path to the json file
+#
+# Returns:
+# 1) A dictionary of a json object 
+def load_json(jfile):
+    with open(jfile) as jsonFile:
+       return(json.load(jsonFile))
 
-    # if empty string, use star expansion for glob
-    if name == "":
-        name = "*"
 
-    path = os.path.join(RECIPE_REPO_DIR, "recipes", species, build, name)
-    files = []
+# search_packages
+# ==============
+# Method to search for ggd packages/recipes 
+#  contaniing specific search terms 
+#
+# Parameters:
+# ---------
+# 1) jsonDict: A json file loaded into a dictionary. (The file to search)
+#               the load_json() method creates the dictionary 
+# 2) searchTerm: A term or list of terms representing package names to search for
+#
+# Returns:
+# 1) A list of each packages within the json dictionary, and the match score for reach. 
+#     The match score is between 0 and 100, representing the percent match 
+def search_packages(jsonDict,searchTerm):
+    packages = jsonDict["packages"].keys()
+    matchList = process.extract(searchTerm,packages,limit=10000) 
+    return(matchList)
 
-    for file_path in glob.glob(path):
-        if not keywords:
-            files.append(os.path.split(file_path)[1])
-        elif check_keywords(keywords, file_path):
-            files.append(os.path.split(file_path)[1])
+
+# print_summary
+# ============
+# Method used to print out the final set of searched packages
+#
+# Parameters:
+# ---------
+# 1) jsonDict: The json dictionary from the load_json() method
+# 2) matchList: The filtered and final set of searched recipes
+def print_summary(searchTerms,jsonDict,matchList):
+    if len(matchList) < 1:
+        print("\n\tNo results for %s. Update your search term and try again" %searchTerms)
+        sys.exit()
+    for key in matchList:
+        print("\n\n", key[0])
+        if "summary" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["summary"]:
+            print("\tSummary :", jsonDict["packages"][key[0]]["summary"])
+        if "identifiers" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["identifiers"]:
+            print("\tSpecies :", jsonDict["packages"][key[0]]["identifiers"]["species"])
+            print("\tGenome Build :", jsonDict["packages"][key[0]]["identifiers"]["genome-build"])
+        if "keywords" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["keywords"]: 
+            print("\tKeywords :", ", ".join(jsonDict["packages"][key[0]]["keywords"]))
+        print("\n\tTo install run:\n\t\tggd install %s" %key[0])
+    
+
+# filter_by_score
+# ==============
+# Method used to filter the match scored package list based on a match score.
+#  Any packages at or above the match score will be included in the final set
+#
+# Parameters:
+# ----------
+# 1) filterScore: The match score to filter the recipes by
+# 2) matchList: The list of recipes with match scores
+# 
+# Returns:
+# 1) a new list of recipes filtered by the match score
+def filter_by_score(filterScore,matchList):
+    newMatchList = [x for x in matchList if x[1] >= int(filterScore)]
+    return(newMatchList)
+
+
+# filter_by_identifiers
+# =====================
+# A method used to filter the list of recipes by information in the 
+#  identifiers field in the channeldata.json file
+#
+# Parameters:
+# ----------
+# 1) iden_key: The identifiers key. Example = genome_build
+# 2) matchList: The list of recipes with match scores 
+# 3) jsonDict: The json dictionary craeted from laod_json()
+# 4) filterTerm: The term to filter by. Example: Homo_sapiens
+#
+# Returns:
+# 1) A filtered list of pacakges
+def filter_by_identifiers(iden_key,matchList,jsonDict,filterTerm):
+    tempDict = {}
+    tempSet = set()
+    if len(matchList) < 1:
+        print("\n\t---------------------------------------------\n\t|  No recipes to filter using '%s' | \n\t---------------------------------------------" %filterTerm)
+        sys.exit()
+    for key in matchList:
+        identifierTerm  = jsonDict["packages"][key[0]]["identifiers"][iden_key] 
+        tempSet.add(identifierTerm)
+        if identifierTerm in tempDict:
+            tempDict[identifierTerm].append(key)
+        else:
+            tempDict[identifierTerm] = [key]
         
-
-    # if using star (*) expansion, should search all items in conda channel
-    if name == "*":
-        name = ""
-    conda_json = _to_str(check_output(["conda", "search", "-c",
-		"ggd-alpha", "--override-channels", "--json", name]))
-
-    matches = json.loads(conda_json)
-    conda_recipes = []
-    for matches_key in matches:
-        for match_data in matches[matches_key]:
-            for match_data_key in match_data:
-                if match_data_key == "name":
-                    conda_recipes.append(match_data[match_data_key])
-    for filename in files:
-        if filename not in conda_recipes:
-            files.remove(filename)
-
-    if files:
-        print ("\n".join(files))
-        print("\ninstall a recipe with: \nconda install -c ggd-alpha " + 
-            "--override-channels {recipe-name}")
+    filteredList = process.extract(filterTerm,tempSet,limit=100) 
+    if filteredList[0][1] > 85: ## Match score greater than 85%
+        return(tempDict[filteredList[0][0]])
     else:
-        print("No matching recipes found", file=sys.stderr)
-        exit(1)
+        print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
+        print("\tThe un-filtered list will be used\n")
+        if iden_key == "species":
+			print("\tAvaiable species terms = %s" %SPECIES_LIST)
+        return(matchList)
 
-def check_keywords(keywords, file_path):
-    meta_yaml = os.path.join(file_path, "meta.yaml")
-    if os.path.isfile(meta_yaml):
-        with open(meta_yaml, "r") as metastream:
-            metadata = yaml.safe_load(metastream)
-            if "keywords" in metadata['extra']:
-                for keyword in keywords:
-                    if keyword not in metadata['extra']['keywords']:
-                        return False
+
+# filter_by_keywords
+# =====================
+# A method used to filter the list of recipes by information in the 
+#  keywords field in the channeldata.json file
+#
+# Parameters:
+# ----------
+# 1) matchList: The list of recipes with match scores 
+# 2) jsonDict: The json dictionary craeted from laod_json()
+# 3) filterTerm: The term to filter by. Example: regions
+#
+# Returns:
+# 1) A filtered list of pacakges
+def filter_by_keywords(matchList,jsonDict,filterTerm):
+    tempDict = {}
+    tempSet = set()
+    if len(matchList) < 1:
+        print("\n\t---------------------------------------------\n\t|  No recipes to filter using '%s' | \n\t---------------------------------------------" %filterTerm)
+        sys.exit()
+    for key in matchList:
+        identifierTerm  = jsonDict["packages"][key[0]]["keywords"] 
+        for keyword in identifierTerm:
+            tempSet.add(keyword)
+            if keyword in tempDict:
+                tempDict[keyword].append(key)
             else:
-                return False
-    return True
+                tempDict[keyword] = [key]
+    filteredList = process.extract(filterTerm,tempSet,limit=100) 
+    if filteredList[0][1] > 65: ## Match score greater than 65%
+        return(tempDict[filteredList[0][0]])
+    else:
+        print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
+        print("\tThe un-filtered list will be used\n")
+        return(matchList)
+
+
+# search
+# =====
+# Main method for running a recipe search
+#
+# Parameters:
+# ----------
+# 1) parser  
+# 2) args
+def search(parser, args):
+	## load the channeldata.json file
+	jDict = load_json(args.json)
+	#jDict = load_json(CHANNEL_DATA)
+	matchResults = search_packages(jDict,str(args.term))
+
+	## extra filtering 
+	matchResults = filter_by_score(args.match_score,matchResults)
+	if args.genome_build:
+		matchResults = filter_by_identifiers("genome-build",matchResults,jDict,args.genome_build)
+	if args.species:
+		matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
+	if args.keyword:
+		matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
+
+	## Print search results
+	print_summary(args.term,jDict,matchResults)
+
