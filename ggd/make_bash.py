@@ -99,7 +99,7 @@ set -eo pipefail -o nounset
 
 export CONDA_ROOT=$(conda info --root)
 
-PKG_DIR=`find "$PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep "_$PKG_BUILDNUM\|-$PKG_BUILDNUM" |  grep -v ".tar.bz2"`
+PKG_DIR=`find "$PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep "$PKG_VERSION-.*$PKG_BUILDNUM\|$PKG_VERSION\_.*$PKG_BUILDNUM" | grep -v ".tar.bz2"`
 
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 
