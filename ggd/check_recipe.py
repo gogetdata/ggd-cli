@@ -122,7 +122,7 @@ def check_recipe(parser, args):
 
 def get_modified_files(files, before_files):
     before_files = dict(before_files)
-    files = [p for p, mtime in files if mtime > before_files.get(p, 0)]
+    files = [p for p, mtime in files if mtime != before_files.get(p, 0)]
     return files
 
 def check_files(install_path, species, build, recipe_name,
