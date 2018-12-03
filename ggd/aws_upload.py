@@ -138,7 +138,7 @@ def copy_file_from_tarInfo_Object(tarball_info_object):
 # make_postlink_str
 # =================
 # Method used to create a new post-link.sh script. This script will be similar to the original 
-#  pkg's post-link script. The major difference is that it will run an amazon_recipe.sh script 
+#  pkg's post-link script. The major difference is that it will run an cache_recipe.sh script 
 #  instead of the original recipe.sh script. This script will contain information on how to 
 #  download the processed files stored on an aws S3 bucket. This will speed up the process of 
 #  obtaining the pkg files. 
@@ -196,7 +196,7 @@ echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
 echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
 ggd show-env
 
-(cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/amazon_recipe.sh)
+(cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/cache_recipe.sh)
 
 echo 'Recipe successfully built!'
 """.format(species=species_name,
@@ -207,7 +207,7 @@ echo 'Recipe successfully built!'
 	return(postlink_str)
 
 
-# create_amazon_recipe
+# create_cache_recipe
 # ===================
 # Method used to create a new recipe.sh script which is used to download 
 #  already processed ggd recipes from an aws s3 bucket
@@ -218,20 +218,21 @@ echo 'Recipe successfully built!'
 # 2) s3_bucket_name: The name of the s3 bucket where the files are stored
 #
 # Returns:
-# 1) A string representing the new amazon_recipe.sh script
-def create_amazon_recipe(s3_urls, s3_bucket_name):
-	amazon_recipe_str = """#! /bin/sh
+# 1) A string representing the new cache_recipe.sh script
+def create_cache_recipe(s3_urls, s3_bucket_name):
+	cache_recipe_str = """#! /bin/sh
 set -eo pipefail -o nounset
 CONDA_ROOT=$(conda info --root)
 
 """
 	for url in s3_urls:
 		filepath = url.split("/{bucket}/".format(bucket = s3_bucket_name))[1]
+		filename = filepath.split("/")[-1]
 		filepath = "/".join(filepath.split("/")[0:-1])
-		amazon_recipe_str += "cd $CONDA_ROOT/share/ggd/{file_path}/\n".format(file_path = filepath)
-		amazon_recipe_str += "wget --quiet {new_url}\n".format(new_url=url)
+		cache_recipe_str += "cd $CONDA_ROOT/share/ggd/{file_path}/\n".format(file_path = filepath)
+		cache_recipe_str += "curl {new_url} -o {file_name}\n".format(new_url=url, file_name=filename)
 	
-	return(amazon_recipe_str)
+	return(cache_recipe_str)
 		
 
 # write_file
@@ -245,7 +246,7 @@ CONDA_ROOT=$(conda info --root)
 # 3) file_str: The string contaning file contents 
 def write_file(file_path,file_name,file_str):
 	if not os.path.isdir(file_path):
-		print("\n-> Making a new directory: %s" %(file_path))
+		print("\n-> Making a new directory: %s" %(file_path)) 
 		os.makedirs(file_path)
 		
 	print("\n-> Writing '%s' to '%s'" %(file_name, file_path))
@@ -290,8 +291,8 @@ with tarfile.open(args.tarfile, "r:bz2") as tarball_file:
 	new_postlink_str = make_postlink_str(ggd_paths, pkg_species, pkg_name, pkg_genome_build, pkg_version)
 	write_file(new_file_path,"post-link.sh",new_postlink_str)
 	## Make a new recipe.sh script to download files from aws S3 bucket 
-	amazon_recipe = create_amazon_recipe(pkg_urls, args.name)
-	write_file(new_file_path,"amazon_recipe.sh",amazon_recipe)
+	cache_recipe = create_cache_recipe(pkg_urls, args.name)
+	write_file(new_file_path,"cache_recipe.sh",cache_recipe)
 
 print("\n-> Pkg files uploaded to the aws S3 %s bucket. \n-> A new pkg has been created for installing the pkg using the S3 bucket. \
       \n-> !The new pkg needs to be uploaded to the conda cloud (NOT Implemented Yet)!" %args.name)
