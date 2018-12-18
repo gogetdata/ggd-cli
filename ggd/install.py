@@ -88,7 +88,7 @@ def check_S3_bucket(ggd_recipe, ggd_jdict):
 	if "tags" in ggd_jdict["packages"][ggd_recipe]:
 		if "cached" in ggd_jdict["packages"][ggd_recipe]["tags"]:
 			if "uploaded_to_aws" in ggd_jdict["packages"][ggd_recipe]["tags"]["cached"]:
-			print("\n\t-> The %s package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from this aws S3 bucket")
+				print("\n\t-> The %s package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from this aws S3 bucket")
 
 
 # conda_install
