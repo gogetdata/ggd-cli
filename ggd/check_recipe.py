@@ -53,7 +53,7 @@ def conda_platform():
 
 def _build(path, recipe):
     sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
-    out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-alpha", path], stderr=sys.stderr)
+    out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
     
     pattern = "Package:.+"
     result = re.search(pattern, out)
