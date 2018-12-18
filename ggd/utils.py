@@ -18,17 +18,17 @@ def get_species():
 
 ## Should be called after get_species
 def get_ggd_channels():
-	recipe_dir = os.path.join(RECIPE_REPO_DIR, "recipes")
-	return os.listdir(recipe_dir)
+    recipe_dir = os.path.join(RECIPE_REPO_DIR, "recipes")
+    return os.listdir(recipe_dir)
 
 def get_channel_data(ggd_channel):
-	update_metadata_local_repo()
-	channeldata_path = os.path.join(METADATA_REPO_DIR, "channeldata", ggd_channel, "channeldata.json")
-	return (channeldata_path)
+    update_metadata_local_repo()
+    channeldata_path = os.path.join(METADATA_REPO_DIR, "channeldata", ggd_channel, "channeldata.json")
+    return (channeldata_path)
 
 def get_channeldata_url(ggd_channel):
-	return(os.path.join("https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata", ggd_channel,
-			"channeldata.json"))
+    return(os.path.join("https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata", ggd_channel,
+            "channeldata.json"))
 
 def get_builds(species):
     update_local_repo()
