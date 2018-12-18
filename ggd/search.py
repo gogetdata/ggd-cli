@@ -21,15 +21,15 @@ CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 ## Argument Parser
 #-------------------------------------------------------------------------------------------------------------
 def add_search(p):
-	c = p.add_parser("search", help="Search for a data recipe stored in ggd")
-	c.add_argument("-t", "--term", nargs="+", required=True, help="**Required** The term(s) to search for. Multiple terms can be used. Example: '-t reference genome'")
-	c.add_argument("-g", "--genome_build", help="(Optional) The genome build of the desired recipe")
-	c.add_argument("-s", "--species", help="(Optional) The species for the desired recipe", choices=SPECIES_LIST)
-	c.add_argument("-k", "--keyword", nargs="+", help="(Optional) Keyword(s) the are used to describe the recipe. Multiple keywords can be used. Example: '-k ref reference genome'")
-	c.add_argument("-m", "--match_score", default="50", help="(Optional) A score between 0 and 100 to use percent match between the search term(s) and the ggd-recipes")
-	c.add_argument("-c", "--channel", help="(Optional) The ggd channel to search. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
-					default="genomics")
-	c.set_defaults(func=search)
+    c = p.add_parser("search", help="Search for a data recipe stored in ggd")
+    c.add_argument("-t", "--term", nargs="+", required=True, help="**Required** The term(s) to search for. Multiple terms can be used. Example: '-t reference genome'")
+    c.add_argument("-g", "--genome_build", help="(Optional) The genome build of the desired recipe")
+    c.add_argument("-s", "--species", help="(Optional) The species for the desired recipe", choices=SPECIES_LIST)
+    c.add_argument("-k", "--keyword", nargs="+", help="(Optional) Keyword(s) the are used to describe the recipe. Multiple keywords can be used. Example: '-k ref reference genome'")
+    c.add_argument("-m", "--match_score", default="50", help="(Optional) A score between 0 and 100 to use percent match between the search term(s) and the ggd-recipes")
+    c.add_argument("-c", "--channel", help="(Optional) The ggd channel to search. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
+                    default="genomics")
+    c.set_defaults(func=search)
 
 
 #-------------------------------------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def load_json(jfile):
 # Returns:
 # 1) A dictionary of a json object 
 def load_json_from_url(json_url):
-	return(requests.get(json_url).json())
+    return(requests.get(json_url).json())
 
 
 # search_packages
@@ -108,10 +108,10 @@ def print_summary(searchTerms,jsonDict,matchList):
         if "keywords" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["keywords"]: 
             print("\tKeywords:", ", ".join(jsonDict["packages"][key[0]]["keywords"]))
         if "tags" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["tags"]:
-			if "data-version" in jsonDict["packages"][key[0]]["tags"]:
-				print("\tData Version:", jsonDict["packages"][key[0]]["tags"]["data-version"])
-			if "cache" in jsonDict["packages"][key[0]]["tags"]:
-				print("\tCached:", jsonDict["packages"][key[0]]["tags"]["cached"])
+            if "data-version" in jsonDict["packages"][key[0]]["tags"]:
+                print("\tData Version:", jsonDict["packages"][key[0]]["tags"]["data-version"])
+            if "cache" in jsonDict["packages"][key[0]]["tags"]:
+                print("\tCached:", jsonDict["packages"][key[0]]["tags"]["cached"])
         print("\n\tTo install run:\n\t\tggd install %s" %key[0])
     
 
@@ -167,7 +167,7 @@ def filter_by_identifiers(iden_key,matchList,jsonDict,filterTerm):
         print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
         print("\tThe un-filtered list will be used\n")
         if iden_key == "species":
-			print("\tAvaiable species terms = %s" %SPECIES_LIST)
+            print("\tAvaiable species terms = %s" %SPECIES_LIST)
         return(matchList)
 
 
@@ -216,20 +216,20 @@ def filter_by_keywords(matchList,jsonDict,filterTerm):
 # 1) parser  
 # 2) args
 def search(parser, args):
-	## load the channeldata.json file
-	jDict = load_json_from_url(get_channeldata_url(args.channel))
-	#jDict = load_json(CHANNEL_DATA)
-	matchResults = search_packages(jDict,str(args.term))
+    ## load the channeldata.json file
+    jDict = load_json_from_url(get_channeldata_url(args.channel))
+    #jDict = load_json(CHANNEL_DATA)
+    matchResults = search_packages(jDict,str(args.term))
 
-	## extra filtering 
-	matchResults = filter_by_score(args.match_score,matchResults)
-	if args.genome_build:
-		matchResults = filter_by_identifiers("genome-build",matchResults,jDict,args.genome_build)
-	if args.species:
-		matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
-	if args.keyword:
-		matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
+    ## extra filtering 
+    matchResults = filter_by_score(args.match_score,matchResults)
+    if args.genome_build:
+        matchResults = filter_by_identifiers("genome-build",matchResults,jDict,args.genome_build)
+    if args.species:
+        matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
+    if args.keyword:
+        matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
 
-	## Print search results
-	print_summary(args.term,jDict,matchResults)
+    ## Print search results
+    print_summary(args.term,jDict,matchResults)
 
