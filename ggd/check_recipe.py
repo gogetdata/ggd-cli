@@ -70,7 +70,7 @@ def _build(path, recipe):
 
 
 def _install(bz2,recipeName):
-    sp.check_call(['conda', 'install', '--use-local', '-y', recipeName], stderr=sys.stderr,
+    sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName], stderr=sys.stderr,
                   stdout=sys.stdout)
 
 def get_recipe_from_bz2(fbz2):
