@@ -5,7 +5,7 @@ with open('ggd/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 
-requires = open("requirements.txt")
+requires = ["pyyaml"]
 setup(
     name="ggd",
     version=version,
