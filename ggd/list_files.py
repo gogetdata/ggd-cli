@@ -50,18 +50,18 @@ def add_list_files(p):
 # 2) build: The genome build for the ggd-recipe
 # 3) version: The version of the ggd-recipe
 def in_ggd_channel(ggd_recipe, ggd_channel):
-	CHANNELDATA_URL = get_channeldata_url(ggd_channel)
-	json_dict = load_json_from_url(CHANNELDATA_URL)
-	package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
-	if ggd_recipe in package_list:
-		species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
-		build = json_dict["packages"][ggd_recipe]["identifiers"]["genome-build"]
-		version = json_dict["packages"][ggd_recipe]["version"] 
-		return(species,build,version)
-	else:
-		print("\n\t-> %s is not in the ggd-%s channel" %(ggd_recipe, ggd_channel))
-		print("\t-> Similar recipes include: \n\t\t- {recipe}".format(recipe="\n\t\t- ".join(package_list[0:5])))
-		sys.exit(1)
+    CHANNELDATA_URL = get_channeldata_url(ggd_channel)
+    json_dict = load_json_from_url(CHANNELDATA_URL)
+    package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
+    if ggd_recipe in package_list:
+        species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
+        build = json_dict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+        version = json_dict["packages"][ggd_recipe]["version"] 
+        return(species,build,version)
+    else:
+        print("\n\t-> %s is not in the ggd-%s channel" %(ggd_recipe, ggd_channel))
+        print("\t-> Similar recipes include: \n\t\t- {recipe}".format(recipe="\n\t\t- ".join(package_list[0:5])))
+        sys.exit(1)
 
 
 # list_files
