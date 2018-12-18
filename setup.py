@@ -5,13 +5,13 @@ with open('ggd/__init__.py', 'r') as fd:
     version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
                         fd.read(), re.MULTILINE).group(1)
 
-requires = ["pyyaml"]
+requires = open("requirements.txt")
 setup(
     name="ggd",
     version=version,
     description="CLI for gogetdata (ggd)",
     long_description=open("README.md").read(),
-    author="Brent Pedersen",
+    author="Michael Cormier, Brent Pedersen, GGD Team",
     author_email="bpederse@gmail.com",
     url="https://github.com/gogetdata/ggd-cli",
     packages=['ggd', 'ggd.tests'],
