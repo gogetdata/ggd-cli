@@ -7,20 +7,23 @@ import os
 import subprocess as sp
 import glob
 import shutil
+import re
 from .check_recipe import conda_root
+from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channel_data
-from .search import load_json, search_packages
+from .utils import get_channeldata_url
+from .search import load_json, load_json_from_url, search_packages
 
-
+SPECIES_LIST = get_species()
 
 #-------------------------------------------------------------------------------------------------------------
 ## Argument Parser 
 #-------------------------------------------------------------------------------------------------------------
 def add_uninstall(p):
 	c = p.add_parser('uninstall', help="uninstall a ggd data recipe")
-	c.add_argument("name", help="the name of the recipe to uninstall")
 	c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), help="The ggd channel of the recipe to uninstall. (Default = genomics)")
+	c.add_argument("name", help="the name of the recipe to uninstall")
 	c.set_defaults(func=uninstall)
 
 
@@ -34,27 +37,51 @@ def add_uninstall(p):
 # Method to get the channel data and check if the recipe is within that channel.
 #  This method is to identify the files installed during installation, but that 
 #  won't be removed by normal uninstalling. These files will be removed by the 
-#  check_if_installed() method if it is found within the channeldata.json file
+#  check_for_installation() method if it is found within the channeldata.json file
 def get_channeldata(ggd_recipe,ggd_channel):
-	CHANNEL_DATA = get_channel_data(ggd_channel)
-	jdict = load_json(CHANNEL_DATA)
+	CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
+	jdict = load_json_from_url(CHANNEL_DATA_URL)
 	package_list = [x[0] for x in search_packages(jdict,ggd_recipe)]
 	if ggd_recipe in package_list:
 		return(jdict)
 	else:
-		print("\n\t-> %s is not in the ggd-%s channel." %(ggd_recipe,ggd_channel))
-		print("\t-> %s will still be uninstalled, however, the packages will remain on your system." %ggd_recipe)
-		print("\t-> To remove completely, provide the correct ggd-channel. Current ggd-channel = %s" %ggd_channel)
-		return({})
+		print("\n\t-> %s is not in the ggd-%s channel" %(ggd_recipe,ggd_channel))
+		similar_pkgs = get_similar_pkg_installed_by_conda(ggd_recipe)
+		if len(similar_pkgs) > 0:
+			print("\n\t-> Packages installed on your system that are similar include:\n\t\t Package\tChannel\n\t\t-%s" %"\n\t\t-".join([x for x in similar_pkgs.split("\n")]))
+			print("\n\t-> If one of these packages is the desired package to uninstall please rerun ggd uninstall with the desired package name and correct ggd channel name")
+			print("\n\t-> Note: If the the package is not a part of a ggd channel run 'conda uninstall <pkg>' to uninstall")
+			print("\n\t\t-> GGD channels include: %s" %",".join(get_ggd_channels()))
+		else:
+			print("\n\t-> Unable to find any package similar to the package entered. Use 'ggd search' or 'ggd find' to identify the right package")
+			print("\n\t-> This package may not be installed on your system")
+		sys.exit(1)
 		
 
-# check_if_installed
+# get_similar_pkg_installed_by_conda
+#  ================================
+# Method to identify if there are similar packages to the one provided installed by conda that could be 
+#  uninstalled. Porvides a list of potential pkg names
+# 
+# Parameters:
+# ----------
+# 1) ggd_recipe: The ggd_recipe name. (May not be an actuall ggd_recipe)
+# 
+# Returns:
+# A string of pkgs and channels, with each pkg-channel spereated from another by a new line
+def get_similar_pkg_installed_by_conda(ggd_recipe):
+	conda_package_list = sp.check_output(["conda", "list"]).split("\n")
+	## Index 0 = name, index -1 = channel name
+	return("\n".join([pkg.split(" ")[0]+"\t"+pkg.split(" ")[-1] for pkg in conda_package_list if ggd_recipe in pkg]))
+
+
+# check_for_installation
 # =================
 # Method used to remove extra files created during recipe installation, but that are not 
 #  removed during normal uninstallation. 
 # This method depends on the get_channeldata method. If the recipe is not found in the 
 #  channeldata.json file the extra files will not be removed. 
-def check_if_installed(ggd_recipe,ggd_jdict):
+def check_for_installation(ggd_recipe,ggd_jdict):
 	species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
 	build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
 	version = ggd_jdict["packages"][ggd_recipe]["version"]
@@ -105,6 +132,7 @@ def conda_uninstall(ggd_recipe):
 		sp.check_call(["conda", "uninstall", "-y", ggd_recipe], stderr=sys.stderr, stdout=sys.stdout)
 	except sp.CalledProcessError as e:
 		sys.stderr.write("ERROR in uninstall %s" %ggd_recipe)
+		sys.stderr.write(e)
 		sys.exit(e.returncode)
 
 
@@ -119,7 +147,7 @@ def uninstall(parser, args):
 	check_conda_installation(args.name)
 	## Check if the recipe is in file system   
 	if len(ggd_jsonDict) > 0:
-		check_if_installed(args.name,ggd_jsonDict)
+		check_for_installation(args.name,ggd_jsonDict)
 	else:
 		print("\n\t-> Skipping pakage removal from system step")
 
