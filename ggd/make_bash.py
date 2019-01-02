@@ -22,6 +22,8 @@ def add_make_bash(p):
                     ". May be as many times as needed.")
     c.add_argument("-e", "--extra-file", default=[], action="append",
                     help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair. May be used more than once")
+    c.add_argument("-p", "--platform", default="noarch", help="Whether to use noarch as the platfrom or the system platform. If set to 'none' the system platform will be used. (Default = noarch. Noarch means no architecture and is platform agnostic.)",
+                    choices=["noarch", "none"])
     c2 = c.add_argument_group("required arguments")
     c2.add_argument("-s", "--species", help="species recipe is for", choices=[x.decode('ascii') for x in SPECIES_LIST],
                     required=True)
@@ -69,31 +71,60 @@ def make_bash(parser, args):
               set([look.get(p, p) for p in args.dependency] +
                   [look[prog] for prog in look if prog in recipe_bash]))
 
-    recipe = {"build": {
-                  "noarch": "generic",
-                  "binary_relocation": False,
-                  "detect_binary_files_with_prefix": False,
-                  "number": 0},
-              "source": {"path": "."},
-              "extra": {
-                  "authors": args.authors,
-                  "extra-files": args.extra_file,
-                  },
-              "about": {
-                  "identifiers": {
-                      "species": args.species,
-                      "genome-build": args.genome_build
-                  },
-                  "keywords": args.keyword,
-                  "summary": args.summary,
-                  "tags": {
-                    "data-version": args.data_version
-                    },
-                  },
-              "package": {"name": name, "version": args.ggd_version},
-              "requirements": {"build": deps[:],
-                               "run": deps[:]},
-              }
+    recipe = {}
+    if args.platform == "noarch":
+        recipe = {"build": {
+                      "noarch": "generic",
+                      "binary_relocation": False,
+                      "detect_binary_files_with_prefix": False,
+                      "number": 0},
+                  "source": {"path": "."},
+                  "extra": {
+                      "authors": args.authors,
+                      "extra-files": args.extra_file,
+                      },
+                  "about": {
+                      "identifiers": {
+                          "species": args.species,
+                          "genome-build": args.genome_build
+                      },
+                      "keywords": args.keyword,
+                      "summary": args.summary,
+                      "tags": {
+                        "data-version": args.data_version,
+                        "ggd-channel": args.channel
+                        },
+                      },
+                  "package": {"name": name, "version": args.ggd_version},
+                  "requirements": {"build": deps[:],
+                                   "run": deps[:]},
+                  }
+    else:
+        recipe = {"build": {
+                      "binary_relocation": False,
+                      "detect_binary_files_with_prefix": False,
+                      "number": 0},
+                  "source": {"path": "."},
+                  "extra": {
+                      "authors": args.authors,
+                      "extra-files": args.extra_file,
+                      },
+                  "about": {
+                      "identifiers": {
+                          "species": args.species,
+                          "genome-build": args.genome_build
+                      },
+                      "keywords": args.keyword,
+                      "summary": args.summary,
+                      "tags": {
+                        "data-version": args.data_version,
+                        "ggd-channel": args.channel
+                        },
+                      },
+                  "package": {"name": name, "version": args.ggd_version},
+                  "requirements": {"build": deps[:],
+                                   "run": deps[:]},
+                  }
 
     with open(os.path.join(name, "meta.yaml"), "w") as fh:
         fh.write(yaml.dump(recipe, default_flow_style=False))
@@ -104,7 +135,7 @@ set -eo pipefail -o nounset
 
 export CONDA_ROOT=$(conda info --root)
 
-PKG_DIR=`find "$PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep "$PKG_VERSION-.*$PKG_BUILDNUM\|$PKG_VERSION\_.*$PKG_BUILDNUM" | grep -v ".tar.bz2"`
+PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION-.*$PKG_BUILDNUM$\|$PKG_VERSION\_.*$PKG_BUILDNUM$"`
 
 export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 
@@ -142,4 +173,4 @@ echo 'Recipe successfully built!'
         fh.write(open(args.script).read())
 
     print("wrote output to %s/" % name)
-    print("build with 'conda build %s/" % name)
+    print("check build with 'ggd check-recipe %s/" % name)
