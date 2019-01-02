@@ -141,16 +141,19 @@ def print_recipe(tarball_info_object, ggd_recipe):
 # 3) show_recipe: A bool value, where if true will print the recipe.sh script
 def get_pkg_info(ggd_recipe, ggd_channel,show_recipe):
 	installed_pkg = sp.check_output(['conda', 'list', ggd_recipe])
-	pkg_str = [x for x in installed_pkg.split("\n") if ggd_recipe in x][0]
-	pkg_version = re.sub(" +","\t",pkg_str).split("\t")[1] # Pkg Version 
-	pkg_build = re.sub(" +","\t",pkg_str).split("\t")[2] # Pkg Build
-	pkg_tar_file = "{}-{}-{}.tar.bz2".format(ggd_recipe, pkg_version, pkg_build)
-	CONDA_ROOT = conda_root()	
-	file_path = os.path.join(CONDA_ROOT, "pkgs", pkg_tar_file)
-	with tarfile.open(file_path, "r:bz2") as tarball_file:
-		get_meta_yaml_info(tarball_file.extractfile(tarball_file.getmember("info/recipe/meta.yaml.template")), ggd_recipe, ggd_channel)
-		if show_recipe:
-			print_recipe(tarball_file.extractfile(tarball_file.getmember("info/recipe/recipe.sh")), ggd_recipe)
+	if ggd_recipe in installed_pkg:
+		pkg_str = [x for x in installed_pkg.split("\n") if ggd_recipe in x][0]
+		pkg_version = re.sub(" +","\t",pkg_str).split("\t")[1] # Pkg Version 
+		pkg_build = re.sub(" +","\t",pkg_str).split("\t")[2] # Pkg Build
+		pkg_tar_file = "{}-{}-{}.tar.bz2".format(ggd_recipe, pkg_version, pkg_build)
+		CONDA_ROOT = conda_root()	
+		file_path = os.path.join(CONDA_ROOT, "pkgs", pkg_tar_file)
+		with tarfile.open(file_path, "r:bz2") as tarball_file:
+			get_meta_yaml_info(tarball_file.extractfile(tarball_file.getmember("info/recipe/meta.yaml.template")), ggd_recipe, ggd_channel)
+			if show_recipe:
+				print_recipe(tarball_file.extractfile(tarball_file.getmember("info/recipe/recipe.sh")), ggd_recipe)
+	else:
+		print("\n-> %s is not downloaded on your system, or was downloaded incorrectly." %ggd_recipe)
 
 # info
 # =====
