@@ -47,7 +47,7 @@ def add_pkg_info(p):
 # 1) ggd_recipe: The ggd recipe name
 # 2) ggd_channel: The ggd channel to look at
 def list_all_versions(ggd_recipe, ggd_channel):
-	pkg_versions = sp.check_output(['conda', 'search', ggd_recipe, '-c', "ggd-"+ggd_channel, '--override-channels'])
+	pkg_versions = sp.check_output(['conda', 'search', ggd_recipe, '-c', "ggd-"+ggd_channel, '--override-channels']).decode('utf8')
 	print("\n-> Listing all ggd-recipe version for the %s recipe in the ggd-%s channel" %(ggd_recipe,ggd_channel))
 	print("\n\t ","\n\t- ".join(pkg_versions.split('\n')))
 
@@ -123,7 +123,7 @@ def print_recipe(tarball_info_object, ggd_recipe):
 	print("\n%s recipe file:" %ggd_recipe)
 	print("*****************************************************************************")
 	for line in tarball_info_object:
-		print("* {}".format(line.strip()))
+		print("* {}".format(line.decode('utf8').strip()))
 	
 	print("*****************************************************************************")
 	print("NOTE: The recipe provided above outlines where the data was accessed and how it was processed\n\n")
@@ -140,7 +140,7 @@ def print_recipe(tarball_info_object, ggd_recipe):
 # 2) ggd_channel: The ggd channel name
 # 3) show_recipe: A bool value, where if true will print the recipe.sh script
 def get_pkg_info(ggd_recipe, ggd_channel,show_recipe):
-	installed_pkg = sp.check_output(['conda', 'list', ggd_recipe])
+	installed_pkg = sp.check_output(['conda', 'list', ggd_recipe]).decode('utf8')
 	if ggd_recipe in installed_pkg:
 		pkg_str = [x for x in installed_pkg.split("\n") if ggd_recipe in x][0]
 		pkg_version = re.sub(" +","\t",pkg_str).split("\t")[1] # Pkg Version 

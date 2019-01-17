@@ -78,13 +78,13 @@ def check_if_installed(ggd_recipe,ggd_jdict,ggd_version):
 # =======================
 # Method used to check if the recipe has been installed using conda. 
 def check_conda_installation(ggd_recipe,ggd_version):
-    conda_package_list = sp.check_output(["conda", "list"])
+    conda_package_list = sp.check_output(["conda", "list"]).decode('utf8')
     recipe_find = conda_package_list.find(ggd_recipe)
-    installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
     if recipe_find == -1:
         print("\n\t-> %s has not been installed by conda" %ggd_recipe)
         return(False)
     elif ggd_version != "-1": ## Check if ggd version was designated 
+        installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
         if installed_version != ggd_version:
             print("\n\t-> %s version %s has not been installed by conda" %(ggd_recipe,str(ggd_version)))
             return(False)
