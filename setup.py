@@ -11,7 +11,7 @@ setup(
     version=version,
     description="CLI for gogetdata (ggd)",
     long_description=open("README.md").read(),
-    author="Brent Pedersen",
+    author="Michael Cormier, Brent Pedersen, GGD Team",
     author_email="bpederse@gmail.com",
     url="https://github.com/gogetdata/ggd-cli",
     packages=['ggd', 'ggd.tests'],

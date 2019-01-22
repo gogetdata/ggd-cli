@@ -53,15 +53,15 @@ def conda_platform():
 
 def _build(path, recipe):
     sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
-    out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-alpha", path], stderr=sys.stderr)
+    out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
     
     pattern = "Package:.+"
     result = re.search(pattern, out)
     if result == None: ## If pattern not found
-        pattern = "updating:.+"
-        result = re.search(pattern, out)
+        pattern = "Packaging.+"
+        result = re.findall(pattern, out)
     
-    name = result.group().split()[1].replace(".tar.bz2","") + ".tar.bz2"
+    name = result[-1].split()[1].replace(".tar.bz2","") + ".tar.bz2" #name of the file: exapmle = hg19-phastcons-1-0.tar.bz2
 
     platform = "noarch" if "noarch" in recipe['build'] else conda_platform() ## Check for noarch platform
     path = op.join(conda_root(), "conda-bld", platform)
@@ -70,7 +70,7 @@ def _build(path, recipe):
 
 
 def _install(bz2,recipeName):
-    sp.check_call(['conda', 'install', '--use-local', '-y', recipeName], stderr=sys.stderr,
+    sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName], stderr=sys.stderr,
                   stdout=sys.stdout)
 
 def get_recipe_from_bz2(fbz2):
@@ -117,11 +117,12 @@ def check_recipe(parser, args):
 
     check_files(install_path, species, build, recipe['package']['name'],
                 recipe['extra'].get('extra-files', []), before)
-    print("OK")
+
+    print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
 
 def get_modified_files(files, before_files):
     before_files = dict(before_files)
-    files = [p for p, mtime in files if mtime > before_files.get(p, 0)]
+    files = [p for p, mtime in files if mtime != before_files.get(p, 0)]
     return files
 
 def check_files(install_path, species, build, recipe_name,
@@ -190,13 +191,13 @@ def check_yaml(recipe):
 
     assert 'package' in recipe and "version" in recipe['package'], ("must specify 'package:' section with data version")
     assert 'extra' in recipe, ("must specify 'extra:' section with genome-build and species")
-    assert 'genome-build' in recipe['extra'], ("must specify 'extra:' section with species")
-    assert 'species' in recipe['extra'], ("must specify 'extra:' section with species")
-    assert 'keywords' in recipe['extra'] and \
-        isinstance(recipe['extra']['keywords'], list), ("must specify 'extra:' section with keywords")
     assert 'about' in recipe and 'summary' in recipe['about'], ("must specify an 'about/summary' section")
+    assert 'genome-build' in recipe['about']['identifiers'], ("must specify 'about:' section with species")
+    assert 'species' in recipe['about']['identifiers'], ("must specify 'about:' section with species")
+    assert 'keywords' in recipe['about'] and \
+        isinstance(recipe['about']['keywords'], list), ("must specify 'about:' section with keywords")
 
-    species, build, version = recipe['extra']['species'], recipe['extra']['genome-build'], recipe['package']['version']
+    species, build, version = recipe['about']['identifiers']['species'], recipe['about']['identifiers']['genome-build'], recipe['package']['version']
     version = version.replace(" ", "")
     version = version.replace(" ", "'")
 
