@@ -6,11 +6,14 @@ import sys
 import os
 import subprocess as sp
 import glob
+import traceback
 from .check_recipe import conda_root
 from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channel_data
 from .utils import get_channeldata_url
+from .utils import bypass_satsolver_on_install
+from .utils import active_conda_env
 from .search import load_json, load_json_from_url, search_packages
 from .uninstall import remove_from_condaroot, check_for_installation
 
@@ -91,9 +94,11 @@ def check_conda_installation(ggd_recipe,ggd_version):
         else:
             print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
             print("\t-> To reinstall run:\n\t\t ggd uninstall %s \n\t\t ggd install %s" %(ggd_recipe,ggd_recipe))
+            sys.exit()
     else:
         print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
         print("\t-> To reinstall run:\n\t\t ggd uninstall %s \n\t\t ggd install %s" %(ggd_recipe,ggd_recipe))
+        sys.exit()
 
 
 # check_S3_bucket
@@ -103,7 +108,8 @@ def check_S3_bucket(ggd_recipe, ggd_jdict):
     if "tags" in ggd_jdict["packages"][ggd_recipe]:
         if "cached" in ggd_jdict["packages"][ggd_recipe]["tags"]:
             if "uploaded_to_aws" in ggd_jdict["packages"][ggd_recipe]["tags"]["cached"]:
-                print("\n\t-> The %s package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from this aws S3 bucket" %ggd_recipe)
+                print("\n\t-> The %s package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" %ggd_recipe)
+                return(True)
 
 
 # conda_install
@@ -129,6 +135,22 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version):
             check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
             sys.exit(e.returncode)
 
+def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
+    species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = ggd_jdict["packages"][ggd_recipe]["version"]
+    CONDA_ROOT = conda_root()
+    path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
+    print("\n\t-> Installation complete. The downloaded data files are located at:")
+    print("\t\t%s" %path)
+    print("\n\t-> A new environment variable that points to this directory path has also been created:")
+    print("\t\t $ggd_%s" %ggd_recipe)
+
+def activate_enviroment_variables():
+    active_env = active_conda_env
+    p.check_output(["source", "activate", active_env])
+
+
 
 # install
 # ======
@@ -142,8 +164,29 @@ def install(parser, args):
         ## Check if conda has it installed on the system 
         if not check_conda_installation(args.name,args.version):
             ## Check S3 bucket if version has not been set
-            if args.version != "-1":
-                check_S3_bucket(args.name, ggd_jsonDict)
-            conda_install(args.name, args.channel, ggd_jsonDict,args.version)
-            print("\n\t-> DONE")
+            if args.version == "-1":
+                if check_S3_bucket(args.name, ggd_jsonDict):
+                    conda_channel = "ggd-" + args.channel
+                    try:
+                        bypass_satsolver_on_install(args.name,conda_channel)
+                        get_file_locations(args.name,ggd_jsonDict,args.version)
+                        activate_enviroment_variables
+                        print("\n\t-> DONE")
+                    except Exception as e:
+                        print("\n\t-> %s did not install properly. Review the error message:\n" %args.name)
+                        print(traceback.format_exc())
+                        print(e.message)
+                        check_for_installation(args.name,ggd_jsonDict) ## .uninstall method to remove extra ggd files
+                        print("\n\t-> %s was not installed. Please correct the errors and try again." %args.name)
+                        sys.exit() 
+                else:
+                    conda_install(args.name, args.channel, ggd_jsonDict,args.version)
+                    get_file_locations(args.name,ggd_jsonDict,args.version)
+                    activate_enviroment_variables
+                    print("\n\t-> DONE")
+            else:
+                conda_install(args.name, args.channel, ggd_jsonDict,args.version)
+                get_file_locations(args.name,ggd_jsonDict,args.version)
+                activate_enviroment_variables
+                print("\n\t-> DONE")
                 

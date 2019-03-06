@@ -140,7 +140,7 @@ def conda_uninstall(ggd_recipe):
 # =========
 # Main method used to check if the recipe is installed, uninstall the recipe, and remove extra recipe files
 def uninstall(parser, args):
-    print("\n\t-> Checking for instalation of %s" %args.name)
+    print("\n\t-> Checking for installation of %s" %args.name)
     ## Get the channeldata.json file in dictionary form
     ggd_jsonDict = get_channeldata(args.name,args.channel)
     ## Check if insatlled through conda
