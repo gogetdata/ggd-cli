@@ -1,8 +1,9 @@
 requests>=2.20.0
 pyyaml
 gitpython
-conda-build=3.16.2
-conda>=4.5.11
+git
+conda-build>=3.17.8
+conda>=4.6.7
 fuzzywuzzy
 python-levenshtein
 boto3
@@ -10,3 +11,6 @@ samtools
 htslib
 zlib
 check-sort-order
+krb5
+gsort
+wget
