@@ -14,7 +14,7 @@ from .check_recipe import check_output
 from .check_recipe import conda_root
 
 def add_make_bash(p):
-    c = p.add_parser('from-bash', help="make a new ggd/conda recipe give a bash script")
+    c = p.add_parser('make-recipe', help="make a new ggd/conda recipe give a bash script")
     c.add_argument("-c", "--channel", help="the ggd channel to use. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
                     default='genomics')
     c.add_argument("-d", "--dependency", default=[], action="append",
