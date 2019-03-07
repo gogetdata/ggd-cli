@@ -2,8 +2,8 @@ requests>=2.20.0
 pyyaml
 gitpython
 git
-conda-build>=3.17.8
-conda>=4.6.7
+conda-build=3.17.8
+conda=4.6.7
 fuzzywuzzy
 python-levenshtein
 boto3
