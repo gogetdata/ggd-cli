@@ -14,6 +14,7 @@ from .utils import get_ggd_channels
 from .utils import get_channel_data
 from .utils import get_channeldata_url
 from .search import load_json, load_json_from_url, search_packages
+from .show_env import remove_env_variable
 
 SPECIES_LIST = get_species()
 
@@ -93,6 +94,8 @@ def check_for_installation(ggd_recipe,ggd_jdict):
         print("\n\t-> Removing %s version %s file(s) from ggd recipe storage" %(ggd_recipe,str(version)))
         shutil.rmtree(path)
         remove_from_condaroot(ggd_recipe,version)
+        env_var = "ggd_" + ggd_recipe
+        remove_env_variable(env_var)
     else:
         print("\n\t-> %s is not in the ggd recipe storage" %ggd_recipe)
 
