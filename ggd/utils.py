@@ -146,7 +146,7 @@ def active_conda_env():
     is retunred. 
     """
 
-    evironment_list = sp.check_output(['conda', 'info', '--env']).strip().split("\n")
+    environment_list = sp.check_output(['conda', 'info', '--env']).strip().split("\n")
     active_environment = "base"
     for environment in environment_list:
         if "*" in environment_list:
@@ -192,9 +192,13 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics"):
     from conda.resolve import Resolve
     from conda.models.match_spec import MatchSpec
     from conda.common.io import ProgressBar
+    from conda.gateways.logging import set_all_logger_level, set_conda_log_level
+    from conda.gateways.logging import VERBOSITY_LEVELS
+    from conda.gateways.logging import log
+    from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
     import sys 
 
-    print("Installing %s from the %s conda channel" %(pkg_name, conda_channel))
+    print("\n\t-> Installing %s from the %s conda channel\n" %(pkg_name, conda_channel))
 
     #-------------------------------------------------------------------------
     # Nested functions 
@@ -285,11 +289,13 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics"):
     #create Namespace
     args = Namespace(channel=None, cmd="install", deps_modifier=context.deps_modifier, json=False, packages=[pkg_name])
 
+    ## Set logger level
+    #WARN, INFO, DEBUG, TRACE = VERBOSITY_LEVELS
+    #set_all_logger_level(INFO)
+
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
         
- 
-   
 
 if __name__ == "__main__":
     import doctest
