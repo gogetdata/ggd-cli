@@ -14,6 +14,7 @@ from .utils import get_channel_data
 from .utils import get_channeldata_url
 from .utils import bypass_satsolver_on_install
 from .utils import active_conda_env
+from .show_env import activate_enviroment_variables 
 from .search import load_json, load_json_from_url, search_packages
 from .uninstall import remove_from_condaroot, check_for_installation
 
@@ -34,12 +35,16 @@ def add_install(p):
 #-------------------------------------------------------------------------------------------------------------
 
 
-# check_ggd_recipe
-# ================
-# Method to check if the ggd recipe exists. Uses searc_packages from search.py to 
-#  search the ggd-channel json file. If the recipe exists within the json file,
-#  the installation proceeds. If not, the instalation stops
 def check_ggd_recipe(ggd_recipe,ggd_channel):
+    """Method used to check if the desired package is in the ggd repo using the repo metadata file
+
+    check_ggd_recipe
+    ================
+    Method to check if the ggd recipe exists. Uses search_packages from search.py to 
+     search the ggd-channel json file. If the recipe exists within the json file,
+     the installation proceeds. If not, the instalation stops
+    """
+
     CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
     jdict = load_json_from_url(CHANNEL_DATA_URL)
     package_list = [x[0] for x in search_packages(jdict, ggd_recipe)]
@@ -52,11 +57,15 @@ def check_ggd_recipe(ggd_recipe,ggd_channel):
         sys.exit()
 
 
-# check_if_installed
-# =================
-# Method to check if the recipe has already been installed and is in 
-#  the conda ggd storage path. If it is already installed the installation stops.
 def check_if_installed(ggd_recipe,ggd_jdict,ggd_version):
+    """Method to check if the recipe has already been installed and is in the conda ggd storage path. 
+        
+    check_if_installed
+    ==================
+    This method is used to check if the ggd package has been installed and is located in the ggd storage path.
+     If it is already installed the installation stops. If it is not detected then installation continues.
+    """
+
     species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = ggd_jdict["packages"][ggd_recipe]["version"]
@@ -77,10 +86,16 @@ def check_if_installed(ggd_recipe,ggd_jdict,ggd_version):
         return(False)
     
 
-# check_conda_installation
-# =======================
-# Method used to check if the recipe has been installed using conda. 
 def check_conda_installation(ggd_recipe,ggd_version):
+    """Method used to check if the recipe has been installed using conda.
+
+    check_conda_installation
+    ========================
+    This method is used to check if the ggd data package has been installed by the conda system,
+     without being installed by the ggd system. If it has, the recipe needs to be uninstalled and 
+     reinstalled. If not, the system continues to install the package using ggd.
+    """
+
     conda_package_list = sp.check_output(["conda", "list"]).decode('utf8')
     recipe_find = conda_package_list.find(ggd_recipe)
     if recipe_find == -1:
@@ -101,21 +116,32 @@ def check_conda_installation(ggd_recipe,ggd_version):
         sys.exit()
 
 
-# check_S3_bucket
-# ==============
-# Method to check if the recipe is stored on the ggd S3 bucket. If so it installs from S3
 def check_S3_bucket(ggd_recipe, ggd_jdict):
+    """Method to check if the recipe is stored on the ggd S3 bucket. If so it installs from S3
+
+    check_S3_bucket
+    ==============
+    This method is used to check if the recipe has been cached on aws S3 bucket. It returns true if the 
+     the recipe is cached, and false if it is not. If it is cached the cached version will be installed. 
+    """
+
     if "tags" in ggd_jdict["packages"][ggd_recipe]:
         if "cached" in ggd_jdict["packages"][ggd_recipe]["tags"]:
             if "uploaded_to_aws" in ggd_jdict["packages"][ggd_recipe]["tags"]["cached"]:
                 print("\n\t-> The %s package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" %ggd_recipe)
                 return(True)
+    return(False)
 
 
-# conda_install
-# ============
-# Method to install the recipe from the ggd-channel using conda
 def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version):
+    """Method to install the recipe from the ggd-channel using conda
+    
+    conda_install
+    ============
+    This method is used to install the ggd recipe from the ggd conda channel using conda, if the files 
+     have not been cached. 
+    """
+
     if ggd_version != "-1":
         print("\n\t-> Installing %s version %s" %(ggd_recipe,ggd_version))
         try:
@@ -135,7 +161,16 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version):
             check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
             sys.exit(e.returncode)
 
+
 def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
+    """Method used to print the location of the installed files
+
+    get_file_locations
+    ==================
+    This method is used to print hte location of the data files installed for a reference 
+    for the user.
+    """
+
     species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = ggd_jdict["packages"][ggd_recipe]["version"]
@@ -144,18 +179,18 @@ def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
     print("\n\t-> Installation complete. The downloaded data files are located at:")
     print("\t\t%s" %path)
     print("\n\t-> A new environment variable that points to this directory path has also been created:")
-    print("\t\t $ggd_%s" %ggd_recipe)
-
-def activate_enviroment_variables():
-    active_env = active_conda_env
-    p.check_output(["source", "activate", active_env])
+    print("\t\t $ggd_%s\n" %ggd_recipe.replace("-","_"))
 
 
-
-# install
-# ======
-# Main method used to check installation and install the ggd recipe
 def install(parser, args):
+    """Main method for installing a ggd data package
+
+    install
+    =======
+    This method is the main method for running ggd install. It controls the different levels of install
+    and file handeling. 
+    """
+
     print("\n\t-> Looking for %s in the 'ggd-%s' channel" %(args.name,args.channel))
     ## Check if the recipe is in ggd
     ggd_jsonDict = check_ggd_recipe(args.name,args.channel)
@@ -170,7 +205,7 @@ def install(parser, args):
                     try:
                         bypass_satsolver_on_install(args.name,conda_channel)
                         get_file_locations(args.name,ggd_jsonDict,args.version)
-                        activate_enviroment_variables
+                        activate_enviroment_variables()
                         print("\n\t-> DONE")
                     except Exception as e:
                         print("\n\t-> %s did not install properly. Review the error message:\n" %args.name)
@@ -182,11 +217,11 @@ def install(parser, args):
                 else:
                     conda_install(args.name, args.channel, ggd_jsonDict,args.version)
                     get_file_locations(args.name,ggd_jsonDict,args.version)
-                    activate_enviroment_variables
+                    activate_enviroment_variables()
                     print("\n\t-> DONE")
             else:
                 conda_install(args.name, args.channel, ggd_jsonDict,args.version)
                 get_file_locations(args.name,ggd_jsonDict,args.version)
-                activate_enviroment_variables
+                activate_enviroment_variables()
                 print("\n\t-> DONE")
                 
