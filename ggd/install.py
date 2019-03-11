@@ -17,7 +17,7 @@ from .utils import active_conda_env
 from .show_env import activate_enviroment_variables 
 from .search import load_json, load_json_from_url, search_packages
 from .uninstall import remove_from_condaroot, check_for_installation
-from .utils import get_required_cond_version
+from .utils import get_required_conda_version
 
 SPECIES_LIST = get_species()
 #-------------------------------------------------------------------------------------------------------------
