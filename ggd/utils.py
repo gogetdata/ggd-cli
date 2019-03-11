@@ -4,12 +4,14 @@ import sys
 import glob
 from git import Repo
 import subprocess as sp
+import requests
 
 LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/"))
 RECIPE_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-recipes")
 GITHUB_URL = "https://github.com/gogetdata/ggd-recipes.git"
 METADATA_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-metadata")
 METADATA_GITHUB_URL = "https://github.com/gogetdata/ggd-metadata"
+GGD_CLI_REQUIREMENTS = "https://raw.githubusercontent.com/gogetdata/ggd-cli/master/requirements.txt"
 
 
 def get_species():
@@ -80,6 +82,29 @@ def get_channeldata_url(ggd_channel):
             "channeldata.json"))
 
 
+def get_required_conda_version():
+    """Method to get the conda version from the ggd-cli requirements file
+
+    get_required_conda_version
+    ==========================
+    This method is used to get the required version for conda based on the version set in the 
+     requiremetns file in ggd-cli. This version can be used to mantain the correct version while 
+     using ggd
+
+    Return:
+    +++++++
+    1) The required version if found, else -1
+    """
+
+    req = requests.get(GGD_CLI_REQUIREMENTS, stream=True)
+
+    conda_version = -1
+    for line in req.iter_lines():
+        if "conda=" in str(line.decode()):
+            conda_version = str(line.decode()).strip().split("=")[1]
+    return(conda_version)
+            
+
 def get_builds(species):
     update_local_repo()
     species_dir = os.path.join(RECIPE_REPO_DIR, "genomes", species)
@@ -93,7 +118,6 @@ def get_builds(species):
     else:
         if os.path.isdir(species_dir):
             return os.listdir(species_dir)
-
 
 def update_metadata_local_repo():
     if not os.path.isdir(LOCAL_REPO_DIR):
