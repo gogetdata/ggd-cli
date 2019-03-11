@@ -6,6 +6,7 @@ import subprocess as sp
 from .utils import get_species 
 from .utils import get_ggd_channels
 from .show_env import get_conda_env 
+from collections import OrderedDict
 
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
@@ -56,10 +57,12 @@ def make_bash(parser, args):
     except OSError:
         shutil.rmtree(name)
         os.makedirs(name)
-
+    
+    '''
     from .check_recipe import _check_build
     print("checking", args.genome_build)
     _check_build(args.species, args.genome_build)
+    '''
 
     recipe_bash = open(args.script).read()
     # use these to automate inserting some dependencies.
@@ -71,63 +74,47 @@ def make_bash(parser, args):
               set([look.get(p, p) for p in args.dependency] +
                   [look[prog] for prog in look if prog in recipe_bash]))
 
-    recipe = {}
     if args.platform == "noarch":
-        recipe = {"build": {
+        yml1 = {"build": {
                       "noarch": "generic",
                       "binary_relocation": False,
                       "detect_binary_files_with_prefix": False,
-                      "number": 0},
-                  "source": {"path": "."},
-                  "extra": {
-                      "authors": args.authors,
-                      "extra-files": args.extra_file,
-                      },
-                  "about": {
-                      "identifiers": {
-                          "species": args.species,
-                          "genome-build": args.genome_build
-                      },
-                      "keywords": args.keyword,
-                      "summary": args.summary,
-                      "tags": {
-                        "data-version": args.data_version,
-                        "ggd-channel": args.channel
-                        },
-                      },
-                  "package": {"name": name, "version": args.ggd_version},
-                  "requirements": {"build": deps[:],
-                                   "run": deps[:]},
-                  }
+                      "number": 0}}
     else:
-        recipe = {"build": {
+        yml1 = {"build": {
                       "binary_relocation": False,
                       "detect_binary_files_with_prefix": False,
-                      "number": 0},
-                  "source": {"path": "."},
-                  "extra": {
-                      "authors": args.authors,
-                      "extra-files": args.extra_file,
-                      },
-                  "about": {
-                      "identifiers": {
-                          "species": args.species,
-                          "genome-build": args.genome_build
-                      },
-                      "keywords": args.keyword,
-                      "summary": args.summary,
-                      "tags": {
+                      "number": 0}}
+    yml2 = {"extra": {
+                    "authors": args.authors,
+                    "extra-files": args.extra_file,
+                }}
+    yml3 = {"package": {"name": name, "version": args.ggd_version}}
+    yml4 = {"requirements": {"build": deps[:],
+                    "run": deps[:]}}
+    yml5 = { "source": {"path": "."}}
+
+    yml6 = {"about": {
+                    "identifiers": {
+                    "species": args.species,
+                    "genome-build": args.genome_build
+                },
+                    "keywords": args.keyword,
+                    "summary": args.summary,
+                    "tags": {
                         "data-version": args.data_version,
                         "ggd-channel": args.channel
-                        },
-                      },
-                  "package": {"name": name, "version": args.ggd_version},
-                  "requirements": {"build": deps[:],
-                                   "run": deps[:]},
-                  }
+                    },
+                }}
 
-    with open(os.path.join(name, "meta.yaml"), "w") as fh:
-        fh.write(yaml.dump(recipe, default_flow_style=False))
+
+    with open(os.path.join(name, "meta.yaml"), "wa") as fh:
+        fh.write(yaml.dump(yml1, default_flow_style=False))
+        fh.write(yaml.dump(yml2, default_flow_style=False))
+        fh.write(yaml.dump(yml3, default_flow_style=False))
+        fh.write(yaml.dump(yml4, default_flow_style=False))
+        fh.write(yaml.dump(yml5, default_flow_style=False))
+        fh.write(yaml.dump(yml6, default_flow_style=False))
 
     with open(os.path.join(name, "post-link.sh"), "w") as fh:
         fh.write("""#!/bin/bash
@@ -172,5 +159,5 @@ echo 'Recipe successfully built!'
         fh.write("#!/bin/sh\nset -eo pipefail -o nounset\n")
         fh.write(open(args.script).read())
 
-    print("wrote output to %s/" % name)
-    print("check build with 'ggd check-recipe %s/" % name)
+    print("\n\t-> Wrote output to %s/" % name)
+    print("\n\t-> To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\t\t$ ggd check-recipe %s/"  % name)
