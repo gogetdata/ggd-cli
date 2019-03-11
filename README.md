@@ -6,7 +6,45 @@ Search, and install genomic and omic data packages. Build and check new ggd data
 
 ggd provides easy access to processed omic data. It removes the difficulties and complexities with finding and processing the data sets and annotations germane to your experiments and/or analyses. You can quickly and easily search and install data package using ggd. ggd also offers tools to easily create and contribute data packages to ggd. (From more information see the [ggd docs](https://gogetdata.github.io/index.html#).
 
-**The documentation for ggd is available** [here](https://gogetdata.github.io/index.html#) and contains detailed information about the ggd system, including installing ggd, using ggd, available data packages, etc. The information below provides a quick start to using ggd, but we encourage you to visit the [ggd docs](https://gogetdata.github.io/index.html#) for detailed information and questions you may have.
+**The documentation for ggd is available** [here](https://gogetdata.github.io/index.html#) and contains detailed information about the ggd system, including installing ggd, using ggd, available data packages, etc. The information below provides a quick overview of using ggd, but we encourage you to visit the [ggd docs](https://gogetdata.github.io/index.html#) for detailed information and questions you may have.
+
+You can also vist the [ggd docs: quick-start](https://gogetdata.github.io/quick-start.html) page to start using ggd quickly. 
+
+## Setting up ggd
+
+Assuming that you have already installed an *ananconda* distrubtion on your system, you can run the following commands to set up ggd. 
+
+(NOTE: If you have not installed an anaconda distribution on your system please install it. You can install [anaconda](https://www.anaconda.com/distribution/), or [miniconda](https://conda.io/en/latest/miniconda.html), or [conda](http://conda.pydata.org/docs/download.html).) 
+
+1) Adding the ggd-genomics conda channel:
+- ggd data packages are hosted on the conda cloud through the ggd-genomics channel. You will need to add this channel to your configured conda channels. You will also need to add the channels that have the software dependencies for building these data pacakges. Run the following commands:
+
+```
+$ conda config --add channels ggd-genomics
+$ conda config --add channels bioconda
+$ conda config --add channels conda-forge
+```
+
+2) Installing the required software packages:
+- The ggd tool requires certain software packages to be installed on your system. To install these software packages run the following command:
+
+```
+$ conda install -y --file https://raw.githubusercontent.com/gogetdata/ggd-cli/master/requirements.txt
+```
+
+
+3) Installing ggd:
+- The ggd command line tool can be installed using the following command: 
+
+```
+$ pip install -U git+git://github.com/gogetdata/ggd-cli
+```
+
+ggd is now set up on your system and you should be able to run `ggd`. Test that ggd has been installed by running:
+
+```
+$ ggd -h
+```
 
 
 ## ggd tools
