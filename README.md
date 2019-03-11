@@ -157,15 +157,15 @@ samtools faidx hs37d5.fa
 With this bash script, you can now create a ggd recipe using `ggd make-recipe`.
 
 ```
-$ ggd make-recipe \
+ggd make-recipe \
     -s Homo_sapiens \
-    -g hg38 \
+    -g GRCh37 \
     --author me \
     --ggd_version 1 \
-    --data_version 06-Mar-2014 \
-    --summary 'RepeatMasker track from UCSC' \
-    -k rmsk -k region \
-    repeatmasker \
+    --data_version phase2_reference \
+    --summary 'GRCh37 reference genome from 1000 genomes' \
+    -k ref -k reference \
+    reference-genome \
     recipe.sh
 ```
 
