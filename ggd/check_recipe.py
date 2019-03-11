@@ -5,21 +5,50 @@ import os.path as op
 import tarfile
 import re
 from fnmatch import fnmatch
-
+from .utils import get_required_conda_version
 import subprocess as sp
-import yaml
-import locale
+import yaml import locale
 
+#---------------------------------------------------------------------------------------------------
+# urlib setup based on system version
+#---------------------------------------------------------------------------------------------------
 if sys.version_info[0] < 3:
     import urllib
     urlopen = urllib.urlopen
 else:
     from urllib.request import urlopen
 
+#---------------------------------------------------------------------------------------------------
+# Argument parser 
+#---------------------------------------------------------------------------------------------------
+
+def add_check_recipe(p):
+    """Argument method used to add check-recipes as a module arugment/function """
+
+    c = p.add_parser('check-recipe', help="build, install, and check a recipe")
+    c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2")
+    c.set_defaults(func=check_recipe)
+
+#---------------------------------------------------------------------------------------------------
+# Functions/methods
+#---------------------------------------------------------------------------------------------------
+
 def check_output(args, **kwargs):
+    """Method to get a byte converted string from a subprocess command """
+
     return _to_str(sp.check_output(args, **kwargs).strip())
 
+
 def list_files(dir):
+    """Method to list files in a given directory 
+
+    list_files
+    ==========
+    This method is used to list all the files in a give directory. If files are 
+     present and are not empty they are included in the return list. A list of files 
+     in the dir path is returned. 
+    """
+
     rfiles = []
     subdirs = [x[0] for x in os.walk(dir)]
     for subdir in subdirs:
@@ -30,28 +59,61 @@ def list_files(dir):
     return [(p, os.stat(p).st_mtime) for p in rfiles]
 
 
-def add_check_recipe(p):
-
-    c = p.add_parser('check-recipe', help="build, install, and check a recipe")
-    c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2")
-    c.set_defaults(func=check_recipe)
-
-
 def conda_root():
+    """Method to get the conda root path """
+
     return check_output(['conda', 'info', '--root'])
 
+
 def _to_str(s, enc=locale.getpreferredencoding()):
+    """Method to convert a bytes into a string based on a local prefered encoding  
+
+    _to_str
+    =======
+    This method is used to decode a bytes stream into a string based on the location/regional 
+    preference. It returns the converted string. 
+    """
+
     if isinstance(s, bytes):
         return s.decode(enc)
     return s
 
+
 def conda_platform():
+    """Method to get the system platform to build and install a ggd package
+
+    conda_platform
+    ==============
+    This method is used to identify the system platform being used. Building and install a data
+     package is dependent on the system platform. (OSX, Linux, etc.) The system platform will
+     be returned.
+    """
+
     vs = [x for x in check_output(['conda', 'info']).split("\n") if
             "platform :" in x]
     assert len(vs) == 1, vs
     return vs[0].split("platform :")[1].strip()
 
+
 def _build(path, recipe):
+    """Method used to build a ggd package from a ggd recipe 
+
+    _build
+    ======
+    This method is used to convert/build a ggd package from an existing ggd recipe. A package
+     is what will be stored on the conda clound. This method ensures that the ggd recipe can 
+     be properly built into a package.
+
+    Parameters:
+    ----------
+    1) path: The path to the ggd recipe 
+    2) recipe: The meta.yaml from the ggd recipe loaded as a dictionary 
+
+    Returns:
+    ++++++++
+    1) The absolute path to the bz2 file, the new ggd data package file, created by conda build
+    """
+
     sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
     out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
     
@@ -70,10 +132,47 @@ def _build(path, recipe):
 
 
 def _install(bz2,recipeName):
-    sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName], stderr=sys.stderr,
-                  stdout=sys.stdout)
+    """Method to install a local pre-built package to ensure package installs correctly 
+
+    _install
+    ========
+    This method is used to install a pre-built ggd package. conda build was used to turn the ggd recipe into a 
+     ggd package. This script will take the locally built ggd package and install it. This method is used to 
+     ensure the package installs correctly.
+
+    Parameters:
+    -----------
+    1) bz2: The bz2 tarball package file created from the conda build
+    2) recipeName: The name of the ggd recipe/package
+    """
+
+    conda_version = get_required_conda_version()
+    conda_install = "conda=" + conda_version
+    if conda_version != -1:
+        sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName, conda_install], stderr=sys.stderr,
+                       stdout=sys.stdout)
+    else:
+        sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName, conda_install], stderr=sys.stderr,
+                       stdout=sys.stdout)
+
 
 def get_recipe_from_bz2(fbz2):
+    """Method used to get the meta.yaml file from a ggd package that has been built and is in a bz2 file format
+
+    get_recipe_from_bz2
+    ===================
+    This method is used to obtain a ggd recipe's meta.yaml file from an already built ggd package. It extracts 
+    the bz2 tarball file and identifies the meta,yaml file. 
+
+    Parameters:
+    ----------
+    1) fbz2: The file path to the pre-built bz2 ggd package
+    
+    Return:
+    +++++++
+    1) The meta.yaml file as a dictionary 
+    """
+
     info = None
     with tarfile.open(fbz2, mode="r|bz2") as tf:
         for info in tf:
@@ -87,7 +186,10 @@ def get_recipe_from_bz2(fbz2):
         recipe = yaml.load(recipe.read().decode())
     return recipe
 
+
 def _check_build(species, build):
+    print("\nWarning: _check_build is deprecated\n")
+    '''
     gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
     try:
         ret = urlopen(gf)
@@ -96,8 +198,17 @@ def _check_build(species, build):
     except:
         sys.stderr.write("ERROR: genome-build: %s not found in github repo.\n" % build)
         raise
+    '''
+
 
 def check_recipe(parser, args):
+    """Main method to check a ggd recipe for proper filing, system handeling, package building, install, etc. 
+
+    check_recipe
+    ============
+    The main function for the ggd check-recipe module. This function controls the different checks, builds, and installs.
+    """
+
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
         bz2 = args.recipe_path
@@ -107,7 +218,7 @@ def check_recipe(parser, args):
 
     species, build, version = check_yaml(recipe)
 
-    _check_build(species, build)
+    #_check_build(species, build)
 
     install_path = op.join(conda_root(), "share", "ggd", species, build)
 
@@ -120,13 +231,19 @@ def check_recipe(parser, args):
 
     print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
 
+
 def get_modified_files(files, before_files):
+    """Method to check if the files installed during the installation process of a ggd packages are been modified """
+
     before_files = dict(before_files)
     files = [p for p, mtime in files if mtime != before_files.get(p, 0)]
     return files
 
+
 def check_files(install_path, species, build, recipe_name,
                 extra_files, before_files):
+    """Method to check the presence of correct genomic files """
+
     P = "{species}/{build}:{recipe_name}".format(**locals())
 
     files = list_files(install_path)
@@ -186,8 +303,8 @@ def check_files(install_path, species, build, recipe_name,
         sys.exit(2)
 
 
-
 def check_yaml(recipe):
+    """Method to check if the correct information is contained within the ggd recipe's meta.yaml file """
 
     assert 'package' in recipe and "version" in recipe['package'], ("must specify 'package:' section with data version")
     assert 'extra' in recipe, ("must specify 'extra:' section with genome-build and species")
@@ -201,5 +318,5 @@ def check_yaml(recipe):
     version = version.replace(" ", "")
     version = version.replace(" ", "'")
 
-    _check_build(species, build)
+    #_check_build(species, build)
     return species, build, version
