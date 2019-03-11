@@ -3,12 +3,12 @@ pyyaml
 gitpython
 git
 conda-build=3.17.8
-conda=4.6.7
+conda=4.6.8
 fuzzywuzzy
 python-levenshtein
 boto3
-samtools
 htslib
+samtools
 zlib
 check-sort-order
 krb5
