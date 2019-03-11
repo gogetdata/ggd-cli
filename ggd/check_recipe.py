@@ -7,7 +7,8 @@ import re
 from fnmatch import fnmatch
 from .utils import get_required_conda_version
 import subprocess as sp
-import yaml import locale
+import yaml 
+import locale
 
 #---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
