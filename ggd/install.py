@@ -17,6 +17,7 @@ from .utils import active_conda_env
 from .show_env import activate_enviroment_variables 
 from .search import load_json, load_json_from_url, search_packages
 from .uninstall import remove_from_condaroot, check_for_installation
+from .utils import get_required_cond_version
 
 SPECIES_LIST = get_species()
 #-------------------------------------------------------------------------------------------------------------
@@ -141,11 +142,13 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version):
     This method is used to install the ggd recipe from the ggd conda channel using conda, if the files 
      have not been cached. 
     """
-
+    
+    conda_version = get_required_conda_version()
+    conda_install_str = "conda=" + conda_version
     if ggd_version != "-1":
         print("\n\t-> Installing %s version %s" %(ggd_recipe,ggd_version))
         try:
-            sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+ggd_version+"*"], stderr=sys.stderr, stdout=sys.stdout)
+            sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+ggd_version+"*", conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
         except sp.CalledProcessError as e:
             sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
             sys.stderr.write(str(e))
@@ -153,7 +156,7 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version):
     else:
         print("\n\t-> Installing %s" %ggd_recipe)
         try:
-            sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe], stderr=sys.stderr, stdout=sys.stdout)
+            sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe, conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
         except sp.CalledProcessError as e:
             sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
             sys.stderr.write(str(e))
