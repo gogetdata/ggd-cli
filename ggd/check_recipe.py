@@ -4,11 +4,13 @@ import os
 import os.path as op
 import tarfile
 import re
-from fnmatch import fnmatch
-from .utils import get_required_conda_version
+import traceback
 import subprocess as sp
 import yaml 
 import locale
+from fnmatch import fnmatch
+from .utils import get_required_conda_version
+from .uninstall import check_for_installation
 
 #---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -132,7 +134,7 @@ def _build(path, recipe):
     return os.path.join(path, name)
 
 
-def _install(bz2,recipeName):
+def _install(bz2,recipe_name):
     """Method to install a local pre-built package to ensure package installs correctly 
 
     _install
@@ -144,17 +146,36 @@ def _install(bz2,recipeName):
     Parameters:
     -----------
     1) bz2: The bz2 tarball package file created from the conda build
-    2) recipeName: The name of the ggd recipe/package
+    2) recipe_name: The name of the ggd recipe/package
     """
 
     conda_version = get_required_conda_version()
     conda_install = "conda=" + conda_version
-    if conda_version != -1:
-        sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName, conda_install], stderr=sys.stderr,
-                       stdout=sys.stdout)
-    else:
-        sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipeName, conda_install], stderr=sys.stderr,
-                       stdout=sys.stdout)
+    try:
+        if conda_version != -1:
+            sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
+                        stdout=sys.stdout)
+        else:
+            sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
+                        stdout=sys.stdout)
+
+    except Exception as e:
+        print("\n\t-> %s did not install properly. \n\n\t->Error message:\n" %recipe_name)
+        print(traceback.format_exc())
+        print(e.message)
+
+        ## Remove ggd files 
+        recipe_dict = get_recipe_from_bz2(bz2)
+        species = recipe_dict["about"]["identifiers"]["species"]
+        genome_build = recipe_dict["about"]["identifiers"]["genome-build"]
+        version = recipe_dict["package"]["version"]
+        name = recipe_dict["package"]["name"]
+        ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
+        check_for_installation(recipe_name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        print("\n\t-> Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
+
+        ## Exit
+        sys.exit(1)   
 
 
 def get_recipe_from_bz2(fbz2):

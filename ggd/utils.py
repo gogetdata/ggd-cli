@@ -5,6 +5,7 @@ import glob
 from git import Repo
 import subprocess as sp
 import requests
+import locale
 
 LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/"))
 RECIPE_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-recipes")
@@ -103,6 +104,26 @@ def get_required_conda_version():
         if "conda=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split("=")[1]
     return(conda_version)
+
+
+def check_output(args, **kwargs):
+    """Method to get a byte converted string from a subprocess command """
+
+    return _to_str(sp.check_output(args, **kwargs).strip())
+
+
+def _to_str(s, enc=locale.getpreferredencoding()):
+    """Method to convert a bytes into a string based on a local prefered encoding  
+
+    _to_str
+    =======
+    This method is used to decode a bytes stream into a string based on the location/regional 
+    preference. It returns the converted string. 
+    """
+
+    if isinstance(s, bytes):
+        return s.decode(enc)
+    return s
             
 
 def get_builds(species):
@@ -158,7 +179,7 @@ def conda_root():
     is returned.
     """
 
-    return sp.check_output(['conda', 'info', '--root']).strip()
+    return check_output(['conda', 'info', '--root'])
 
 
 def active_conda_env():

@@ -216,7 +216,7 @@ def install(parser, args):
                         print(e.message)
                         check_for_installation(args.name,ggd_jsonDict) ## .uninstall method to remove extra ggd files
                         print("\n\t-> %s was not installed. Please correct the errors and try again." %args.name)
-                        sys.exit() 
+                        sys.exit(1) 
                 else:
                     conda_install(args.name, args.channel, ggd_jsonDict,args.version)
                     get_file_locations(args.name,ggd_jsonDict,args.version)

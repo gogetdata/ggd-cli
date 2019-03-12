@@ -2,7 +2,7 @@ from __future__ import print_function
 import sys
 import os
 import re
-from .check_recipe import check_output
+from .utils import check_output
 import subprocess as sp
 
 def add_show_env(p):
