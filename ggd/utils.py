@@ -15,7 +15,7 @@ METADATA_GITHUB_URL = "https://github.com/gogetdata/ggd-metadata"
 GGD_CLI_REQUIREMENTS = "https://raw.githubusercontent.com/gogetdata/ggd-cli/master/requirements.txt"
 
 
-def get_species():
+def get_species(update_repo=True):
     """ Method to get available annotated species in the ggd repo
 
     get_species
@@ -24,7 +24,11 @@ def get_species():
     ggd repo. It returns a list of species
     """
 
-    update_local_repo()
+    if update_repo:
+        update_local_repo()
+    elif not os.path.isdir(LOCAL_REPO_DIR): ## If There is no local repo directory 
+        update_local_repo()
+
     genomes_dir = os.path.join(RECIPE_REPO_DIR, "genomes")
     return os.listdir(genomes_dir)
 

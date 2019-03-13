@@ -14,7 +14,7 @@ from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channeldata_url
 
-SPECIES_LIST = get_species()
+SPECIES_LIST = get_species(update_repo=False)
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 
 #-------------------------------------------------------------------------------------------------------------
@@ -226,6 +226,7 @@ def search(parser, args):
     if args.genome_build:
         matchResults = filter_by_identifiers("genome-build",matchResults,jDict,args.genome_build)
     if args.species:
+        get_species(update_repo=True) ## update the local repo.
         matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
     if args.keyword:
         matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
