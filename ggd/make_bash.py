@@ -5,14 +5,13 @@ import yaml
 import subprocess as sp
 from .utils import get_species 
 from .utils import get_ggd_channels
-from .show_env import get_conda_env 
+from .utils import get_conda_env 
 from collections import OrderedDict
+from .utils import check_output, conda_root
 
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 
-from .check_recipe import check_output
-from .check_recipe import conda_root
 
 def add_make_bash(p):
     c = p.add_parser('make-recipe', help="make a new ggd/conda recipe give a bash script")
@@ -124,7 +123,16 @@ export CONDA_ROOT=$(conda info --root)
 
 PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION-.*$PKG_BUILDNUM$\|$PKG_VERSION\_.*$PKG_BUILDNUM$"`
 
-export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
+if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+    env_dir=$CONDA_ROOT
+    export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/GRCh37/grch37-reference-genome/1
+elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+    env_dir=$CONDA_ROOT
+    export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/GRCh37/grch37-reference-genome/1
+else
+    env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+    export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/GRCh37/grch37-reference-genome/1
+fi
 
 if [ -d $RECIPE_DIR ]; then
     rm -r $RECIPE_DIR
@@ -134,8 +142,6 @@ mkdir -p $RECIPE_DIR
 
 recipe_env_name="ggd_{name}"
 recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
-
-env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
 
 activate_dir="$env_dir/etc/conda/activate.d"
 deactivate_dir="$env_dir/etc/conda/deactivate.d"
