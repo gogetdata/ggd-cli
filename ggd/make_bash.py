@@ -151,7 +151,6 @@ mkdir -p $deactivate_dir
 
 echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
 echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
-ggd show-env
 
 (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
