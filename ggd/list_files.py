@@ -81,7 +81,7 @@ def list_files(parser, args):
     path = os.path.join(CONDA_ROOT, "share", "ggd", species, build, name, version, pattern)
     files = glob.glob(path)
     if (files):
-        print ("\n-> ", "\n-> ".join(files))
+        print ("\n".join(files))
     else:
         print("\n\t-> No matching files found for %s" %args.name, file=sys.stderr)
         exit(1)
