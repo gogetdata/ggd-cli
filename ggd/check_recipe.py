@@ -9,7 +9,7 @@ import subprocess as sp
 import yaml 
 import locale
 from fnmatch import fnmatch
-from .utils import get_required_conda_version
+from .utils import get_required_conda_version, check_output, conda_root
 from .uninstall import check_for_installation
 
 #---------------------------------------------------------------------------------------------------
@@ -36,12 +36,6 @@ def add_check_recipe(p):
 # Functions/methods
 #---------------------------------------------------------------------------------------------------
 
-def check_output(args, **kwargs):
-    """Method to get a byte converted string from a subprocess command """
-
-    return _to_str(sp.check_output(args, **kwargs).strip())
-
-
 def list_files(dir):
     """Method to list files in a given directory 
 
@@ -60,26 +54,6 @@ def list_files(dir):
             for file in files:
                 rfiles.append(op.join(subdir, file))
     return [(p, os.stat(p).st_mtime) for p in rfiles]
-
-
-def conda_root():
-    """Method to get the conda root path """
-
-    return check_output(['conda', 'info', '--root'])
-
-
-def _to_str(s, enc=locale.getpreferredencoding()):
-    """Method to convert a bytes into a string based on a local prefered encoding  
-
-    _to_str
-    =======
-    This method is used to decode a bytes stream into a string based on the location/regional 
-    preference. It returns the converted string. 
-    """
-
-    if isinstance(s, bytes):
-        return s.decode(enc)
-    return s
 
 
 def conda_platform():

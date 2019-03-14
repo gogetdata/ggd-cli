@@ -2,7 +2,7 @@ from __future__ import print_function
 import sys
 import os
 import re
-from .utils import check_output
+from .utils import check_output, get_conda_env
 import subprocess as sp
 
 def add_show_env(p):
@@ -141,27 +141,4 @@ def test_vars(env_vars):
     return active_vars,inactive_vars 
 
 
-def get_conda_env():
-    """Method used to get the current conda environment
 
-    get_conda_env
-    =============
-    This method is used to get the current conda environment used to access the 
-     ggd environment variables created for this specific environment. 
-
-    Returns:
-    ++++++++
-    1) The conda environment name
-    2) The path to the conda environent
-    """
-
-    env_info = check_output(["conda", "info", "--envs"])
-    fields = env_info.split("\n")
-    curr_env = ""
-    for field in fields:
-        if len(field) > 0 and field[0] != "#":
-            env = field.split()
-            if len(env) > 0 and "*" in env:
-                return env[0],env[-1]
-    print("Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
-    exit()

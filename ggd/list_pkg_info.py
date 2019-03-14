@@ -11,7 +11,7 @@ import re
 import tarfile
 import yaml
 import argparse
-from .check_recipe import conda_root
+from .utils import conda_root
 from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channel_data

@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 import os
 import glob
-from .make_bash import conda_root
+from .utils import conda_root
 from .utils import get_species 
 from .utils import get_builds
 from .utils import validate_build

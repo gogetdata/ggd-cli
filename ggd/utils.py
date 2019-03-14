@@ -144,7 +144,17 @@ def get_builds(species):
         if os.path.isdir(species_dir):
             return os.listdir(species_dir)
 
+
 def update_metadata_local_repo():
+    """Method to update the ggd-metadata local repo
+
+    update_metadata_local_repo()
+    ============================
+    This method is used to update the ggd-metadata local repo. This local repo is used
+     to get information about the metadata for ggd recipes. This method updates the local
+     repo with any changes that have occured since the last update.
+    """
+
     if not os.path.isdir(LOCAL_REPO_DIR):
         os.makedirs(LOCAL_REPO_DIR)
     if not os.path.isdir(METADATA_REPO_DIR):
@@ -153,6 +163,15 @@ def update_metadata_local_repo():
 
 
 def update_local_repo():
+    """Method to update the local ggd-recipes repo
+    
+    update_local_repo
+    =================
+    This method is used to update the a local version of the ggd-recipe repo. This local 
+     ggd-recipe repo is used to access information about the repo. This method updates the 
+     local repo with any changes made to the repo since the last update. 
+    """
+
     if not os.path.isdir(LOCAL_REPO_DIR):
         os.makedirs(LOCAL_REPO_DIR)
     if not os.path.isdir(RECIPE_REPO_DIR):
@@ -183,8 +202,37 @@ def conda_root():
     is returned.
     """
 
-    return check_output(['conda', 'info', '--root'])
+    croot = check_output(['conda', 'info', '--root'])
+    conda_env, conda_path = get_conda_env()
+    if conda_env != "base":
+        croot = conda_path
+    return(croot)
 
+
+def get_conda_env():
+    """Method used to get the current conda environment
+
+    get_conda_env
+    =============
+    This method is used to get the current conda environment used to access the 
+     ggd environment variables created for this specific environment. 
+
+    Returns:
+    ++++++++
+    1) The conda environment name
+    2) The path to the conda environent
+    """
+
+    env_info = check_output(["conda", "info", "--envs"])
+    fields = env_info.split("\n")
+    curr_env = ""
+    for field in fields:
+        if len(field) > 0 and field[0] != "#":
+            env = field.split()
+            if len(env) > 0 and "*" in env:
+                return env[0],env[-1]
+    print("Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
+    exit()
 
 def active_conda_env():
     """Method used to get the active conda environmnet
@@ -340,7 +388,7 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics"):
 
     ## Set logger level
     #WARN, INFO, DEBUG, TRACE = VERBOSITY_LEVELS
-    #set_all_logger_level(INFO)
+    #set_all_logger_level(DEBUG)
 
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
