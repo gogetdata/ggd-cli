@@ -54,7 +54,7 @@ def get_channeldata(ggd_recipe,ggd_channel):
             print("\n\t-> Note: If the the package is not a part of a ggd channel run 'conda uninstall <pkg>' to uninstall")
             print("\n\t\t-> GGD channels include: %s" %",".join(get_ggd_channels()))
         else:
-            print("\n\t-> Unable to find any package similar to the package entered. Use 'ggd search' or 'ggd find' to identify the right package")
+            print("\n\t-> Unable to find any package similar to the package entered. Use 'ggd search' or 'conda find' to identify the right package")
             print("\n\t-> This package may not be installed on your system")
         sys.exit(1)
         
