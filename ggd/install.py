@@ -102,19 +102,41 @@ def check_conda_installation(ggd_recipe,ggd_version):
     if recipe_find == -1:
         print("\n\t-> %s has not been installed by conda" %ggd_recipe)
         return(False)
-    elif ggd_version != "-1": ## Check if ggd version was designated 
-        installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
-        if installed_version != ggd_version:
-            print("\n\t-> %s version %s has not been installed by conda" %(ggd_recipe,str(ggd_version)))
-            return(False)
-        else:
-            print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
-            print("\t-> To reinstall run:\n\t\t ggd uninstall %s \n\t\t ggd install %s" %(ggd_recipe,ggd_recipe))
-            sys.exit()
     else:
-        print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
-        print("\t-> To reinstall run:\n\t\t ggd uninstall %s \n\t\t ggd install %s" %(ggd_recipe,ggd_recipe))
-        sys.exit()
+        if ggd_version != "-1": ## Check if ggd version was designated 
+            installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
+            if installed_version != ggd_version:
+                print("\n\t-> %s version %s has not been installed by conda" %(ggd_recipe,str(ggd_version)))
+                return(False)
+            else:
+                print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
+                print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+                sys.exit()
+        else: ## If version is not specified check if exact package in conda list
+            start_index = conda_package_list.find(ggd_recipe) 
+            end_index = start_index + len(ggd_recipe)
+            ## Check if it really is the package, or something similar to the package 
+            if conda_package_list[int(start_index) - 1] == "\n" and conda_package_list[int(end_index) + 1] == " ":
+                print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
+                print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+                sys.exit()
+            else: ## IF not exactly in conda list
+                print("\n\t-> %s has not been installed by conda" %ggd_recipe)
+                return(False)
+
+#    elif ggd_version != "-1": ## Check if ggd version was designated 
+#        installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
+#        if installed_version != ggd_version:
+#            print("\n\t-> %s version %s has not been installed by conda" %(ggd_recipe,str(ggd_version)))
+#            return(False)
+#        else:
+#            print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
+#            print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+#            sys.exit()
+#    else:
+#        print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
+#        print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+#        sys.exit()
 
 
 def check_S3_bucket(ggd_recipe, ggd_jdict):

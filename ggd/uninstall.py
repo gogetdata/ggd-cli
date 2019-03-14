@@ -122,8 +122,14 @@ def check_conda_installation(ggd_recipe):
     if conda_package_list.find(ggd_recipe) == -1:
         print("\n\t-> %s is NOT installed on your system" %ggd_recipe)
     else:
-        print("\n\t-> %s is installed by conda on your system" %ggd_recipe)
-        conda_uninstall(ggd_recipe)
+        start_index = conda_package_list.find(ggd_recipe) 
+        end_index = start_index + len(ggd_recipe)
+        ## Check if it really is the package, or some other form of hte package 
+        if conda_package_list[int(start_index) - 1] == "\n" and conda_package_list[int(end_index) + 1] == " ":
+            print("\n\t-> %s is installed by conda on your system" %ggd_recipe)
+            conda_uninstall(ggd_recipe)
+        else:
+            print("\n\t-> %s is NOT installed on your system" %ggd_recipe)
 
 
 # conda_uninstall
