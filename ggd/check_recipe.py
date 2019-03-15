@@ -11,6 +11,7 @@ import locale
 from fnmatch import fnmatch
 from .utils import get_required_conda_version, check_output, conda_root
 from .uninstall import check_for_installation
+from .install import check_ggd_recipe
 
 #---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -93,10 +94,24 @@ def _build(path, recipe,debug=False):
     """
 
     sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
-    if debug:
-        out = check_output(['conda', 'build', "--debug", "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
-    else:
-        out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
+    try:
+        if debug:
+            out = check_output(['conda', 'build', "--debug", "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
+        else:
+            out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
+
+    except Exception as e:
+        ## Check all requirenments for ggd dependencies
+        print("Rolling back ggd dependencies")
+        for d in recipe["requirements"]["build"]:  
+            ggd_jdict = check_ggd_recipe(d,ggd_channel="ggd-genomics") 
+            if ggd_jdict != None:
+                print("Rolling back %s" %d)
+                ## Remove ggd files 
+                check_for_installation(d,ggd_jdict) ## .uninstall method to remove extra ggd files
+        print("\n\t-> Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
+        ## Exit
+        sys.exit(1)   
     
     pattern = "Package:.+"
     result = re.search(pattern, out)
