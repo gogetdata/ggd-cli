@@ -387,8 +387,8 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics"):
     args = Namespace(channel=None, cmd="install", deps_modifier=context.deps_modifier, json=False, packages=[pkg_name])
 
     ## Set logger level
-    #WARN, INFO, DEBUG, TRACE = VERBOSITY_LEVELS
-    #set_all_logger_level(DEBUG)
+    WARN, INFO, DEBUG, TRACE = VERBOSITY_LEVELS
+    set_all_logger_level(DEBUG)
 
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
