@@ -60,7 +60,7 @@ def get_channeldata(ggd_recipe,ggd_channel):
         
 
 # get_similar_pkg_installed_by_conda
-#  ================================
+#  =================conda_root===============
 # Method to identify if there are similar packages to the one provided installed by conda that could be 
 #  uninstalled. Porvides a list of potential pkg names
 # 
@@ -106,12 +106,21 @@ def check_for_installation(ggd_recipe,ggd_jdict):
 #  when uninstalled. 
 def remove_from_condaroot(ggd_recipe,version):
     find_list = sp.check_output(['find', conda_root(), '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
-    print("\n\t-> Deleteing %d items of %s version %s from your conda root" %(len(find_list),ggd_recipe,version))
+    ## Filter the list by conda env
+    croot = conda_root()
+    filtered_list = []
     for path in find_list:
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        else:
-            os.remove(path)
+        if croot in path:
+            if croot+"/envs/" not in path: ## If the conda env root is in the path, and conda env root/env/ is not in the path, then add it to the filtered list
+                filtered_list.append(path)
+    print("\n\t-> Deleteing %d items of %s version %s from your conda root" %(len(filtered_list),ggd_recipe,version))
+    ## Remove files
+    for path in filtered_list:
+        if str(croot)+"/env/" not in path:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
 
 # check_conda_installation

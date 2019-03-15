@@ -28,7 +28,7 @@ def add_install(p):
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), 
                      help="The ggd channel the desired recipe is stored in. (Default = genomics)")
     c.add_argument("-v", "--version", default="-1", help="A specific ggd package version to install. If the -v flag is not used the latest version will be installed.")
-    c.add_argument("-d", "--debug", action="store_true", help="((Optional) When the -d flag is set debug output will be printed to stdout.") 
+    c.add_argument("-d", "--debug", action="store_true", help="(Optional) When the -d flag is set debug output will be printed to stdout.") 
     c.add_argument("name", help="the name of the recipe to install")
     c.set_defaults(func=install)
 
