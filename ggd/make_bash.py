@@ -117,20 +117,21 @@ def make_bash(parser, args):
         fh.write("""#!/bin/bash
 set -eo pipefail -o nounset
 
-export CONDA_ROOT=$(conda info --root)
-
-PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION-.*$PKG_BUILDNUM$\|$PKG_VERSION\_.*$PKG_BUILDNUM$"`
-
 if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+    export CONDA_ROOT=$(conda info --root)
     env_dir=$CONDA_ROOT
     export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+    export CONDA_ROOT=$(conda info --root)
     env_dir=$CONDA_ROOT
     export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 else
     env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+    export CONDA_ROOT=$env_dir
     export RECIPE_DIR=$env_dir/share/ggd/{species}/{build}/{name}/{version}
 fi
+
+PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" | grep -E "$PKG_VERSION-.*$PKG_BUILDNUM$|$PKG_VERSION\\_.*$PKG_BUILDNUM$"`
 
 if [ -d $RECIPE_DIR ]; then
     rm -r $RECIPE_DIR
