@@ -30,6 +30,7 @@ def add_check_recipe(p):
 
     c = p.add_parser('check-recipe', help="build, install, and check a recipe")
     c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2")
+    c.add_argument("-d", "--debug", help="((Optional) Set the stdout log level to debug")
     c.set_defaults(func=check_recipe)
 
 #---------------------------------------------------------------------------------------------------
@@ -72,7 +73,7 @@ def conda_platform():
     return vs[0].split("platform :")[1].strip()
 
 
-def _build(path, recipe):
+def _build(path, recipe,debug=False):
     """Method used to build a ggd package from a ggd recipe 
 
     _build
@@ -92,7 +93,10 @@ def _build(path, recipe):
     """
 
     sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
-    out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
+    if debug:
+        out = check_output(['conda', 'build', "--debug", "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
+    else:
+        out = check_output(['conda', 'build', "--no-anaconda-upload", "-c", "ggd-genomics", path], stderr=sys.stderr)
     
     pattern = "Package:.+"
     result = re.search(pattern, out)
@@ -108,7 +112,7 @@ def _build(path, recipe):
     return os.path.join(path, name)
 
 
-def _install(bz2,recipe_name):
+def _install(bz2,recipe_name,debug=False):
     """Method to install a local pre-built package to ensure package installs correctly 
 
     _install
@@ -127,11 +131,20 @@ def _install(bz2,recipe_name):
     conda_install = "conda=" + conda_version
     try:
         if conda_version != -1:
-            sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
-                        stdout=sys.stdout)
+            if debug:
+                sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install, "--debug"], stderr=sys.stderr,
+                            stdout=sys.stdout)
+                
+            else:
+                sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
+                            stdout=sys.stdout)
         else:
-            sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
-                        stdout=sys.stdout)
+            if debug:
+                sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install, "--debug"], stderr=sys.stderr,
+                            stdout=sys.stdout)
+            else:
+                sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
+                            stdout=sys.stdout)
 
     except Exception as e:
         print("\n\t-> %s did not install properly. \n\n\t->Error message:\n" %recipe_name)
@@ -184,8 +197,7 @@ def get_recipe_from_bz2(fbz2):
 
 
 def _check_build(species, build):
-    print("\nWarning: _check_build is deprecated\n")
-    '''
+    #print("\nWarning: _check_build is deprecated\n")
     gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
     try:
         ret = urlopen(gf)
@@ -194,7 +206,6 @@ def _check_build(species, build):
     except:
         sys.stderr.write("ERROR: genome-build: %s not found in github repo.\n" % build)
         raise
-    '''
 
 
 def check_recipe(parser, args):
@@ -210,17 +221,23 @@ def check_recipe(parser, args):
         bz2 = args.recipe_path
     else:
         recipe = yaml.load(open(op.join(args.recipe_path, "meta.yaml")))
-        bz2 = _build(args.recipe_path, recipe)
+        if args.debug:
+            bz2 = _build(args.recipe_path, recipe,debug=True)
+        else:
+            bz2 = _build(args.recipe_path, recipe)
 
     species, build, version = check_yaml(recipe)
 
-    #_check_build(species, build)
+    _check_build(species, build)
 
     install_path = op.join(conda_root(), "share", "ggd", species, build)
 
     before = list_files(install_path)
 
-    _install(bz2,str(recipe['package']['name']))
+    if args.debug:
+        _install(bz2,str(recipe['package']['name']),debug=True)
+    else:
+        _install(bz2,str(recipe['package']['name']))
 
     check_files(install_path, species, build, recipe['package']['name'],
                 recipe['extra'].get('extra-files', []), before)
@@ -266,7 +283,7 @@ def check_files(install_path, species, build, recipe_name,
     gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
     
     # TODO is this just repeating the _check_build call performed in the previous function?
-    # _check_build(species, build)
+    _check_build(species, build)
 
     for tbx in tbxs:
         print("> checking %s" % tbx)
@@ -314,5 +331,5 @@ def check_yaml(recipe):
     version = version.replace(" ", "")
     version = version.replace(" ", "'")
 
-    #_check_build(species, build)
+    _check_build(species, build)
     return species, build, version

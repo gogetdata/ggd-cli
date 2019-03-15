@@ -251,7 +251,7 @@ def active_conda_env():
     return(active_environment)
 
 
-def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics"):
+def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=False):
     """Method to bypass the sat solver used by conda when a cached recipe is being installed
 
     bypass_satsolver_on_install
@@ -387,8 +387,9 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics"):
     args = Namespace(channel=None, cmd="install", deps_modifier=context.deps_modifier, json=False, packages=[pkg_name])
 
     ## Set logger level
-    WARN, INFO, DEBUG, TRACE = VERBOSITY_LEVELS
-    set_all_logger_level(DEBUG)
+    if debug:
+        WARN, INFO, DEBUG, TRACE = VERBOSITY_LEVELS
+        set_all_logger_level(DEBUG)
 
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)

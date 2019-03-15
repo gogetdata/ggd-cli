@@ -57,11 +57,9 @@ def make_bash(parser, args):
         shutil.rmtree(name)
         os.makedirs(name)
     
-    '''
     from .check_recipe import _check_build
     print("checking", args.genome_build)
     _check_build(args.species, args.genome_build)
-    '''
 
     recipe_bash = open(args.script).read()
     # use these to automate inserting some dependencies.
