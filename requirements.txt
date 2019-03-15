@@ -6,7 +6,6 @@ conda-build=3.17.8
 conda=4.6.8
 fuzzywuzzy
 python-levenshtein
-boto3
 htslib
 samtools
 zlib
