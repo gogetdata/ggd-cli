@@ -131,7 +131,7 @@ else
     export RECIPE_DIR=$env_dir/share/ggd/{species}/{build}/{name}/{version}
 fi
 
-PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" | grep -E "$PKG_VERSION-.*$PKG_BUILDNUM$|$PKG_VERSION\\_.*$PKG_BUILDNUM$"`
+PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
 
 if [ -d $RECIPE_DIR ]; then
     rm -r $RECIPE_DIR
