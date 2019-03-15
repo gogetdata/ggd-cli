@@ -29,8 +29,8 @@ def add_check_recipe(p):
     """Argument method used to add check-recipes as a module arugment/function """
 
     c = p.add_parser('check-recipe', help="build, install, and check a recipe")
-    c.add_argument("-d", "--debug", help="(Optional) Set the stdout log level to debug")
-    c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2")
+    c.add_argument("-d", "--debug", action="store_true", help="(Optional) Set the stdout log level to debug")
+    c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2)")
     c.set_defaults(func=check_recipe)
 
 #---------------------------------------------------------------------------------------------------
