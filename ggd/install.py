@@ -56,7 +56,7 @@ def check_ggd_recipe(ggd_recipe,ggd_channel):
     else:
         print("\n\t-> '%s' was not found in ggd-%s" %(ggd_recipe, ggd_channel))
         print("\t-> You can search for recipes using the ggd search tool: \n\t\t'ggd search -t %s'\n" %ggd_recipe)
-        sys.exit()
+        return(None)
 
 
 def check_if_installed(ggd_recipe,ggd_jdict,ggd_version):
@@ -178,6 +178,8 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
         except sp.CalledProcessError as e:
             sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
             sys.stderr.write(str(e))
+            sys.stderr.write("\n\t-> Removing files created by ggd during installation")
+            check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
             sys.exit(e.returncode)
     else:
         print("\n\t-> Installing %s" %ggd_recipe)
@@ -226,6 +228,8 @@ def install(parser, args):
     print("\n\t-> Looking for %s in the 'ggd-%s' channel" %(args.name,args.channel))
     ## Check if the recipe is in ggd
     ggd_jsonDict = check_ggd_recipe(args.name,args.channel)
+    if ggd_jsonDict == None:
+        sys.exit()
     ## Check if the recipe is already installed  
     if not check_if_installed(args.name,ggd_jsonDict,args.version):
         ## Check if conda has it installed on the system 
