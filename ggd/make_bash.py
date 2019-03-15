@@ -107,7 +107,7 @@ def make_bash(parser, args):
                 }}
 
 
-    with open(os.path.join(name, "meta.yaml"), "wa") as fh:
+    with open(os.path.join(name, "meta.yaml"), "a") as fh:
         fh.write(yaml.dump(yml1, default_flow_style=False))
         fh.write(yaml.dump(yml2, default_flow_style=False))
         fh.write(yaml.dump(yml3, default_flow_style=False))
@@ -125,13 +125,13 @@ PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".ta
 
 if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
     env_dir=$CONDA_ROOT
-    export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/GRCh37/grch37-reference-genome/1
+    export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
     env_dir=$CONDA_ROOT
-    export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/GRCh37/grch37-reference-genome/1
+    export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
 else
     env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
-    export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/GRCh37/grch37-reference-genome/1
+    export RECIPE_DIR=$env_dir/share/ggd/{species}/{build}/{name}/{version}
 fi
 
 if [ -d $RECIPE_DIR ]; then
