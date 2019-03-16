@@ -150,7 +150,7 @@ def conda_uninstall(ggd_recipe):
         sp.check_call(["conda", "uninstall", "-y", ggd_recipe], stderr=sys.stderr, stdout=sys.stdout)
     except sp.CalledProcessError as e:
         sys.stderr.write("ERROR in uninstall %s" %ggd_recipe)
-        sys.stderr.write(e)
+        sys.stderr.write(str(e))
         sys.exit(e.returncode)
 
 

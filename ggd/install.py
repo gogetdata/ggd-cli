@@ -249,7 +249,6 @@ def install(parser, args):
                     except Exception as e:
                         print("\n\t-> %s did not install properly. Review the error message:\n" %args.name)
                         print(traceback.format_exc())
-                        print(e.message)
                         check_for_installation(args.name,ggd_jsonDict) ## .uninstall method to remove extra ggd files
                         print("\n\t-> %s was not installed. Please correct the errors and try again." %args.name)
                         sys.exit(1) 

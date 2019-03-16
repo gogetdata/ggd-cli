@@ -164,7 +164,6 @@ def _install(bz2,recipe_name,debug=False):
     except Exception as e:
         print("\n\t-> %s did not install properly. \n\n\t->Error message:\n" %recipe_name)
         print(traceback.format_exc())
-        print(e.message)
 
         ## Remove ggd files 
         recipe_dict = get_recipe_from_bz2(bz2)
