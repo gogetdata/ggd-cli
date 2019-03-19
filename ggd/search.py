@@ -8,6 +8,7 @@ import argparse
 import glob
 import json
 import requests
+import traceback
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 from .utils import get_species
@@ -63,7 +64,16 @@ def load_json(jfile):
 # Returns:
 # 1) A dictionary of a json object 
 def load_json_from_url(json_url):
-    return(requests.get(json_url).json())
+    print(json_url)
+    try:
+        return(requests.get(json_url).json())
+    except ValueError as e:
+        sys.stderr.write("\n\t-> Error in loading json frile from url")
+        sys.stderr.write("\n\t-> Invalid URL")
+        sys.stderr.write("\n\t\t-> URL: %s\n" %json_url)
+        sys.stderr.write(str(e))
+        sys.stderr.write(traceback.format_exc())
+        sys.exit(1)
 
 
 # search_packages
