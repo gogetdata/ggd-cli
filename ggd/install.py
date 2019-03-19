@@ -152,6 +152,8 @@ def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=Fals
      been created and can be installed. Installing using a cached recipe increases the install speed. This is
      because (1) data processing and curation has already been done and the resulting files are cached. (This removes
      the time it takes to processes the data). (2) With a cached recipe we can bypass conda's solve environment step. 
+
+    If installed correctly the method returns True
     """
 
     conda_channel = "ggd-" + ggd_channel
@@ -172,6 +174,8 @@ def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=Fals
         print("\n\t-> %s was not installed. Please correct the errors and try again." %ggd_recipe)
         sys.exit(1) 
 
+    return(True)
+
 
 def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
     """Method to install the recipe from the ggd-channel using conda
@@ -180,6 +184,8 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
     ============
     This method is used to install the ggd recipe from the ggd conda channel using conda, if the files 
      have not been cached. 
+
+    If installed correctly the method returns True
     """
     
     conda_version = get_required_conda_version()
@@ -210,6 +216,8 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
             sys.stderr.write("\n\t-> Removing files created by ggd during installation")
             check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
             sys.exit(e.returncode)
+
+    return(True)
 
 
 def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
