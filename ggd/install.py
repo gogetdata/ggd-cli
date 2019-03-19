@@ -84,7 +84,7 @@ def check_if_installed(ggd_recipe,ggd_jdict,ggd_version):
             print("\t-> You can find %s here: %s" %(ggd_recipe,path))
             sys.exit()
     else:
-        print("\n\t-> %s is not installed on your system" %ggd_recipe)
+        print("\n\t-> %s version %s is not installed on your system" %(ggd_recipe, version))
         return(False)
     
 
@@ -125,20 +125,6 @@ def check_conda_installation(ggd_recipe,ggd_version):
                 print("\n\t-> %s has not been installed by conda" %ggd_recipe)
                 return(False)
 
-#    elif ggd_version != "-1": ## Check if ggd version was designated 
-#        installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
-#        if installed_version != ggd_version:
-#            print("\n\t-> %s version %s has not been installed by conda" %(ggd_recipe,str(ggd_version)))
-#            return(False)
-#        else:
-#            print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
-#            print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
-#            sys.exit()
-#    else:
-#        print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
-#        print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
-#        sys.exit()
-
 
 def check_S3_bucket(ggd_recipe, ggd_jdict):
     """Method to check if the recipe is stored on the ggd S3 bucket. If so it installs from S3
@@ -155,6 +141,36 @@ def check_S3_bucket(ggd_recipe, ggd_jdict):
                 print("\n\t-> The %s package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" %ggd_recipe)
                 return(True)
     return(False)
+
+
+def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
+    """Method to install the ggd data package using a cached recipe
+
+    install_from_cached
+    ===================
+    This method is used to install a ggd data package from a cached location. That is, a cached ggd recipe has 
+     been created and can be installed. Installing using a cached recipe increases the install speed. This is
+     because (1) data processing and curation has already been done and the resulting files are cached. (This removes
+     the time it takes to processes the data). (2) With a cached recipe we can bypass conda's solve environment step. 
+    """
+
+    conda_channel = "ggd-" + ggd_channel
+    try:
+        if debug:
+            bypass_satsolver_on_install(ggd_recipe,conda_channel,debug=True)
+        else:
+            bypass_satsolver_on_install(ggd_recipe,conda_channel)
+
+        get_file_locations(ggd_recipe,ggd_jdict,ggd_version)
+        activate_enviroment_variables()
+        print("\n\t-> DONE")
+
+    except Exception as e:
+        print("\n\t-> %s did not install properly. Review the error message:\n" %ggd_recipe)
+        print(traceback.format_exc())
+        check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
+        print("\n\t-> %s was not installed. Please correct the errors and try again." %ggd_recipe)
+        sys.exit(1) 
 
 
 def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
@@ -201,7 +217,7 @@ def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
 
     get_file_locations
     ==================
-    This method is used to print hte location of the data files installed for a reference 
+    This method is used to print the location of the data files installed for a reference 
     for the user.
     """
 
@@ -237,26 +253,13 @@ def install(parser, args):
             ## Check S3 bucket if version has not been set
             if args.version == "-1":
                 if check_S3_bucket(args.name, ggd_jsonDict):
-                    conda_channel = "ggd-" + args.channel
-                    try:
-                        if args.debug:
-                            bypass_satsolver_on_install(args.name,conda_channel,debug=True)
-                        else:
-                            bypass_satsolver_on_install(args.name,conda_channel)
-                        get_file_locations(args.name,ggd_jsonDict,args.version)
-                        activate_enviroment_variables()
-                        print("\n\t-> DONE")
-                    except Exception as e:
-                        print("\n\t-> %s did not install properly. Review the error message:\n" %args.name)
-                        print(traceback.format_exc())
-                        check_for_installation(args.name,ggd_jsonDict) ## .uninstall method to remove extra ggd files
-                        print("\n\t-> %s was not installed. Please correct the errors and try again." %args.name)
-                        sys.exit(1) 
+                    install_from_cached(args.name, args.channel, ggd_jsonDict, args.version, debug=args.debug)           
                 else:
                     if args.debug:
                         conda_install(args.name, args.channel, ggd_jsonDict,args.version,debug=True)
                     else:
                         conda_install(args.name, args.channel, ggd_jsonDict,args.version)
+
                     get_file_locations(args.name,ggd_jsonDict,args.version)
                     activate_enviroment_variables()
                     print("\n\t-> DONE")
