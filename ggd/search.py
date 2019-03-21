@@ -164,7 +164,7 @@ def filter_by_identifiers(iden_key,matchList,jsonDict,filterTerm):
                 tempDict[identifierTerm].append(key)
             else:
                 tempDict[identifierTerm] = [key]
-    if len(tempSet) > 0
+    if len(tempSet) > 0:
         filteredList = process.extract(filterTerm,tempSet,limit=100) 
         if filteredList[0][1] > 85: ## Match score greater than 85%
             return(tempDict[filteredList[0][0]])
