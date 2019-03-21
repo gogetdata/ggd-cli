@@ -164,15 +164,17 @@ def filter_by_identifiers(iden_key,matchList,jsonDict,filterTerm):
                 tempDict[identifierTerm].append(key)
             else:
                 tempDict[identifierTerm] = [key]
-    filteredList = process.extract(filterTerm,tempSet,limit=100) 
-    if filteredList[0][1] > 85: ## Match score greater than 85%
-        return(tempDict[filteredList[0][0]])
-    else:
-        print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
-        print("\tThe un-filtered list will be used\n")
-        if iden_key == "species":
-            print("\tAvaiable species terms = %s" %SPECIES_LIST)
-        return(matchList)
+    if len(tempSet) > 0
+        filteredList = process.extract(filterTerm,tempSet,limit=100) 
+        if filteredList[0][1] > 85: ## Match score greater than 85%
+            return(tempDict[filteredList[0][0]])
+
+    ## If unable to return a filtered set return the original match list
+    print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
+    print("\tThe un-filtered list will be used\n")
+    if iden_key == "species":
+        print("\tAvaiable species terms = %s" %SPECIES_LIST)
+    return(matchList)
 
 
 def filter_by_keywords(matchList,jsonDict,filterTerm):
