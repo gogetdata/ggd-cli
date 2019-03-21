@@ -37,7 +37,7 @@ def show_env(parser, args):
         print ("*****************************\n")
         for env_var in env_vars:
             try:
-                if re.match(pattern, env_var):
+                if re.search(pattern, env_var):
                     matching_vars[env_var] = env_vars[env_var]
             except:
                 print("Invalid pattern")
@@ -83,7 +83,7 @@ def remove_env_variable(env_var):
     var_list = []
     with open(active_env_file, "r") as active_env:
         for var in active_env:
-            if env_var not in var:
+            if re.search(r"\b"+env_var+"=", var):
                 var_list.append(var.strip())
     with open(active_env_file, "w") as new_active_env:
         for var in var_list:
@@ -91,7 +91,7 @@ def remove_env_variable(env_var):
     var_list = []
     with open(deactive_env_file, "r") as deactive_env:
         for var in deactive_env:
-            if env_var not in var:
+            if re.search(r"\b"+env_var+"=", var):
                 var_list.append(var.strip())
     with open(deactive_env_file, "w") as new_deactive_env:
         for var in var_list:
