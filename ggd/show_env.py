@@ -2,6 +2,7 @@ from __future__ import print_function
 import sys
 import os
 import re
+from argparse import Namespace
 from .utils import check_output, get_conda_env
 import subprocess as sp
 
@@ -83,7 +84,7 @@ def remove_env_variable(env_var):
     var_list = []
     with open(active_env_file, "r") as active_env:
         for var in active_env:
-            if re.search(r"\b"+env_var+"=", var):
+            if not re.search(r"\b"+env_var+"=", var):
                 var_list.append(var.strip())
     with open(active_env_file, "w") as new_active_env:
         for var in var_list:
@@ -91,7 +92,7 @@ def remove_env_variable(env_var):
     var_list = []
     with open(deactive_env_file, "r") as deactive_env:
         for var in deactive_env:
-            if re.search(r"\b"+env_var+"=", var):
+            if not re.search(r"\b"+env_var+r"\b", var):
                 var_list.append(var.strip())
     with open(deactive_env_file, "w") as new_deactive_env:
         for var in var_list:
@@ -109,8 +110,7 @@ def activate_enviroment_variables():
     conda_env, conda_path = get_conda_env()
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
     sp.check_output(["activate", conda_env])
-    sp.check_call(['ggd', "show-env"], stderr=sys.stderr, stdout = sys.stdout)
-
+    show_env((),Namespace(command='show-env', pattern=None))
 
 def test_vars(env_vars):
     """Method to identify the active and inactive environment variables for a specific conda environment

@@ -34,22 +34,28 @@ def add_list_files(p):
 ## Functions/Methods 
 #-------------------------------------------------------------------------------------------------------------
 
-# in_ggd_channel
-# ==============
-# Method used to identify in the desired pacakge is in the ggd-<channel>.
-#  If it is the the species, build, and version is returned. 
-#  If it is not, then a few alternative package names are provided
-# 
-# Parameters:
-# ----------
-# 1) ggd_recipe: The name of the ggd recipe
-# 2) ggd_channel: The name of the ggd-channel to look in
-# 
-# Return:
-# 1) species: The species for the ggd-recipe
-# 2) build: The genome build for the ggd-recipe
-# 3) version: The version of the ggd-recipe
 def in_ggd_channel(ggd_recipe, ggd_channel):
+    """Method to check if the desired ggd recipe is in the ggd channel
+
+    in_ggd_channel
+    ==============
+    Method used to identify in the desired pacakge is in the ggd-<channel>.
+     If it is the the species, build, and version is returned. 
+     If it is not, then a few alternative package names are provided
+     
+    Parameters:
+    ----------
+    1) ggd_recipe: The name of the ggd recipe
+    2) ggd_channel: The name of the ggd-channel to look in
+     
+    Return:
+    +++++++
+    1) species: The species for the ggd-recipe
+    2) build: The genome build for the ggd-recipe
+    3) version: The version of the ggd-recipe
+
+    """
+
     CHANNELDATA_URL = get_channeldata_url(ggd_channel)
     json_dict = load_json_from_url(CHANNELDATA_URL)
     package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
@@ -64,17 +70,16 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
         sys.exit(1)
 
 
-# list_files
-# ==========
-# Main method. Method used to list files for an installed ggd-recipe
 def list_files(parser, args): 
+    """Main method. Method used to list files for an installed ggd-recipe"""
+
     CONDA_ROOT = conda_root()
     name = args.name
     channeldata_species, channeldata_build, channeldata_version = in_ggd_channel(args.name, args.channel)
     species = args.species if args.species else channeldata_species
     build = args.genome_build if args.genome_build else channeldata_build
     if not validate_build(build, species):
-        exit(1)
+        sys.exit(1)
     version = args.version if args.version else "*"
     pattern = args.pattern if args.pattern else "*"
    
@@ -84,4 +89,4 @@ def list_files(parser, args):
         print ("\n".join(files))
     else:
         print("\n\t-> No matching files found for %s" %args.name, file=sys.stderr)
-        exit(1)
+        sys.exit(1)
