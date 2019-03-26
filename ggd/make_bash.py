@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import shutil
 import yaml
+import sys
 import subprocess as sp
 from .utils import get_species 
 from .utils import get_ggd_channels
@@ -47,8 +48,9 @@ def add_make_bash(p):
 
 def make_bash(parser, args):
 
-    name = args.name.replace(args.species, "").replace(args.genome_build, "").strip("- ")
+    name = args.name.replace(args.species, "").replace(args.genome_build, "").strip("- ").strip()
     name = "{0}-{1}-v{2}".format(args.genome_build, name, args.ggd_version).lower()
+    assert name.strip() != "{0}--v{1}".format(args.genome_build,args.ggd_version) ## test for missing name 
     assert args.summary.strip() != ""
 
     try:
@@ -61,7 +63,12 @@ def make_bash(parser, args):
     print("checking", args.genome_build)
     _check_build(args.species, args.genome_build)
 
-    recipe_bash = open(args.script).read()
+    try:
+        recipe_bash = open(args.script).read()
+    except IOError as e:
+        print(e)
+        sys.exit(1)
+
     # use these to automate inserting some dependencies.
     look = {'tabix': 'htslib', 'bgzip': 'htslib', 'perl': 'perl',
             'gsort': 'gsort',
@@ -176,3 +183,5 @@ echo 'Recipe successfully built!'
 
     print("\n\t-> Wrote output to %s/" % name)
     print("\n\t-> To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\t\t$ ggd check-recipe %s/"  % name)
+
+    return(True)
