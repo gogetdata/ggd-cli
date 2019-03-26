@@ -48,7 +48,7 @@ def add_make_bash(p):
 def make_bash(parser, args):
 
     name = args.name.replace(args.species, "").replace(args.genome_build, "").strip("- ")
-    name = "{0}-{1}".format(args.genome_build, name).lower()
+    name = "{0}-{1}-v{2}".format(args.genome_build, name, args.ggd_version).lower()
     assert args.summary.strip() != ""
 
     try:
@@ -153,11 +153,22 @@ echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
 
 (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
+cd $RECIPE_DIR
+
+## Iterate over new files and replace file name with data package name and data version  
+for f in *; do
+    ext="${ext_string}"
+    filename="{filename_string}"
+    (mv $f "{name}.$ext")
+done
+
 echo 'Recipe successfully built!'
 """.format(species=args.species,
            name=name,
            build=args.genome_build,
-           version=args.ggd_version))
+           version=args.ggd_version,
+           ext_string="{f#*.}", ## Bash get extention. (.bed, .bed.gz, etc.) 
+           filename_string="{f%%.*}"))
 
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
         fh.write("#!/bin/sh\nset -eo pipefail -o nounset\n")
