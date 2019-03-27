@@ -17,6 +17,7 @@ import tarfile
 from helpers import install_hg19_gaps, uninstall_hg19_gaps, CreateRecipe
 from ggd import utils
 from ggd import make_bash
+import oyaml
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -382,6 +383,69 @@ def test_make_bash_all_params():
 
 
 
+def test_make_bash_meta_yaml_key_order():
+    """
+    Test the main method of ggd make-recipe
+    """
+
+    recipe = CreateRecipe(
+
+    """
+    hg19-test-gaps3-v1:
+        recipe.sh: |
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+
+    """, from_string=True)
+
+    recipe.write_recipes() 
+
+    ggd_package = "hg19-test-gaps3-v1"
+
+    recipe_file = os.path.join(recipe.recipe_dirs["hg19-test-gaps3-v1"],"recipe.sh")
+
+    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', 
+                        dependency=['vt','samtools','bedtools'], extra_file=['not.a.real.extra.file'], genome_build='hg19', ggd_version='1', keyword=['gaps', 'region'], 
+                        name='test-gaps3', platform='none', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC')
+
+    assert make_bash.make_bash((),args) 
+
+    new_recipe_file = os.path.join("./", ggd_package, "recipe.sh") 
+    assert os.path.exists(new_recipe_file)
+    assert os.path.isfile(new_recipe_file)
+    new_metayaml_file = os.path.join("./", ggd_package, "meta.yaml") 
+    assert os.path.exists(new_metayaml_file)
+    assert os.path.isfile(new_metayaml_file)
+    new_postlink_file = os.path.join("./", ggd_package, "post-link.sh") 
+    assert os.path.exists(new_postlink_file)
+    assert os.path.isfile(new_postlink_file)
+
+    ## Test that the keys in the meta.yaml file are in the correct order. 
+    ## Conda-build requires a strict order: https://github.com/conda/conda-build/issues/3267
+    try:
+        ref_keys = ["build","extra","package","requirements","source","about"]
+        index = 0
+        with open(new_metayaml_file, "r") as mf:
+            perserved_order = oyaml.load(mf)
+            assert list(perserved_order.keys()) == ref_keys
+            for i,key in enumerate(perserved_order):
+                assert key == ref_keys[i]
+                    
+    except IOError as e:
+        print(e)
+        assert False
+
+    os.remove(new_recipe_file)
+    os.remove(new_metayaml_file)
+    os.remove(new_postlink_file)
+    os.rmdir(ggd_package)
 
 
 
