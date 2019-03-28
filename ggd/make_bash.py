@@ -78,6 +78,13 @@ def make_bash(parser, args):
               set([look.get(p, p) for p in args.dependency] +
                   [look[prog] for prog in look if prog in recipe_bash]))
 
+    extra_files = []
+    for f in args.extra_file:
+        flist = f.strip().split(".")
+        flist[0] = name
+        extra_files.append(".".join(flist))
+        
+
     if args.platform == "noarch":
         yml1 = {"build": {
                       "noarch": "generic",
@@ -91,7 +98,7 @@ def make_bash(parser, args):
                       "number": 0}}
     yml2 = {"extra": {
                     "authors": args.authors,
-                    "extra-files": args.extra_file,
+                    "extra-files": extra_files,
                 }}
     yml3 = {"package": {"name": name, "version": args.ggd_version}}
     yml4 = {"requirements": {"build": deps[:],
