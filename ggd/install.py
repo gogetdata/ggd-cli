@@ -194,9 +194,9 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=False):
         print("\n\t-> Installing %s version %s" %(ggd_recipe,ggd_version))
         try:
             if debug:
-                sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+ggd_version+"*", conda_install_str, "--debug"], stderr=sys.stderr, stdout=sys.stdout)
+                sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+str(ggd_version)+"*", conda_install_str, "--debug"], stderr=sys.stderr, stdout=sys.stdout)
             else:
-                sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+ggd_version+"*", conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
+                sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+str(ggd_version)+"*", conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
         except sp.CalledProcessError as e:
             sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
             sys.stderr.write(str(e))
@@ -280,4 +280,4 @@ def install(parser, args):
                 get_file_locations(args.name,ggd_jsonDict,args.version)
                 activate_enviroment_variables()
                 print("\n\t-> DONE")
-                
+    return(True) 
