@@ -7,12 +7,12 @@ variables:
     run:
       shell: /bin/bash
       name: Setup python2, conda, and ggd-cli dependencies 
-      command: .circleci/setup.sh 2
+      command: bash .circleci/setup.sh 2
   setup_p3: &setup_p3
     run:
       shell: /bin/bash
       name: Setup python3, conda, and ggd-cli dependencies 
-      command: .circleci/setup.sh 3
+      command: bash .circleci/setup.sh 3
   macos: &macos
     macos:
       xcode: "9.4.1" ## Using a macOS VM image (https://circleci.com/docs/2.0/executor-types/)
