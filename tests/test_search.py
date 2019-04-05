@@ -7,17 +7,41 @@ import yaml
 import tempfile
 import requests
 import argparse
+import contextlib
 import json
 from ggd import search 
 from argparse import Namespace
 from argparse import ArgumentParser
 
+#---------------------------------------------------------------------------------------------------------
+## Test Label
+#---------------------------------------------------------------------------------------------------------
 
 TEST_LABEL = "ggd-search-test"
 
 
+#---------------------------------------------------------------------------------------------------------
+## IO redirection
+#---------------------------------------------------------------------------------------------------------
+
+## Create a redirect_stdout that works for python 2 and 3. (Similar to contextlib.redirect_stdout in python 3)
+@contextlib.contextmanager
+def redirect_stdout(target):
+    original = sys.stdout
+    sys.stdout = target
+    yield
+    sys.stdout = original
+
+## Create a redirect_stderr that works for python 2 and 3. (Similar to contextlib.redirect_stderr in python 3)
+@contextlib.contextmanager
+def redirect_stderr(target):
+    original = sys.stderr
+    sys.stderr = target
+    yield
+    sys.stderr = original
+
 #-------------------------------------------------------------------------------------------------------
-## Test functions
+## Unit Tests for ggd search
 #-------------------------------------------------------------------------------------------------------
 
 def test_load_json_goodjson():
