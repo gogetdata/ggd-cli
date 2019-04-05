@@ -37,6 +37,7 @@ jobs:
       - *install_ggd_cli
       - *setup_local_repos
       - run: 
+          shell: /bin/bash
           name: ggd cli unit tests (Linux)
           command: py.test tests/ --duration=0 -v
           no_output_timeout: 9900
@@ -48,6 +49,7 @@ jobs:
       - *install_ggd_cli
       - *setup_local_repos
       - run: 
+          shell: /bin/bash
           name: ggd cli unit tests (Linux)
           command: py.test tests/ --duration=0 -v
           no_output_timeout: 9900
@@ -59,6 +61,7 @@ jobs:
       - *install_ggd_cli
       - *setup_local_repos
       - run: 
+          shell: /bin/bash
           name: ggd cli unit tests (macOS)
           command: py.test tests/ --duration=0 -v
           no_output_timeout: 9900
@@ -70,6 +73,7 @@ jobs:
       - *install_ggd_cli
       - *setup_local_repos
       - run: 
+          shell: /bin/bash
           name: ggd cli unit tests (macOS)
           command: py.test tests/ --duration=0 -v
           no_output_timeout: 9900
