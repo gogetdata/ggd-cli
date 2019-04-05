@@ -76,7 +76,7 @@ def load_json_from_url(json_url):
     try:
         return(requests.get(json_url).json())
     except ValueError as e:
-        sys.stderr.write("\n\t-> Error in loading json frile from url")
+        sys.stderr.write("\n\t-> Error in loading json file from url")
         sys.stderr.write("\n\t-> Invalid URL")
         sys.stderr.write("\n\t\t-> URL: %s\n" %json_url)
         sys.stderr.write(str(e))
