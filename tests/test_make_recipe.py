@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 import glob
 import contextlib
 import tarfile
-from helpers import install_hg19_gaps, uninstall_hg19_gaps, CreateRecipe
+from helpers import CreateRecipe
 from ggd import utils
 from ggd import make_bash
 import oyaml
@@ -25,9 +25,16 @@ elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
 
+#---------------------------------------------------------------------------------------------------------
+## Test Label
+#---------------------------------------------------------------------------------------------------------
 
 TEST_LABEL = "ggd-make-recipe-test"
 
+
+#---------------------------------------------------------------------------------------------------------
+## IO redirection
+#---------------------------------------------------------------------------------------------------------
 
 ## Create a redirect_stdout that works for python 2 and 3. (Similar to contextlib.redirect_stdout in python 3)
 @contextlib.contextmanager
@@ -50,10 +57,6 @@ def redirect_stderr(target):
 #-----------------------------------------------------------------------------------------------------------------------
 # Unit test for ggd make-recipe
 #-----------------------------------------------------------------------------------------------------------------------
-
-
-#Namespace(authors='mjc', channel='genomics', command='make-recipe', data_version='27-Apr-2009', dependency=[], extra_file=[], func=<function make_bash at 0x2ad794009398>, genome_build='hg19', ggd_version='1', keyword=['gaps', 'region'], name='gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS')
-
 
 def test_make_bash_test_bad_summary():
     """
@@ -139,8 +142,8 @@ def test_make_bash_test_bad_genome_build():
             make_bash.make_bash((),args)  
     except Exception as e:
         os.rmdir("{}-{}-v{}".format("hg09","test-gaps","1"))
-        output = temp_stderr.getvalue().strip() 
-        assert "ERROR: genome-build: hg09 not found in github repo." in output 
+        output = str(temp_stderr.getvalue().strip()) 
+        assert "ERROR: genome-build: hg09 not found in github repo for the Homo_sapiens species" in output
 
         
     ## test that make_bash fails when a bad genome build is provided
@@ -154,7 +157,7 @@ def test_make_bash_test_bad_genome_build():
     except Exception as e:
         os.rmdir("{}-{}-v{}".format("hgmm10","test-gaps","1"))
         output = temp_stderr.getvalue().strip() 
-        assert "ERROR: genome-build: hgmm10 not found in github repo." in output 
+        assert "ERROR: genome-build: hgmm10 not found in github repo for the Homo_sapiens species" in output
 
 
 
@@ -359,7 +362,7 @@ def test_make_bash_all_params():
             assert yamldict["build"]["number"] == 0
             assert "noarch" not in yamldict["build"].keys()
             assert yamldict["extra"]["authors"] == "me"
-            assert yamldict["extra"]["extra-files"] == ['not.a.real.extra.file']   
+            assert yamldict["extra"]["extra-files"] == ['{}.a.real.extra.file'.format(ggd_package)]   
             assert yamldict["package"]["name"] == ggd_package
             assert yamldict["package"]["version"] == "1"
             assert yamldict["requirements"]["build"] == ['bedtools', 'gsort', 'htslib', 'samtools', 'vt', 'zlib']
