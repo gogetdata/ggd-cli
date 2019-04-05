@@ -131,6 +131,10 @@ def _to_str(s, enc=locale.getpreferredencoding()):
             
 
 def get_builds(species):
+    """
+    Method to get the annotated/available genome builds for a species within ggd  
+    """
+
     update_local_repo()
     species_dir = os.path.join(RECIPE_REPO_DIR, "genomes", species)
 
@@ -158,7 +162,7 @@ def update_metadata_local_repo():
     if not os.path.isdir(LOCAL_REPO_DIR):
         os.makedirs(LOCAL_REPO_DIR)
     if not os.path.isdir(METADATA_REPO_DIR):
-        Repo.clone_from(METADAT_GITHUB_URL, METADATA_REPO_DIR)
+        Repo.clone_from(METADATA_GITHUB_URL, METADATA_REPO_DIR)
     Repo(METADATA_REPO_DIR).remotes.origin.pull()
 
 
@@ -180,6 +184,9 @@ def update_local_repo():
 
 
 def validate_build(build, species):
+    """
+    Method to validate that a genome-build is correclty assigned based on a species.
+    """
     if build != "*":
         builds_list = get_builds(species)
         if not builds_list or build not in builds_list:
@@ -234,6 +241,7 @@ def get_conda_env():
     print("Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
     exit()
 
+
 def active_conda_env():
     """Method used to get the active conda environmnet
 
@@ -243,7 +251,7 @@ def active_conda_env():
     is retunred. 
     """
 
-    environment_list = sp.check_output(['conda', 'info', '--env']).strip().split("\n")
+    environment_list = sp.check_output(['conda', 'info', '--env']).decode("utf8").strip().split("\n")
     active_environment = "base"
     for environment in environment_list:
         if "*" in environment_list:
@@ -393,6 +401,9 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
 
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
+    
+    ## Retrun True if finished
+    return(True)
         
 
 if __name__ == "__main__":
