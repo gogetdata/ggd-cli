@@ -656,7 +656,7 @@ def test__install_bad_recipe():
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019 (recipe modified)
     recipe = CreateRecipe(
     """
-    trial-hg38-gaps-v1:
+    bad-recipe-hg38-gaps-v1:
         meta.yaml: |
             build:
               binary_relocation: false
@@ -667,7 +667,7 @@ def test__install_bad_recipe():
               authors: mjc 
               extra-files: []
             package:
-              name: trial-hg38-gaps-v1
+              name: bad-recipe-hg38-gaps-v1
               version: '1' 
             requirements:
               build:
@@ -717,15 +717,15 @@ def test__install_bad_recipe():
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
                 export CONDA_ROOT=$(conda info --root)
                 env_dir=$CONDA_ROOT
-                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/bad-recipe-hg38-gaps-v1/1
             elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
                 export CONDA_ROOT=$(conda info --root)
                 env_dir=$CONDA_ROOT
-                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/bad-recipe-hg38-gaps-v1/1
             else
                 env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
                 export CONDA_ROOT=$env_dir
-                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/bad-recipe-hg38-gaps-v1/1
             fi
 
             PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
@@ -736,7 +736,7 @@ def test__install_bad_recipe():
 
             mkdir -p $RECIPE_DIR
 
-            recipe_env_name="ggd_trial-hg38-gaps-v1"
+            recipe_env_name="ggd_bad-recipe-hg38-gaps-v1"
             recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
 
             activate_dir="$env_dir/etc/conda/activate.d"
@@ -756,7 +756,7 @@ def test__install_bad_recipe():
             for f in *; do
                 ext="${f#*.}"
                 filename="{f%%.*}"
-                (mv $f "trial-hg38-gaps-v1.$ext")
+                (mv $f "bad-recipe-hg38-gaps-v1.$ext")
             done
 
             echo 'Recipe successfully built!'
@@ -765,10 +765,10 @@ def test__install_bad_recipe():
     recipe.write_recipes()
 
     ## Build the recipe using the _build function
-    recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-v1"] 
+    recipe_dir_path = recipe.recipe_dirs["bad-recipe-hg38-gaps-v1"] 
     yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
-    recipe_name = "trial-hg38-gaps-v1"
+    recipe_name = "bad-recipe-hg38-gaps-v1"
 
     ## Test the _install function prorperly uninstalls testing-hg38-gaps-v1 becuse of a bad recipe
     with pytest.raises(SystemExit) as pytest_wrapped_e:
@@ -776,12 +776,12 @@ def test__install_bad_recipe():
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
 
-    out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
-    assert "trial-hg38-gaps-v1" not in out
+    out = utils.check_output(["conda", "list", "bad-recipe-hg38-gaps-v1"])
+    assert "bad-recipe-hg38-gaps-v1" not in out
     out = utils.check_output(["ggd", "show-env"])
-    assert "ggd_trial_hg38_gaps_v1" not in out
+    assert "ggd_bad_recipe_hg38_gaps_v1" not in out
     conda_root = utils.conda_root()
-    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/bad-recipe-hg38-gaps-v1/1")) == False 
     
 
 def test__install_normal_run():
