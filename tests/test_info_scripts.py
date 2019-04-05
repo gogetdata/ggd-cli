@@ -11,11 +11,10 @@ import json
 import re
 from argparse import Namespace
 from argparse import ArgumentParser
-import requests
 import glob
 import contextlib
 import tarfile
-from helpers import install_hg19_gaps, uninstall_hg19_gaps, CreateRecipe
+from helpers import install_hg19_gaps_v1, uninstall_hg19_gaps_v1, CreateRecipe
 from ggd import show_env
 from ggd import list_files
 from ggd import list_pkg_info
@@ -27,8 +26,16 @@ elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
 
+#---------------------------------------------------------------------------------------------------------
+## Test Label
+#---------------------------------------------------------------------------------------------------------
+
 TEST_LABEL = "ggd-info-scripts-test"
 
+
+#---------------------------------------------------------------------------------------------------------
+## IO redirection
+#---------------------------------------------------------------------------------------------------------
 
 ## Create a redirect_stdout that works for python 2 and 3. (Similar to contextlib.redirect_stdout in python 3)
 @contextlib.contextmanager
@@ -40,7 +47,7 @@ def redirect_stdout(target):
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Test functions for ggd show-env, ggd list-files, and ggd pkg-info
+# Unit Test for ggd show-env, ggd list-files, and ggd pkg-info
 #-----------------------------------------------------------------------------------------------------------------------
 
 
@@ -56,10 +63,14 @@ def test_show_env_goodrun():
     Test that show_env functoin properly provides the environment variable for an installed package
     """
     ## Install hg19_gaps()
-    install_hg19_gaps()
+    try:
+        install_hg19_gaps_v1()
+    except:
+        pass
+
     parser = ()
     args = Namespace(command='show-env', pattern=None)
-    env_var_name = "$ggd_hg19_gaps"
+    env_var_name = "$ggd_hg19_gaps_v1"
 
     ## Test a normal run
     temp_stdout = StringIO()
@@ -90,7 +101,7 @@ def test_show_env_with_pattern():
     """
     Test that adding the pattern parameter to show-env properly filters the results
     """
-    env_var_name = "$ggd_hg19_gaps"
+    env_var_name = "$ggd_hg19_gaps_v1"
     parser = ()
 
     ## Good pattern should have "ggd_hg19_gaps" in the results
@@ -133,7 +144,7 @@ def test_remove_env_variable():
     """
     Test that the remove_env_varial correctly removes the env var from the activated.d/env_vars.sh file
     """
-    main_env_var = "ggd_hg19_gaps"
+    main_env_var = "ggd_hg19_gaps_v1"
 
     conda_root, conda_path = utils.get_conda_env()
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
@@ -208,7 +219,7 @@ def test_activate_environment_variables():
     """
     Test that the activate_environment_variables function properly activates the environment variables
     """
-    env_var_name = "$ggd_hg19_gaps"
+    env_var_name = "$ggd_hg19_gaps_v1"
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         show_env.activate_enviroment_variables()
@@ -250,15 +261,15 @@ def test_in_ggd_channel():
     Test that the in_ggd_channel from ggd list-files works correctly 
     """
     ## Test that in_ggd_channel properly returns the species, genome-build, and versoin if it is in the channel
-    ggd_package = "hg19-gaps"
-    channel = "dev"
+    ggd_package = "hg19-gaps-v1"
+    channel = "genomics"
     species, build, version = list_files.in_ggd_channel(ggd_package, channel)
     assert species == "Homo_sapiens"
     assert build == "hg19"
     assert version == "1"
     
     ## test that in_ggd_channel properly handels bad channels 
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     channel = "not_a_real_channel"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.in_ggd_channel(ggd_package, channel)
@@ -279,9 +290,10 @@ def test_list_files():
     """
     Test the main method of list-files 
     """
-    ggd_package = "hg19-gaps"
-    file1 = "gaps.bed.gz"
-    file2 = "gaps.bed.gz.tbi"
+
+    ggd_package = "hg19-gaps-v1"
+    file1 = "{}.bed.gz".format(ggd_package)
+    file2 = "{}.bed.gz.tbi".format(ggd_package)
 
     ##Test that the correct file paths are returned 
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species=None, version=None)
@@ -289,9 +301,10 @@ def test_list_files():
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
-    output = temp_stdout.getvalue().strip() 
-    assert re.search(file1+"$", output.split("\n")[0])
-    assert re.search(file2+"$", output.split("\n")[1])
+    output = str(temp_stdout.getvalue().strip()) 
+    assert re.search(file1+"$", sorted(output.split("\n"))[0])
+    assert re.search(file2+"$", sorted(output.split("\n"))[1])
+    assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with the genome_build key set
     args = Namespace(channel='genomics', command='list-files', genome_build="hg19", name=ggd_package, pattern=None, species=None, version=None)
@@ -299,19 +312,21 @@ def test_list_files():
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
-    output = temp_stdout.getvalue().strip() 
-    assert re.search(file1+"$", output.split("\n")[0])
-    assert re.search(file2+"$", output.split("\n")[1])
-    
+    output = str(temp_stdout.getvalue().strip()) 
+    assert re.search(file1+"$", sorted(output.split("\n"))[0])
+    assert re.search(file2+"$", sorted(output.split("\n"))[1])
+    assert len(output.split("\n")) == 2
+
     ##Test that the correct file paths are returned with the species key set
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species="Homo_sapiens", version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
-    output = temp_stdout.getvalue().strip() 
-    assert re.search(file1+"$", output.split("\n")[0])
-    assert re.search(file2+"$", output.split("\n")[1])
+    output = str(temp_stdout.getvalue().strip()) 
+    assert re.search(file1+"$", sorted(output.split("\n"))[0])
+    assert re.search(file2+"$", sorted(output.split("\n"))[1])
+    assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with version  key set
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species=None, version="1")
@@ -319,9 +334,10 @@ def test_list_files():
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
-    output = temp_stdout.getvalue().strip() 
-    assert re.search(file1+"$", output.split("\n")[0])
-    assert re.search(file2+"$", output.split("\n")[1])
+    output = str(temp_stdout.getvalue().strip()) 
+    assert re.search(file1+"$", sorted(output.split("\n"))[0])
+    assert re.search(file2+"$", sorted(output.split("\n"))[1])
+    assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with the patterns key set  key set
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=file1, species=None, version=None)
@@ -329,18 +345,20 @@ def test_list_files():
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
-    output = temp_stdout.getvalue().strip() 
+    output = str(temp_stdout.getvalue().strip()) 
     assert re.search(file1+"$", output)
     assert re.search(file2+"$", output) == None
+    assert len(output.split("\n")) == 1
 
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=file2, species=None, version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
-    output = temp_stdout.getvalue().strip() 
+    output = str(temp_stdout.getvalue().strip()) 
     assert re.search(file1+"$", output) == None
     assert re.search(file2+"$", output)
+    assert len(output.split("\n")) == 1
 
     ## Test that nothing is returned when a bad ggd package name is given
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name="NOT_a_real_package_name", pattern=None, species=None, version=None)
@@ -405,7 +423,6 @@ def test_list_all_versions():
     for line in output.strip().split("\n"):
         if "Name" in line and "Version" in line and "Build" in line and "Channel" in line:
             header_list = re.sub(r"\s+", "\t", line.strip()).split("\t") 
-            print(header_list)
             collect = True 
         if collect:
             if ggd_package in line:
@@ -452,12 +469,12 @@ def test_check_if_ggd_recipe():
     """
 
     ## Test a normal package name and channel
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     ggd_channel = "genomics"
     assert list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel) == True
 
     ## Test a normal package name but bad channel
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     ggd_channel = "BAD_CHANNEL"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel)
@@ -476,7 +493,7 @@ def test_get_pkg_info():
     """
 
     ## Test a normal run that should pass
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     ggd_channel = "genomics"
     assert list_pkg_info.get_pkg_info(ggd_package, ggd_channel, False) == True
 
@@ -831,7 +848,7 @@ def test_info_main():
     """
 
     ## Normal run
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     ggd_channel = "genomics"
     args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
     assert list_pkg_info.info((),args) == True
@@ -850,7 +867,7 @@ def test_info_main():
 
 
     ## Normal run with all version dispalyed 
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     ggd_channel = "genomics"
     args = Namespace(all_versions=True, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
     assert list_pkg_info.info((),args) == True
@@ -869,7 +886,7 @@ def test_info_main():
     assert "-> Listing all ggd-recipe version for the {} recipe in the ggd-{} channel".format(ggd_package,ggd_channel) in output
 
     ## Normal run with print recipes 
-    ggd_package = "hg19-gaps"
+    ggd_package = "hg19-gaps-v1"
     ggd_channel = "genomics"
     args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
     assert list_pkg_info.info((),args) == True
@@ -936,10 +953,10 @@ def test_info_main():
 
 def test_show_env_no_envvars():
     ## uninstalled hg19_gaps() testing 
-    uninstall_hg19_gaps()
+    uninstall_hg19_gaps_v1()
     parser = ()
     args = Namespace(command='show-env', pattern=None)
-    env_var_name = "$ggd_hg19_gaps"
+    env_var_name = "$ggd_hg19_gaps_v1"
 
     ## Test a normal run
     temp_stdout = StringIO()
