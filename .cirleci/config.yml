@@ -1,0 +1,90 @@
+# Circle CI Yaml
+
+version: 2
+
+variables:
+  setup: &setup_p2
+    run:
+      shell: /bin/bash
+      name: Setup python2, conda, and ggd-cli dependencies 
+      command: .circleci/setup.sh 2
+  setup: &setup_p3
+    run:
+      shell: /bin/bash
+      name: Setup python3, conda, and ggd-cli dependencies 
+      command: .circleci/setup.sh 3
+  macos: &macos
+    macos:
+      xcode: "9.4.1" ## Using a macOS VM image (https://circleci.com/docs/2.0/executor-types/)
+  linux: &linux
+    machine: true ## Using a dedicated Linux VM image (https://circleci.com/docs/2.0/executor-types/)
+  install_ggd_cli: &install_ggd_cli
+    run:
+      name: Install ggd-cli
+      command: python setup.py install
+
+
+jobs:
+  test-linux-python2:
+    <<: *linux
+    steps:
+      - checkout
+      - *setup_p2
+      - *install_ggd_cli
+      - run: 
+          name: ggd cli unit tests (Linux)
+          command: py.test tests/ --duration=0 -v
+          no_output_timeout: 9900
+  test-linux-python3:
+    <<: *linux
+    steps:
+      - checkout
+      - *setup_p3
+      - *install_ggd_cli
+      - run: 
+          name: ggd cli unit tests (Linux)
+          command: py.test tests/ --duration=0 -v
+          no_output_timeout: 9900
+  test-macos-python2:
+    <<: *macos
+    steps:
+      - checkout
+      - *setup_p2
+      - *install_ggd_cli
+      - run: 
+          name: ggd cli unit tests (macOS)
+          command: py.test tests/ --duration=0 -v
+          no_output_timeout: 9900
+  test-macos-python3:
+    <<: *macos
+    steps:
+      - checkout
+      - *setup_p3
+      - *install_ggd_cli
+      - run: 
+          name: ggd cli unit tests (macOS)
+          command: py.test tests/ --duration=0 -v
+          no_output_timeout: 9900
+
+
+workflows:
+  version: 2
+  ggd-cli-unit-tests:
+    jobs:
+      - test-linux-python2
+      - test-linux-python3
+      - test-macos-python2
+      - test-macos-python3
+  ggd-recipe-nightly-build:
+    triggers:
+      - schedule:
+          cron: "0 3 * * *" # "0 3 * * *" = ~9PM MST, 3AM UTC
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - test-linux-python2
+      - test-linux-python3
+      - test-macos-python2
+      - test-macos-python3
