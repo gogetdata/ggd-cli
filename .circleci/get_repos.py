@@ -25,7 +25,7 @@ utils.update_metadata_local_repo()
 utils.get_species(update_repo=True)
 
 ## get channels
-channels = utils.get_channels()
+channels = utils.get_ggd_channels()
 
 ## get channel data
 for x in channels:
