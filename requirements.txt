@@ -13,3 +13,6 @@ check-sort-order
 krb5
 gsort
 wget
+pytest
+future
+oyaml
