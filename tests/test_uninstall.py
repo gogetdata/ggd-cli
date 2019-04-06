@@ -252,7 +252,7 @@ def test_remove_from_condaroot():
 
     ## Check that the files were removed
     conda_root = utils.conda_root()
-    check_list = str(sp.check_output(["find", conda_root, "-name", ggd_recipe+"-"+str(version)+"*"], shell=True)).strip().split("\n")
+    check_list = sp.check_output(['find', conda_root, '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
     for f in check_list:
         if conda_root in f:
             if conda_root+"/envs/" not in f:
