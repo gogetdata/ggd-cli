@@ -1136,9 +1136,9 @@ def test_check_files_good_genomic_file():
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
     ## Modify files
+    time.sleep(1)
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
 
     ## Check correct run of check_files
     assert check_recipe.check_files(files_path, species, build, name, [],file_tuples) == True  
@@ -1178,8 +1178,7 @@ def test_check_files_unpaired_genomic_file():
     file_tuples = check_recipe.list_files(files_path)
     ## Modify the files
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
@@ -1210,8 +1209,7 @@ def test_check_files_unpaired_genomic_file():
     file_tuples = check_recipe.list_files(files_path)
     ## Modify the files
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
@@ -1244,8 +1242,7 @@ def test_check_files_unpaired_genomic_file():
     file_tuples = check_recipe.list_files(files_path)
     ## Modify the files
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
@@ -1272,8 +1269,7 @@ def test_check_files_unpaired_genomic_file():
     file_tuples = check_recipe.list_files(files_path)
     ## Modify the files
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
@@ -1300,8 +1296,7 @@ def test_check_files_unpaired_genomic_file():
     file_tuples = check_recipe.list_files(files_path)
     ## Modify the files
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
@@ -1332,8 +1327,7 @@ def test_check_files_unpaired_genomic_file():
     file_tuples = check_recipe.list_files(files_path)
     ## Modify the files
     for file_tuple in file_tuples:
-        with open(file_tuple[0], "a") as f:
-            f.write("\n")
+        sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
