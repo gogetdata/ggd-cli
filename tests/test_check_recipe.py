@@ -119,7 +119,7 @@ def test_conda_platform():
     """
 
     platform = check_recipe.conda_platform()
-    out = sp.check_output(["bash", "echo", "$OSTYPE"], shell=True).decode("utf8")
+    out = sys.platform
     if "linux" in out:
         assert "linux" in platform
     elif "darwin" in out:
@@ -244,7 +244,7 @@ def test__build_use_system_platform():
     
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
 
-    platform = sp.check_output(["bash", "echo", "$OSTYPE"]).decode("utf8")
+    platform = sys.platform
 
     if "linux" in platform:
         assert "linux" in tarball_file_path
