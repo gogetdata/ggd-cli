@@ -119,7 +119,7 @@ def test_conda_platform():
     """
 
     platform = check_recipe.conda_platform()
-    out = sp.check_output("echo $OSTYPE", shell=True).decode("utf8")
+    out = sp.check_output(["bash", "echo", "$OSTYPE"], shell=True).decode("utf8")
     if "linux" in out:
         assert "linux" in platform
     elif "darwin" in out:
