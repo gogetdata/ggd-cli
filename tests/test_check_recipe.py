@@ -244,7 +244,7 @@ def test__build_use_system_platform():
     
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
 
-    platform = sp.check_output(["bash", "echo", "$OSTYPE"], shell=True).decode("utf8")
+    platform = sp.check_output(["bash", "echo", "$OSTYPE"]).decode("utf8")
 
     if "linux" in platform:
         assert "linux" in tarball_file_path
