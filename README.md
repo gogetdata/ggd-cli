@@ -1,4 +1,7 @@
-# ggd-cli
+ggd-cli: "The command line interface for gogetdata"
+===================================================
+
+[![CircleCI](https://circleci.com/gh/gogetdata/ggd-cli/tree/master.svg?style=shield)](https://circleci.com/gh/gogetdata/ggd-cli/tree/master)
 
 The command-line interface to Go Get Data (GGD). 
 
@@ -14,7 +17,7 @@ You can also vist the [ggd docs: quick-start](https://gogetdata.github.io/quick-
 
 Assuming that you have already installed an *ananconda* distrubtion on your system, you can run the following commands to set up ggd. 
 
-(NOTE: If you have not installed an anaconda distribution on your system please install it. You can install [anaconda](https://www.anaconda.com/distribution/), or [miniconda](https://conda.io/en/latest/miniconda.html), or [conda](http://conda.pydata.org/docs/download.html).) 
+(NOTE: If you have not installed an anaconda distribution on your system please install it. We suggest using [miniconda](https://conda.io/en/latest/miniconda.html)) 
 
 1) Adding the ggd-genomics conda channel:
 - ggd data packages are hosted on the conda cloud through the ggd-genomics channel. You will need to add this channel to your configured conda channels. You will also need to add the channels that have the software dependencies for building these data pacakges. Run the following commands:
