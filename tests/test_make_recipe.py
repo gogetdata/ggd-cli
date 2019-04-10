@@ -436,11 +436,14 @@ def test_make_bash_meta_yaml_key_order():
         ref_keys = ["build","extra","package","requirements","source","about"]
         index = 0
         with open(new_metayaml_file, "r") as mf:
-            perserved_order = oyaml.load(mf)
-            assert list(perserved_order.keys()) == ref_keys
-            for i,key in enumerate(perserved_order):
-                assert key == ref_keys[i]
-                    
+            for item in mf:
+                item = item.strip().replace(":","")
+                if item in ref_keys:
+                    assert ref_keys[index] == item
+                    ref_keys[index] = "Done"
+                    index += 1
+        assert index-1 == 5 ## Index - 1 because an additional 1 was added at the end. (Only index 0-5 exists)
+
     except IOError as e:
         print(e)
         assert False
