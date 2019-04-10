@@ -10,8 +10,15 @@ import argparse
 import contextlib
 import json
 from ggd import search 
+from ggd import utils
+from helpers import install_hg19_gaps_v1
 from argparse import Namespace
 from argparse import ArgumentParser
+
+if sys.version_info[0] == 3:
+    from io import StringIO
+elif sys.version_info[0] == 2:
+    from StringIO import StringIO
 
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
@@ -110,6 +117,49 @@ def test_search_package_madeup_package_badsearchterm():
     search_term = "BAD SEARCH"
     ## Default match score >= 50
     assert search.search_packages(json_dict,search_term)[0][1] < 50
+
+
+def test_check_installed():
+    """
+    test the check_installed function properly identifies if something is already installed or not, and provides the path for it
+    """
+    ## json dict
+    json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
+                    {u'hg19-gaps': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-gaps-v1': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-v1-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg38-cpg-islands': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-cpg-islands-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'CpG', u'region'], u'summary': u'hg38 cpg islands from UCSC', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}, 
+                    u'hg38-repeatmasker': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'06-Mar-2014'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-repeatmasker-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'rmsk', u'region'], u'summary': u'RepeatMasker track from UCSC', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-pfam-domains-ucsc': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'16-Apr-2017'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-pfam-domains-ucsc-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'pfam', u'domains', u'protein', u'protein-domains', u'UCSC'], u'summary': u'Pfam domain annotation in bed12 format. (From UCSC)', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg38-reference-genome-ucsc': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'10-Aug-2018'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-reference-genome-ucsc-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'ref', u'reference', u'genome', u'UCSC'], u'summary': u'The hg38 reference genome from UCSC. This version includes the latest patch, patch 12. (url:http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/p12/)', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}, 
+                    u'grch37-reference-genome-ensembl': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'Release-75'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/grch37-reference-genome-ensembl-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'ref', u'reference', u'Ensembl', u'Release75'], u'summary': u'The GRCh37 reference genome from Ensembl. Release 75. Primary Assembly file', u'text_prefix': False, u'identifiers': {u'genome-build': u'GRCh37', u'species': u'Homo_sapiens'}}, 
+                    u'grch38-reference-genome-ensembl': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'Release-95'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/grch38-reference-genome-ensembl-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'ref', u'reference', u'genome', u'Ensembl'], u'summary': u'The GRCh38 reference genome from Ensembl. Release 95. Primary Assembly file', u'text_prefix': False, u'identifiers': {u'genome-build': u'GRCh38', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-reference-genome-ucsc': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'25-May-2018'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-reference-genome-ucsc-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'ref', u'reference', u'genome', u'UCSC'], u'summary': u'The hg19 reference genome from UCSC. This version includes the latest patch, patch 13. (http://hgdownload.soe.ucsc.edu/goldenPath/hg19/hg19Patch13/)', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'grch37-esp-variants': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'ESP6500SI-V2'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/grch37-esp-variants-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'ESP'], u'summary': u'ESP variants (More Info: http://evs.gs.washington.edu/EVS/#tabs-7)', u'text_prefix': False, u'identifiers': {u'genome-build': u'GRCh37', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-cpg-islands': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-cpg-islands-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'CpG', u'region'], u'summary': u'cpg islands from UCSC', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg38-pfam-domains-ucsc': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'18-Nov-2018'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-pfam-domains-ucsc-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'pfam', u'domains', u'protein', u'protein-domains', u'UCSC'], u'summary': u'Pfam domain annotation in bed12 format. (From UCSC)', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-simplerepeats': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-simplerepeats-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'simrep', u'regions'], u'summary': u'Simple repeats track from UCSC | name=sequence | score=alignment score | col 7 = period | col 8 = copy_num', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-repeatmasker': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-repeatmasker-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'rmsk', u'region'], u'summary': u'RepeatMasker track from UCSC', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-phastcons': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'09-Feb-2014'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-phastcons-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'phastCons', u'conservation'], u'summary': u'phastCons scores for MSA of 99 genomes to hg19', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'grch37-reference-genome': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'phase2_reference'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/grch37-reference-genome-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'ref', u'reference'], u'summary': u'GRCh37 reference genome from 1000 genomes', u'text_prefix': False, u'identifiers': {u'genome-build': u'GRCh37', u'species': u'Homo_sapiens'}}, 
+                    u'hg38-simplerepeats': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'06-Mar-2014'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-simplerepeats-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'simrep', u'regions'], u'summary': u'Simple repeats track from UCSC | name=sequence | score=alignment score | col 7 = period | col 8 = copy_num', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
+
+    ## ggd package not installed
+    ggd_recipe = "hg19-reference-genome-ucsc" 
+    isinstalled, path = search.check_installed(ggd_recipe, json_dict)
+    assert isinstalled == False
+    assert path == None
+
+    ## GGD package that is installed
+    ### Install hg19-gaps-v1
+    install_hg19_gaps_v1()
+    ## Check that it is installed
+    ggd_recipe = "hg19-gaps-v1"
+    isinstalled, path = search.check_installed(ggd_recipe, json_dict)
+    assert isinstalled == True
+    species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = json_dict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = json_dict["packages"][ggd_recipe]["version"]
+    assert path == os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version) 
 
 
 def filter_score_test(score,matchlist,results):
@@ -397,13 +447,13 @@ def test_print_summary():
 
     ## Test matches print out and function returns true
     search_term = "gaps"
-    matches = [("hg19-gaps", 90)]
+    matches = [("hg19-gaps", 90, False, None)]
     assert search.print_summary(search_term,json_dict,matches) == True
 
 
     ## Test that a match that does not exists in the json_dict is handeled correctly
     search_term = "gaps"
-    matches = [("hg19-gaps", 90), ("bad-package", 0)]
+    matches = [("hg19-gaps", 90, False, None), ("bad-package", 0, False, None)]
     assert search.print_summary(search_term,json_dict,matches) == True
 
 
@@ -440,6 +490,15 @@ def test_main_search():
     ## Test with a key word and genome build
     args = Namespace(channel='genomics', command='search', genome_build="hg19", keyword=["cpg"], match_score='50', species="Homo_sapiens", term=['hg']) 
     assert search.search(parser,args) 
+
+    ## Test that a data file path is given if the package is installed
+    temp_stdout = StringIO()
+    args = Namespace(channel='genomics', command='search', genome_build="hg19", keyword=["region","gaps"], match_score='50', species="Homo_sapiens", term=['hg19-gaps-v1']) 
+    with redirect_stdout(temp_stdout):
+        search.search(parser,args) 
+    output = temp_stdout.getvalue().strip() 
+    assert "This pacakge is already installed on your system" in str(output)
+    assert "You can find the installed data files here" in str(output)
 
     ## Test bad term search 
     args = Namespace(channel='genomics', command='search', genome_build=None, keyword=None, match_score='50', species=None, term=['zzzzzzzzzzzzzzzzzzzzzzz']) 
