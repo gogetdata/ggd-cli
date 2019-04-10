@@ -14,6 +14,7 @@ from fuzzywuzzy import process
 from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channeldata_url
+from .utils import conda_root
 
 SPECIES_LIST = get_species(update_repo=False)
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
@@ -105,8 +106,31 @@ def search_packages(jsonDict,searchTerm):
     """
 
     packages = jsonDict["packages"].keys()
-    matchList = process.extract(searchTerm,packages,limit=10000) 
-    return(matchList)
+    match_list = process.extract(searchTerm,packages,limit=10000) 
+
+    return(match_list)
+
+
+def check_installed(ggd_recipe,ggd_jdict):
+    """Method to check if the recipe has already been installed and is in the conda ggd storage path. 
+        
+    check_if_installed
+    ==================
+    This method is used to check if the ggd package has been installed and is located in the ggd storage path.
+    """
+
+    species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = ggd_jdict["packages"][ggd_recipe]["version"]
+
+    CONDA_ROOT = conda_root()
+    path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
+    recipe_exists = glob.glob(path)
+    if recipe_exists:
+        return(True,path)
+        
+    else:
+        return(False,None)
 
 
 def filter_by_score(filterScore,matchList):
@@ -253,7 +277,10 @@ def print_summary(searchTerms,jsonDict,matchList):
                     print("\tData Version:", jsonDict["packages"][key[0]]["tags"]["data-version"])
                 if "cache" in jsonDict["packages"][key[0]]["tags"]:
                     print("\tCached:", jsonDict["packages"][key[0]]["tags"]["cached"])
-            print("\n\tTo install run:\n\t\tggd install %s" %key[0])
+            if key[2]: ## IF installed
+                print("\n\tThis pacakge is already installed on your system.\n\t You can find the installed data files here:\n\t\t%s" %key[3])
+            else:
+                print("\n\tTo install run:\n\t\tggd install %s" %key[0])
     
     return(True)
 
@@ -285,6 +312,12 @@ def search(parser, args):
         matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
     if args.keyword:
         matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
+
+    ## Add True or False and path if the match/ggd package has been installed
+    for i,match in enumerate(matchResults):
+        isinstalled, path = check_installed(match[0],jDict)
+        ## Add a 2 and 3 index containing if the package is already installed and where it is installed
+        matchResults[i] = (match[0], match[1], isinstalled, path) 
 
     ## Print search results
     return(print_summary(args.term,jDict,matchResults))
