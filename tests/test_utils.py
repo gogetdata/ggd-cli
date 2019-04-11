@@ -147,7 +147,12 @@ def test_get_required_conda_version():
 
     conda_version = utils.get_required_conda_version()
     assert  conda_version != -1
-    assert conda_version >= "4.6.8"
+    version_list = conda_version.strip().split(".")
+    ## Test that the conda version is greater than or equal to 4.6.8. (4.6.8 is the oldest release where all tests passed and ggd was work.)
+    ## As of 4/10/2019 the latest conda version that works with all tests passing is 4.6.12
+    assert int(version_list[0]) == 4 ## Conda version == 4.*.*
+    assert int(version_list[1]) == 6 ## Conda version == *.6.*
+    assert int(version_list[2]) >= 8 ## Conda version >= *.*.8
     
 
 def test_check_output():
