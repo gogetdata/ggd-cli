@@ -148,8 +148,10 @@ def check_for_installation(ggd_recipe,ggd_jdict):
         print("\n\t-> Removing %s version %s file(s) from ggd recipe storage" %(ggd_recipe,str(version)))
         shutil.rmtree(path)
         remove_from_condaroot(ggd_recipe,version)
-        env_var = "ggd_" + ggd_recipe
-        remove_env_variable(env_var)
+        dir_env_var = "ggd_" + ggd_recipe + "_dir"
+        remove_env_variable(dir_env_var)
+        file_env_var = "ggd_" + ggd_recipe + "_file"
+        remove_env_variable(file_env_var)
     else:
         print("\n\t-> %s is not in the ggd recipe storage" %ggd_recipe)
 
