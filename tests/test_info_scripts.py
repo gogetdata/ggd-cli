@@ -956,13 +956,15 @@ def test_show_env_no_envvars():
     uninstall_hg19_gaps_v1()
     parser = ()
     args = Namespace(command='show-env', pattern=None)
-    env_var_name = "$ggd_hg19_gaps_v1"
+    env_var_name_dir = "$ggd_hg19_gaps_v1_dir"
+    env_var_name_file = "$ggd_hg19_gaps_v1_file"
 
     ## Test a normal run
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         show_env.show_env(parser,args)
     output = temp_stdout.getvalue().strip() 
-    assert (env_var_name not in output)
+    assert (env_var_name_dir not in output)
+    assert (env_var_name_file not in output)
 
             

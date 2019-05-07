@@ -20,6 +20,7 @@ from helpers import CreateRecipe
 from ggd import utils
 from ggd import check_recipe
 from ggd import uninstall
+from ggd import show_env
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -183,13 +184,12 @@ def test__build_use_system_platform():
             | bgzip -c > gaps.bed.gz
 
             tabix gaps.bed.gz 
-        
+       
         post-link.sh: |
-            #!/bin/bash
             set -eo pipefail -o nounset
 
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
-                export CONDA_ROOT=$(conda info --root)
+                export CONDA_ROOT=$(conda info --ooot)
                 env_dir=$CONDA_ROOT
                 export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1
             elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
@@ -210,18 +210,6 @@ def test__build_use_system_platform():
 
             mkdir -p $RECIPE_DIR
 
-            recipe_env_name="ggd_trial-hg38-gaps-v1"
-            recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
-
-            activate_dir="$env_dir/etc/conda/activate.d"
-            deactivate_dir="$env_dir/etc/conda/deactivate.d"
-
-            mkdir -p $activate_dir
-            mkdir -p $deactivate_dir
-
-            echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
-            echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
-
             (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
             cd $RECIPE_DIR
@@ -232,6 +220,45 @@ def test__build_use_system_platform():
                 filename="{f%%.*}"
                 (mv $f "trial-hg38-gaps-v1.$ext")
             done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
 
             echo 'Recipe successfully built!'
     """, from_string=True)
@@ -257,7 +284,6 @@ def test__build_use_system_platform():
 
     ## Remove the platform specific build
     os.remove(tarball_file_path)
-
 
     
 def test__build_bad_yaml_key_order():
@@ -318,7 +344,6 @@ def test__build_bad_yaml_key_order():
             tabix gaps.bed.gz 
         
         post-link.sh: |
-            #!/bin/bash
             set -eo pipefail -o nounset
 
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
@@ -343,18 +368,6 @@ def test__build_bad_yaml_key_order():
 
             mkdir -p $RECIPE_DIR
 
-            recipe_env_name="ggd_trial-hg38-gaps-v1"
-            recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
-
-            activate_dir="$env_dir/etc/conda/activate.d"
-            deactivate_dir="$env_dir/etc/conda/deactivate.d"
-
-            mkdir -p $activate_dir
-            mkdir -p $deactivate_dir
-
-            echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
-            echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
-
             (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
             cd $RECIPE_DIR
@@ -365,6 +378,46 @@ def test__build_bad_yaml_key_order():
                 filename="{f%%.*}"
                 (mv $f "trial-hg38-gaps-v1.$ext")
             done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
 
             echo 'Recipe successfully built!'
     """, from_string=True)
@@ -440,7 +493,6 @@ def test__build_ggd_requirments_removed_on_bad_build():
             tabix gaps.bed.gz 
         
         post-link.sh: |
-            #!/bin/bash
             set -eo pipefail -o nounset
 
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
@@ -465,18 +517,6 @@ def test__build_ggd_requirments_removed_on_bad_build():
 
             mkdir -p $RECIPE_DIR
 
-            recipe_env_name="ggd_trial-hg38-gaps-v1"
-            recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
-
-            activate_dir="$env_dir/etc/conda/activate.d"
-            deactivate_dir="$env_dir/etc/conda/deactivate.d"
-
-            mkdir -p $activate_dir
-            mkdir -p $deactivate_dir
-
-            echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
-            echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
-
             (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
             cd $RECIPE_DIR
@@ -487,6 +527,46 @@ def test__build_ggd_requirments_removed_on_bad_build():
                 filename="{f%%.*}"
                 (mv $f "trial-hg38-gaps-v1.$ext")
             done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
 
             echo 'Recipe successfully built!'
     """, from_string=True)
@@ -564,7 +644,6 @@ def test__build_normal_run():
             tabix gaps.bed.gz 
         
         post-link.sh: |
-            #!/bin/bash
             set -eo pipefail -o nounset
 
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
@@ -589,18 +668,6 @@ def test__build_normal_run():
 
             mkdir -p $RECIPE_DIR
 
-            recipe_env_name="ggd_trial-hg38-gaps-v1"
-            recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
-
-            activate_dir="$env_dir/etc/conda/activate.d"
-            deactivate_dir="$env_dir/etc/conda/deactivate.d"
-
-            mkdir -p $activate_dir
-            mkdir -p $deactivate_dir
-
-            echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
-            echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
-
             (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
             cd $RECIPE_DIR
@@ -611,6 +678,45 @@ def test__build_normal_run():
                 filename="{f%%.*}"
                 (mv $f "trial-hg38-gaps-v1.$ext")
             done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
 
             echo 'Recipe successfully built!'
     """, from_string=True)
@@ -711,7 +817,6 @@ def test__install_bad_recipe():
             tabix gaps.bed.gz 
         
         post-link.sh: |
-            #!/bin/bash
             set -eo pipefail -o nounset
 
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
@@ -736,18 +841,6 @@ def test__install_bad_recipe():
 
             mkdir -p $RECIPE_DIR
 
-            recipe_env_name="ggd_bad-recipe-hg38-gaps-v1"
-            recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')"
-
-            activate_dir="$env_dir/etc/conda/activate.d"
-            deactivate_dir="$env_dir/etc/conda/deactivate.d"
-
-            mkdir -p $activate_dir
-            mkdir -p $deactivate_dir
-
-            echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
-            echo "unset $recipe_env_name">> $deactivate_dir/env_vars.sh
-
             (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
 
             cd $RECIPE_DIR
@@ -758,6 +851,46 @@ def test__install_bad_recipe():
                 filename="{f%%.*}"
                 (mv $f "bad-recipe-hg38-gaps-v1.$ext")
             done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_bad-recipe-hg38-gaps-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_bad-recipe-hg38-gaps-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_bad-recipe-hg38-gaps-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
 
             echo 'Recipe successfully built!'
     """, from_string=True)
@@ -981,6 +1114,636 @@ def test_check_recipe_recipe_path():
     assert "ggd_trial_hg38_gaps_v1" in out
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == True 
+
+
+def test_check_recipe_package_env_vars():
+    """
+    Use the check_recipe main function to test that the correct environment variables are created. 
+        1) If one file, a env_var for the file and the dir are created
+        2) If two files and one of them is an index, an env_var for the non-indexed file and the dir
+        3) If two files without an index, an env_var for only the dir
+        4) If three+ files, an env_var for only the dir
+    """
+
+    ## Test that an env_var is created for a single installed file and the dir
+    recipe = CreateRecipe(
+    """
+    one_file_v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: 
+              - one_file_v1.bw
+            package:
+              name: one_file_v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg19
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: testing env_var for recipe with one file
+              tags:
+                data-version: Today
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+            wget --quiet --no-check-certificate --output-document hg19phastcons.bw http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons.bw
+
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/one_file_v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/one_file_v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg19/one_file_v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "one_file_v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_one_file_v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_one_file_v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_one_file_v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+    """, from_string=True)
+
+    recipe.write_recipes()
+    recipe_dir_path = recipe.recipe_dirs["one_file_v1"] 
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    assert check_recipe.check_recipe((),args) == True
+    ## Test dir and file env_var
+    conda_root = utils.conda_root()
+    with open(os.path.join(conda_root,"etc/conda/activate.d/env_vars.sh")) as env_file:
+        env_vars = [x for x in env_file if "ggd_one_file_v1_dir" in x or "ggd_one_file_v1_file" in x]
+        first = False
+        second = False
+        for x in env_vars:
+            if "ggd_one_file_v1_dir" in x:
+                assert os.path.join(conda_root, "share/ggd/Homo_sapiens/hg19/one_file_v1/1") in x
+                first = True
+            elif "ggd_one_file_v1_file" in x:
+                assert os.path.join(conda_root, "share/ggd/Homo_sapiens/hg19/one_file_v1/1/one_file_v1.bw")
+                second = True
+            else:
+                assert False
+        assert first == True
+        assert second == True
+
+
+    args = Namespace(command="show-env", pattern=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        show_env.show_env((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "$ggd_one_file_v1_file" in output
+    assert "$ggd_one_file_v1_dir" in output
+
+    ## Test that an env_var is created for the non indexed file when two files are installed with an index present, and the dir
+    recipe = CreateRecipe(
+    """
+    two_files_v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: two_files_v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg19
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: testing env_var for recipe with two files and an index present
+              tags:
+                data-version: Today
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz \
+                | gzip -dc \
+                | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \
+                | gsort /dev/stdin $genome \
+                | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz
+
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/two_files_v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/two_files_v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg19/two_files_v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "two_files_v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_two_files_v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_two_files_v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_two_files_v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+    """, from_string=True)
+
+    recipe.write_recipes()
+    recipe_dir_path = recipe.recipe_dirs["two_files_v1"] 
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    assert check_recipe.check_recipe((),args) == True
+    ## Test dir and file env_var
+    conda_root = utils.conda_root()
+    with open(os.path.join(conda_root,"etc/conda/activate.d/env_vars.sh")) as env_file:
+        env_vars = [x for x in env_file if "ggd_two_files_v1_dir" in x or "ggd_two_files_v1_file" in x]
+        first = False
+        second = False
+        for x in env_vars:
+            if "ggd_two_files_v1_dir" in x:
+                assert os.path.join(conda_root, "share/ggd/Homo_sapiens/hg19/two_files_v1/1") in x
+                first = True
+            elif "ggd_two_files_v1_file" in x:
+                assert os.path.join(conda_root, "share/ggd/Homo_sapiens/hg19/two_files_v1/1/two_files_v1.bed.gz")
+                second = True
+            else:
+                assert False
+        assert first == True
+        assert second == True
+
+    args = Namespace(command="show-env", pattern=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        show_env.show_env((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "$ggd_two_files_v1_file" in output
+    assert "$ggd_two_files_v1_dir" in output   
+
+    ## Test that NO env_var is created when two files are installed with no index present, and the dir
+    recipe = CreateRecipe(
+    """
+    two_files_noindex_v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: 
+              - two_files_noindex_v1.genome
+              - two_files_noindex_v1.txt.gz
+            package:
+              name: two_files_noindex_v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg19
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: testing NO file env_var for recipe with two files and no index
+              tags:
+                data-version: Today
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+            wget --quiet https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
+            wget --quiet http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz 
+
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/two_files_noindex_v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/two_files_noindex_v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg19/two_files_noindex_v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "two_files_noindex_v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_two_files_noindex_v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_two_files_noindex_v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_two_files_noindex_v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+    """, from_string=True)
+
+    recipe.write_recipes()
+    recipe_dir_path = recipe.recipe_dirs["two_files_noindex_v1"] 
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    assert check_recipe.check_recipe((),args) == True
+    ## Test dir and file env_var
+    conda_root = utils.conda_root()
+    with open(os.path.join(conda_root,"etc/conda/activate.d/env_vars.sh")) as env_file:
+        env_vars = [x for x in env_file if "ggd_two_files_noindex_v1_dir" in x or "ggd_two_files_noindex_v1_file" in x]
+        first = False
+        for x in env_vars:
+            if "ggd_two_files_noindex_v1_dir" in x:
+                assert os.path.join(conda_root, "share/ggd/Homo_sapiens/hg19/two_files_noindex_v1/1") in x
+                first = True
+            elif "ggd_two_files_noindex_v1_file" in x:
+                assert False ## There should not be a file env_var made for this package
+            else:
+                assert False
+        assert first == True
+
+    args = Namespace(command="show-env", pattern=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        show_env.show_env((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "$ggd_two_files_noindex_v1_file" not in output
+    assert "$ggd_two_files_noindex_v1_dir" in output
+
+    ## Test that NO env_var is created when thre+ files are installed, and the dir
+    recipe = CreateRecipe(
+    """
+    three_files_v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: 
+              - three_files_v1.genome
+              - three_files_v1.1.txt.gz
+              - three_files_v1.2.txt.gz
+            package:
+              name: three_files_v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg19
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: testing NO file env_var for recipe with three+ files
+              tags:
+                data-version: Today
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+            wget --quiet https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
+            wget --quiet http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz 
+            cp gap.txt.gz gaps.1.txt.gz
+            mv gap.txt.gz gaps.2.txt.gz
+
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/three_files_v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg19/three_files_v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg19/three_files_v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "three_files_v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_three_files_v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_three_files_v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_three_files_v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+    """, from_string=True)
+
+    recipe.write_recipes()
+    recipe_dir_path = recipe.recipe_dirs["three_files_v1"] 
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    assert check_recipe.check_recipe((),args) == True
+    ## Test dir and file env_var
+    conda_root = utils.conda_root()
+    with open(os.path.join(conda_root,"etc/conda/activate.d/env_vars.sh")) as env_file:
+        env_vars = [x for x in env_file if "ggd_three_files_v1_dir" in x or "ggd_three_files_v1_file" in x]
+        first = False
+        for x in env_vars:
+            if "ggd_three_files_v1_dir" in x:
+                assert os.path.join(conda_root, "share/ggd/Homo_sapiens/hg19/three_files_v1/1") in x
+                first = True
+            elif "ggd_three_files_v1_file" in x:
+                assert False ## There should not be a file env_var made for this package
+            else:
+                assert False
+        assert first == True
+
+    args = Namespace(command="show-env", pattern=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        show_env.show_env((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "$ggd_three_files_v1_file" not in output
+    assert "$ggd_three_files_v1_dir" in output
 
 
 def test_get_modified_files():

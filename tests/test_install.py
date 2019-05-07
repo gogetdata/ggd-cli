@@ -431,8 +431,9 @@ def test_get_file_location():
     output = temp_stdout.getvalue().strip() 
     assert "Installation complete. The downloaded data files are located at:" in output
     assert path in output
-    assert "A new environment variable that points to this directory path has also been created:" in output
-    assert "$ggd_{}".format(ggd_recipe.replace("-","_")) in output
+    assert "A new environment variable that points to data package directory path has been created:" in output
+    assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) in output
+    assert "$ggd_{}_file".format(ggd_recipe.replace("-","_")) not in output
 
 
     ## The installed hg19-gaps-v1 recipe
@@ -453,8 +454,10 @@ def test_get_file_location():
     output = temp_stdout.getvalue().strip() 
     assert "Installation complete. The downloaded data files are located at:" in output
     assert path in output
-    assert "A new environment variable that points to this directory path has also been created:" in output
-    assert "$ggd_{}".format(ggd_recipe.replace("-","_")) in output
+    assert "A new environment variable that points to data package directory path has been created:" in output
+    assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) in output
+    assert "A new environment variable that points to the installed file has been created:" in output
+    assert "$ggd_{}_file".format(ggd_recipe.replace("-","_")) in output
 
 
 def test_install_main_function():

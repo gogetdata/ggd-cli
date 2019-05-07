@@ -236,9 +236,18 @@ def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
     path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
     print("\n\t-> Installation complete. The downloaded data files are located at:")
     print("\t\t%s" %path)
-    print("\n\t-> A new environment variable that points to this directory path has also been created:")
-    print("\t\t $ggd_%s\n" %ggd_recipe.replace("-","_"))
-
+    print("\n\t-> A new environment variable that points to data package directory path has been created:")
+    print("\t\t $ggd_%s_dir\n" %ggd_recipe.replace("-","_"))
+    if os.path.exists(path):
+        files = os.listdir(path)
+        if len(files) == 1: ## A single file will have a env var 
+            print("\n\t-> A new environment variable that points to the installed file has been created:")
+            print("\t\t $ggd_%s_file\n" %ggd_recipe.replace("-","_"))
+        elif len(files) == 2: ## A file with an associated index will have a env var
+            if [True for x in files if ".tbi" in x or ".bai" in x or ".crai" in x or ".fai" in x or ".gzi" in x]:
+                print("\n\t-> A new environment variable that points to the installed file has been created:")
+                print("\t\t $ggd_%s_file\n" %ggd_recipe.replace("-","_"))
+            
 
 def install(parser, args):
     """Main method for installing a ggd data package
