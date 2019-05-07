@@ -19,6 +19,7 @@ import tarfile
 from helpers import install_hg19_gaps_v1, uninstall_hg19_gaps_v1, CreateRecipe
 from ggd import utils
 from ggd import uninstall
+from ggd import show_env
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -110,6 +111,7 @@ def test_get_channeldata():
         uninstall.get_channeldata(ggd_recipe,bad_channel) ## Exit due to bad url from ggd.search
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
+
 
 def test_get_similar_pkg_installed_by_conda():
     """
@@ -225,6 +227,14 @@ def test_check_for_installation():
         uninstall.check_for_installation(ggd_recipe,jdict)
     output = temp_stdout.getvalue().strip() 
     assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
+
+    args = Namespace(command="show-env", pattern=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        show_env.show_env((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "$ggd_hg19_gaps_v1_file" not in output
+    assert "$ggd_hg19_gaps_v1_dir" not in output
 
 
 def test_remove_from_condaroot():

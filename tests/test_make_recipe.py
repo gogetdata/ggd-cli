@@ -254,7 +254,8 @@ def test_make_bash():
         with open(new_postlink_file, "r") as pf:
             recipe_dir = False
             pkd_dir = False
-            env_var = False
+            dir_env_var = False
+            file_env_var = False
             run_recipe_script = False
             file_extention = False
             rename_data = False
@@ -269,11 +270,18 @@ def test_make_bash():
                     pkd_dir = True
 
                 ### Check enivornment variable setting 
-                if "recipe_env_name=" in line:
-                    assert line.strip() == """recipe_env_name="ggd_hg19-test-gaps-v1" """.strip() \
-                    or line.strip() == """recipe_env_name="$(echo "$recipe_env_name" | sed 's/-/_/g')" """.strip() \
-                    or line.strip() == """echo "export $recipe_env_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh"""
-                    env_var = True
+                if "recipe_env_dir_name=" in line:
+                    assert line.strip() == """recipe_env_dir_name="ggd_hg19-test-gaps-v1_dir" """.strip() \
+                    or line.strip() == """recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')" """.strip() \
+                    or line.strip() == """echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh"""
+                    dir_env_var = True
+
+                if "recipe_env_file_name=" in line:
+                    assert line.strip() == """recipe_env_file_name="ggd_hg19-test-gaps-v1_file" """.strip() \
+                    or line.strip() == """recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')" """.strip() \
+                    or line.strip() == """if [[ ! -z "${recipe_env_file_name:-}" ]] """.strip() \
+                    or line.strip() == """echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh"""
+                    file_env_var = True
 
                 #### Check that the recipe is being run
                 if "bash $PKG_DIR" in line:
@@ -292,7 +300,8 @@ def test_make_bash():
             
             assert recipe_dir
             assert pkd_dir
-            assert env_var
+            assert dir_env_var
+            assert file_env_var
             assert run_recipe_script
             assert file_extention
             assert rename_data
@@ -306,9 +315,6 @@ def test_make_bash():
     os.remove(new_postlink_file)
     os.rmdir(ggd_package)
     
-
-
-
 
 
 def test_make_bash_all_params():
@@ -383,7 +389,6 @@ def test_make_bash_all_params():
     os.remove(new_metayaml_file)
     os.remove(new_postlink_file)
     os.rmdir(ggd_package)
-
 
 
 def test_make_bash_meta_yaml_key_order():
