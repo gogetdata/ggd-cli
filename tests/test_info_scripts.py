@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 import glob
 import contextlib
 import tarfile
-from helpers import install_hg19_gaps_v1, uninstall_hg19_gaps_v1, CreateRecipe
+from helpers import install_hg19_gaps_ucsc_v1, uninstall_hg19_gaps_ucsc_v1, CreateRecipe
 from ggd import show_env
 from ggd import list_files
 from ggd import list_pkg_info
@@ -62,22 +62,23 @@ def test_show_env_goodrun():
     """
     Test that show_env functoin properly provides the environment variable for an installed package
     """
-    ## Install hg19_gaps()
     try:
-        install_hg19_gaps_v1()
+        install_hg19_gaps_ucsc_v1()
     except:
         pass
 
     parser = ()
     args = Namespace(command='show-env', pattern=None)
-    env_var_name = "$ggd_hg19_gaps_v1"
+    dir_env_var_name = "$ggd_hg19_gaps_ucsc_v1_dir"
+    file_env_var_name = "$ggd_hg19_gaps_ucsc_v1_file"
 
     ## Test a normal run
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         show_env.show_env(parser,args)
     output = temp_stdout.getvalue().strip() 
-    assert (env_var_name in output)
+    assert (dir_env_var_name in output)
+    assert (file_env_var_name in output)
 
     ## Test active environment variables
     sp.check_call(["activate", "base"])
@@ -94,14 +95,16 @@ def test_show_env_goodrun():
             active = False
         if active:
             newout += line
-    assert (env_var_name in output)
+    assert (dir_env_var_name in output)
+    assert (file_env_var_name in output)
 
 
 def test_show_env_with_pattern():
     """
     Test that adding the pattern parameter to show-env properly filters the results
     """
-    env_var_name = "$ggd_hg19_gaps_v1"
+    dir_env_var_name = "$ggd_hg19_gaps_ucsc_v1_dir"
+    file_env_var_name = "$ggd_hg19_gaps_ucsc_v1_file"
     parser = ()
 
     ## Good pattern should have "ggd_hg19_gaps" in the results
@@ -110,7 +113,8 @@ def test_show_env_with_pattern():
     with redirect_stdout(temp_stdout):
         show_env.show_env(parser,args)
     output = temp_stdout.getvalue().strip() 
-    assert (env_var_name in output)
+    assert (dir_env_var_name in output)
+    assert (file_env_var_name in output)
 
     ## Bad pattern should return "No matching recipe variables found for this environment"
     args = Namespace(command='show-env', pattern="NONE")
@@ -118,7 +122,8 @@ def test_show_env_with_pattern():
     with redirect_stdout(temp_stdout):
         show_env.show_env(parser,args)
     output = temp_stdout.getvalue().strip() 
-    assert (env_var_name not in output)
+    assert (dir_env_var_name not in output)
+    assert (file_env_var_name not in output)
     assert ("No matching recipe variables found for this environment" in output)
 
 
@@ -144,22 +149,34 @@ def test_remove_env_variable():
     """
     Test that the remove_env_varial correctly removes the env var from the activated.d/env_vars.sh file
     """
-    main_env_var = "ggd_hg19_gaps_v1"
+    dir_main_env_var = "ggd_hg19_gaps_ucsc_v1_dir"
+    file_main_env_var = "ggd_hg19_gaps_ucsc_v1_file"
 
     conda_root, conda_path = utils.get_conda_env()
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
     deactive_env_file = os.path.join(conda_path, "etc", "conda", "deactivate.d", "env_vars.sh")
 
-    active_env_var = str([x for x in open(active_env_file, "r") if main_env_var in x][0])
-    deactive_env_var = str([x for x in open(deactive_env_file, "r") if main_env_var in x][0])
+    dir_active_env_var = str([x for x in open(active_env_file, "r") if dir_main_env_var in x][0])
+    file_active_env_var = str([x for x in open(active_env_file, "r") if file_main_env_var in x][0])
+    dir_deactive_env_var = str([x for x in open(deactive_env_file, "r") if dir_main_env_var in x][0])
+    file_deactive_env_var = str([x for x in open(deactive_env_file, "r") if file_main_env_var in x][0])
 
     ## test that a env variable not in the files does not remove those that are in the files:
     env_var = "ggd_NOT-in-file"
     show_env.remove_env_variable(env_var)
+
     found = False
     with open(active_env_file, "r") as a:
         for var in a:
-            if re.search(r"\b"+main_env_var+"=", var):
+            if re.search(r"\b"+dir_main_env_var+"=", var):
+                found = True
+                break
+    assert found == True
+
+    found = False
+    with open(active_env_file, "r") as a:
+        for var in a:
+            if re.search(r"\b"+file_main_env_var+"=", var):
                 found = True
                 break
     assert found == True
@@ -167,18 +184,34 @@ def test_remove_env_variable():
     found = False
     with open(deactive_env_file, "r") as d:
         for var in d:
-            if re.search(r"\b"+main_env_var+r"\b", var):
+            if re.search(r"\b"+dir_main_env_var+r"\b", var):
                 found = True
                 break
     assert found == True
         
+    found = False
+    with open(deactive_env_file, "r") as d:
+        for var in d:
+            if re.search(r"\b"+file_main_env_var+r"\b", var):
+                found = True
+                break
+    assert found == True
 
     ## Test a proper removal of a environment variable
-    show_env.remove_env_variable(main_env_var)
+    show_env.remove_env_variable(dir_main_env_var)
     found = False
     with open(active_env_file, "r") as a:
         for var in a:
-            if re.search(r"\b"+main_env_var+"=", var):
+            if re.search(r"\b"+dir_main_env_var+"=", var):
+                found = True
+                break
+    assert found == False
+
+    show_env.remove_env_variable(file_main_env_var)
+    found = False
+    with open(active_env_file, "r") as a:
+        for var in a:
+            if re.search(r"\b"+file_main_env_var+"=", var):
                 found = True
                 break
     assert found == False
@@ -187,12 +220,21 @@ def test_remove_env_variable():
     found = False
     with open(deactive_env_file, "r") as d:
         for var in d:
-            if re.search(r"\b"+main_env_var+r"\b", var):
+            if re.search(r"\b"+dir_main_env_var+r"\b", var):
                 found = True
                 break
     assert found == False
 
-    replace_env_var(active_env_var, deactive_env_var, active_env_file, deactive_env_file)
+    found = False
+    with open(deactive_env_file, "r") as d:
+        for var in d:
+            if re.search(r"\b"+file_main_env_var+r"\b", var):
+                found = True
+                break
+    assert found == False
+
+    replace_env_var(dir_active_env_var, dir_deactive_env_var, active_env_file, deactive_env_file)
+    replace_env_var(file_active_env_var, file_deactive_env_var, active_env_file, deactive_env_file)
 
     ## Test that a similar env variable does not remove other env variables
     env_var = "ggd_hg19-ga"
@@ -201,7 +243,15 @@ def test_remove_env_variable():
     found = False
     with open(active_env_file, "r") as a:
         for var in a:
-            if re.search(r"\b"+main_env_var+"=", var):
+            if re.search(r"\b"+dir_main_env_var+"=", var):
+                found = True
+                break
+    assert found == True
+
+    found = False
+    with open(active_env_file, "r") as a:
+        for var in a:
+            if re.search(r"\b"+file_main_env_var+"=", var):
                 found = True
                 break
     assert found == True
@@ -209,7 +259,15 @@ def test_remove_env_variable():
     found = False
     with open(deactive_env_file, "r") as d:
         for var in d:
-            if re.search(r"\b"+main_env_var+r"\b", var):
+            if re.search(r"\b"+dir_main_env_var+r"\b", var):
+                found = True
+                break
+    assert found == True
+
+    found = False
+    with open(deactive_env_file, "r") as d:
+        for var in d:
+            if re.search(r"\b"+file_main_env_var+r"\b", var):
                 found = True
                 break
     assert found == True
@@ -219,7 +277,8 @@ def test_activate_environment_variables():
     """
     Test that the activate_environment_variables function properly activates the environment variables
     """
-    env_var_name = "$ggd_hg19_gaps_v1"
+    dir_env_var_name = "$ggd_hg19_gaps_ucsc_v1_dir"
+    file_env_var_name = "$ggd_hg19_gaps_ucsc_v1_file"
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         show_env.activate_enviroment_variables()
@@ -233,7 +292,8 @@ def test_activate_environment_variables():
             active = False
         if active:
             newout += line
-    assert (env_var_name in output)
+    assert (dir_env_var_name in output)
+    assert (file_env_var_name in output)
 
 
 def test_test_vars():
@@ -261,7 +321,7 @@ def test_in_ggd_channel():
     Test that the in_ggd_channel from ggd list-files works correctly 
     """
     ## Test that in_ggd_channel properly returns the species, genome-build, and versoin if it is in the channel
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     channel = "genomics"
     species, build, version = list_files.in_ggd_channel(ggd_package, channel)
     assert species == "Homo_sapiens"
@@ -269,7 +329,7 @@ def test_in_ggd_channel():
     assert version == "1"
     
     ## test that in_ggd_channel properly handels bad channels 
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     channel = "not_a_real_channel"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.in_ggd_channel(ggd_package, channel)
@@ -291,7 +351,7 @@ def test_list_files():
     Test the main method of list-files 
     """
 
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     file1 = "{}.bed.gz".format(ggd_package)
     file2 = "{}.bed.gz.tbi".format(ggd_package)
 
@@ -469,12 +529,12 @@ def test_check_if_ggd_recipe():
     """
 
     ## Test a normal package name and channel
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     assert list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel) == True
 
     ## Test a normal package name but bad channel
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "BAD_CHANNEL"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel)
@@ -493,7 +553,7 @@ def test_get_pkg_info():
     """
 
     ## Test a normal run that should pass
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     assert list_pkg_info.get_pkg_info(ggd_package, ggd_channel, False) == True
 
@@ -848,7 +908,7 @@ def test_info_main():
     """
 
     ## Normal run
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
     assert list_pkg_info.info((),args) == True
@@ -862,12 +922,12 @@ def test_info_main():
     assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
     assert lines[5] == "Species: Homo_sapiens"
     assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region"
+    assert lines[7] == "Keywords: gaps, region, bed-file"
     assert lines[9] == "Cached: uploaded_to_aws"
 
 
     ## Normal run with all version dispalyed 
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     args = Namespace(all_versions=True, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
     assert list_pkg_info.info((),args) == True
@@ -881,12 +941,12 @@ def test_info_main():
     assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
     assert lines[5] == "Species: Homo_sapiens"
     assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region"
+    assert lines[7] == "Keywords: gaps, region, bed-file"
     assert lines[9] == "Cached: uploaded_to_aws"
     assert "-> Listing all ggd-recipe version for the {} recipe in the ggd-{} channel".format(ggd_package,ggd_channel) in output
 
     ## Normal run with print recipes 
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
     assert list_pkg_info.info((),args) == True
@@ -900,7 +960,7 @@ def test_info_main():
     assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
     assert lines[5] == "Species: Homo_sapiens"
     assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region"
+    assert lines[7] == "Keywords: gaps, region, bed-file"
     assert lines[9] == "Cached: uploaded_to_aws"
     assert "{} recipe file:\n***********************".format(ggd_package) in output 
 
@@ -945,7 +1005,6 @@ def test_info_main():
 
 
 
-
 #--------------------------------------------------------
 ## Test functions based on hg19-gaps not being installed
 #--------------------------------------------------------
@@ -953,18 +1012,18 @@ def test_info_main():
 
 def test_show_env_no_envvars():
     ## uninstalled hg19_gaps() testing 
-    uninstall_hg19_gaps_v1()
+    uninstall_hg19_gaps_ucsc_v1()
     parser = ()
     args = Namespace(command='show-env', pattern=None)
-    env_var_name_dir = "$ggd_hg19_gaps_v1_dir"
-    env_var_name_file = "$ggd_hg19_gaps_v1_file"
+    dir_env_var_name_dir = "$ggd_hg19_gaps_v1_dir"
+    file_env_var_name_file = "$ggd_hg19_gaps_v1_file"
 
     ## Test a normal run
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         show_env.show_env(parser,args)
     output = temp_stdout.getvalue().strip() 
-    assert (env_var_name_dir not in output)
-    assert (env_var_name_file not in output)
+    assert (dir_env_var_name_dir not in output)
+    assert (file_env_var_name_file not in output)
 
             
