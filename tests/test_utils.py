@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 import glob
 import contextlib
 import tarfile
-from helpers import CreateRecipe, uninstall_hg19_gaps_v1
+from helpers import CreateRecipe, uninstall_hg19_gaps_ucsc_v1
 from ggd import utils
 
 if sys.version_info[0] == 3:
@@ -106,7 +106,7 @@ def test_get_channel_data():
     assert os.path.exists(channeldata_path)
     with open(channeldata_path, "r") as j:
         cdata_dict = json.load(j)
-        assert "hg19-gaps-v1" in cdata_dict["packages"].keys()
+        assert "hg19-gaps-ucsc-v1" in cdata_dict["packages"].keys()
 
     ## Test a fake channel
     channel = "fake"
@@ -295,7 +295,7 @@ def test_bypass_satsolver_on_install():
 
 
     ## Test a bad install, bad channel
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "ggd-not-a-ggd-channel"
 
     try:
@@ -306,10 +306,10 @@ def test_bypass_satsolver_on_install():
 
 
     ## Test a good install
-    ggd_package = "hg19-gaps-v1"
+    ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "ggd-genomics"
     ### Unininstall
-    uninstall_hg19_gaps_v1()
+    uninstall_hg19_gaps_ucsc_v1()
 
     assert utils.bypass_satsolver_on_install(ggd_package,conda_channel = ggd_channel) == True
 

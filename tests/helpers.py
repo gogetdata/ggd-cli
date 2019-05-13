@@ -16,14 +16,14 @@ from future.utils import iteritems
 ## Helper Functions
 #--------------------------------------------------------------------------------------------------
 
-def install_hg19_gaps_v1():
+def install_hg19_gaps_ucsc_v1():
     """ 
-    Method to install the hg19-gaps-v1 data package using ggd prior to testing. Also test if installation completed 
+    Method to install the hg19-gaps-ucsc-v1 data package using ggd prior to testing. Also test if installation completed 
 
-    Returns the version of the hg19-gaps-v1 ggd packge installed
+    Returns the version of the hg19-gaps-ucsc-v1 ggd packge installed
     """
 
-    name = "hg19-gaps-v1"
+    name = "hg19-gaps-ucsc-v1"
     try:
         assert sp.check_call(["ggd", "install", name]) == 0
     except Exception as e:
@@ -42,14 +42,14 @@ def install_hg19_gaps_v1():
     return(version)
 
 
-def uninstall_hg19_gaps_v1():
+def uninstall_hg19_gaps_ucsc_v1():
     """ 
-    Method to uninstall the hg19-gaps-v1 data package using ggd prior to testing. Also test if uninstallation completed 
+    Method to uninstall the hg19-gaps-ucsc-v1 data package using ggd prior to testing. Also test if uninstallation completed 
 
-    Returns the version of the hg19-gaps-v1 ggd packge uninstalled
+    Returns the version of the hg19-gaps-ucsc-v1 ggd packge uninstalled
     """
 
-    name = "hg19-gaps-v1"
+    name = "hg19-gaps-ucsc-v1"
     try:
         assert sp.check_call(["ggd", "uninstall", name]) == 0
     except Exception as e:

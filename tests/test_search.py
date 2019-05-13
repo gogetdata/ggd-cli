@@ -11,7 +11,7 @@ import contextlib
 import json
 from ggd import search 
 from ggd import utils
-from helpers import install_hg19_gaps_v1
+from helpers import install_hg19_gaps_ucsc_v1
 from argparse import Namespace
 from argparse import ArgumentParser
 
@@ -127,6 +127,7 @@ def test_check_installed():
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
                     {u'hg19-gaps': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
                     u'hg19-gaps-v1': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-v1-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
+                    u'hg19-gaps-ucsc-v1': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-ucsc-v1-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
                     u'hg38-cpg-islands': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-cpg-islands-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'CpG', u'region'], u'summary': u'hg38 cpg islands from UCSC', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}, 
                     u'hg38-repeatmasker': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'06-Mar-2014'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg38-repeatmasker-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'rmsk', u'region'], u'summary': u'RepeatMasker track from UCSC', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}, 
                     u'hg19-pfam-domains-ucsc': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'16-Apr-2017'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-pfam-domains-ucsc-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'pfam', u'domains', u'protein', u'protein-domains', u'UCSC'], u'summary': u'Pfam domain annotation in bed12 format. (From UCSC)', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
@@ -150,10 +151,10 @@ def test_check_installed():
     assert path == None
 
     ## GGD package that is installed
-    ### Install hg19-gaps-v1
-    install_hg19_gaps_v1()
+    ### Install hg19-gaps-ucsc-v1
+    install_hg19_gaps_ucsc_v1()
     ## Check that it is installed
-    ggd_recipe = "hg19-gaps-v1"
+    ggd_recipe = "hg19-gaps-ucsc-v1"
     isinstalled, path = search.check_installed(ggd_recipe, json_dict)
     assert isinstalled == True
     species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]

@@ -161,7 +161,10 @@ cd $RECIPE_DIR
 for f in *; do
     ext="${ext_string}"
     filename="{filename_string}"
-    (mv $f "{name}.$ext")
+    if [[ ! -f "{name}.$ext" ]]  
+    then
+        (mv $f "{name}.$ext")
+    fi  
 done
 
 ## Add environment variables 

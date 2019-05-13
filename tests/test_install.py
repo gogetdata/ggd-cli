@@ -17,7 +17,7 @@ import glob
 import contextlib
 import tarfile
 import glob
-from helpers import install_hg19_gaps_v1, uninstall_hg19_gaps_v1
+from helpers import install_hg19_gaps_ucsc_v1, uninstall_hg19_gaps_ucsc_v1
 from ggd import install 
 from ggd import utils
 from ggd import uninstall
@@ -79,7 +79,7 @@ def test_check_ggd_recipe_good_run():
     """
     Test the check_ggd_recipe function returns a dict with information from the recipe
     """
-    tmp_recipe = "hg19-gaps-v1"
+    tmp_recipe = "hg19-gaps-ucsc-v1"
 
     jdict = install.check_ggd_recipe(tmp_recipe,"genomics")
     assert type(jdict) == type(dict())
@@ -110,8 +110,8 @@ def test_check_if_installed_recipe_is_installed():
     """
     Test if the check_if_installed function correclty identifies that the ggd data package is installed.
     """
-    recipe = "hg19-gaps-v1"
-    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-v1': {u'activate.d': 
+    recipe = "hg19-gaps-ucsc-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
                     u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
                     False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
@@ -145,8 +145,8 @@ def test_check_if_installed_recipe_v9999_is_not_installed():
     """
     Test if the check_if_installed function correclty identifies that the ggd data package is installed but not the sepcific version.
     """
-    recipe = "hg19-gaps-v1"
-    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-v1': {u'activate.d': 
+    recipe = "hg19-gaps-ucsc-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
                     u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
                     False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
@@ -199,8 +199,8 @@ def test_check_conda_installation_pacakge_is_installed():
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      This method calls the install_hg19_gaps  to run.
     """
-    recipe = "hg19-gaps-v1"
-    version = install_hg19_gaps_v1()
+    recipe = "hg19-gaps-ucsc-v1"
+    version = install_hg19_gaps_ucsc_v1()
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.check_conda_installation(recipe,version)
@@ -212,7 +212,7 @@ def test_check_conda_installation_pacakge_is_installed_noninstalled_version_desi
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      but that it has not installed the specied version
     """
-    recipe = "hg19-gaps-v1"
+    recipe = "hg19-gaps-ucsc-v1"
     version = "9999"
 
     assert install.check_conda_installation(recipe,version) == False
@@ -223,7 +223,7 @@ def test_check_conda_installation_pacakge_is_installed_no_version_designation():
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      The version will be set to -1, meaning the version is not specified
     """
-    recipe = "hg19-gaps-v1"
+    recipe = "hg19-gaps-ucsc-v1"
     version = "-1"
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
@@ -235,7 +235,7 @@ def test_check_conda_installation_pacakge_no_installed_longer_package_name():
     """
     Test check conda instllation function correclty identifies that a data pacakges is not installed by conda
     """
-    recipe = "hg19-gapsss-v1"
+    recipe = "hg19-gapsss-ucsc-v1"
     version = "-1"
 
     assert install.check_conda_installation(recipe,version) == False
@@ -255,10 +255,10 @@ def test_check_S3_bucket_not_uploaded():
     """
     Test if a recipe is cached on s3 or not. 
     """     
-    recipe = "hg19-gaps-v1"
+    recipe = "hg19-gaps-ucsc-v1"
 
     ## If no tags key avaible return false
-    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-v1': {u'activate.d': 
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
                     u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
                     u'noarch/hg19-gaps-v1-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], 
@@ -268,7 +268,7 @@ def test_check_S3_bucket_not_uploaded():
     assert install.check_S3_bucket(recipe, ggd_jdict) == False
 
     ## If not cached key in tags return false 
-    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-v1': {u'activate.d': 
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, 
                     u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': 
                     [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-v1-1-1.tar.bz2', 
@@ -279,7 +279,7 @@ def test_check_S3_bucket_not_uploaded():
     assert install.check_S3_bucket(recipe, ggd_jdict) == False
 
     ## If no "uploaded_to_aws" Signature in cached return false
-    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-v1': {u'activate.d': 
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
                     u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
                     False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
@@ -294,9 +294,9 @@ def test_check_S3_bucket_is_uploaded():
     """
     Test if a recipe is cached on s3 not. 
     """     
-    recipe = "hg19-gaps-v1"
+    recipe = "hg19-gaps-ucsc-v1"
     ## Return True if uploaded to aws
-    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-v1': {u'activate.d': 
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', 
                     u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': 
                     {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
@@ -311,7 +311,7 @@ def test_install_from_cache():
     """
     Test install from cache function for proper installation from cached recipe
     """
-    uninstall_hg19_gaps_v1()
+    uninstall_hg19_gaps_ucsc_v1()
 
     ## Bad install
     name = "Fake_hg19-gaps"
@@ -331,7 +331,7 @@ def test_install_from_cache():
 
 
     ## Good Install 
-    name = "hg19-gaps-v1"
+    name = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     default_version = "-1" 
 
@@ -383,8 +383,8 @@ def test_conda_install():
     """
     Test conda install function for proper installation of a ggd recipe using conda
     """
-    uninstall_hg19_gaps_v1()
-    name = "hg19-gaps-v1"
+    uninstall_hg19_gaps_ucsc_v1()
+    name = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
 
     ## Test with undesignated version
@@ -394,7 +394,7 @@ def test_conda_install():
 
     assert install.conda_install(name, ggd_channel,jdict,default_version) == True   
 
-    uninstall_hg19_gaps_v1()
+    uninstall_hg19_gaps_ucsc_v1()
 
     ## Test with designated version
     default_version = "1" 
@@ -437,7 +437,7 @@ def test_get_file_location():
 
 
     ## The installed hg19-gaps-v1 recipe
-    ggd_recipe = "hg19-gaps-v1"
+    ggd_recipe = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     default_version = "-1" 
 
@@ -474,8 +474,8 @@ def test_install_main_function():
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
     ## Test an already installed ggd recipe
-    install_hg19_gaps_v1()
-    ggd_recipe = "hg19-gaps-v1"
+    install_hg19_gaps_ucsc_v1()
+    ggd_recipe = "hg19-gaps-ucsc-v1"
     args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
@@ -483,8 +483,8 @@ def test_install_main_function():
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
     ## Test a previously installed recipe, but the recipe path is broken 
-    install_hg19_gaps_v1()
-    ggd_recipe = "hg19-gaps-v1"
+    install_hg19_gaps_ucsc_v1()
+    ggd_recipe = "hg19-gaps-ucsc-v1"
     args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
 
     jdict = install.check_ggd_recipe(ggd_recipe,"genomics")
@@ -501,9 +501,9 @@ def test_install_main_function():
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     
-    ## Install hg19-gaps-v1
-    uninstall_hg19_gaps_v1()
-    ggd_recipe = "hg19-gaps-v1"
+    ## Install hg19-gaps-ucsc-v1
+    uninstall_hg19_gaps_ucsc_v1()
+    ggd_recipe = "hg19-gaps-ucsc-v1"
     args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
     assert install.install((), args) == True
 
