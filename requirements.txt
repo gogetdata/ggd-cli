@@ -3,7 +3,7 @@ pyyaml
 gitpython
 git
 conda-build=3.17.8
-conda=4.6.12
+conda=4.6.14
 fuzzywuzzy
 python-levenshtein
 htslib

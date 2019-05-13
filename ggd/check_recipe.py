@@ -319,7 +319,7 @@ def check_files(install_path, species, build, recipe_name,
     for tbx in tbxs:
         print("> checking %s" % tbx)
         try:
-            sp.check_call(['check-sort-order', '--genome', gf, tbx], stderr=sys.stderr)
+            sp.check_call(["check-sort-order", "--genome", gf, tbx], stderr=sys.stderr)
         except sp.CalledProcessError as e:
             sys.stderr.write("ERROR: in: %s(%s) with genome sort order compared to that specified in genome file\n" % (P, tbx))
             sys.exit(e.returncode)
