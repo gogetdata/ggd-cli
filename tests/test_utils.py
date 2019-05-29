@@ -71,7 +71,8 @@ def test_get_species():
     assert "Mus_musculus" in species
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
-    assert len(species) == 4
+    assert "Danio_rerio" in species 
+    assert len(species) == 5
 
     ## Test not_updating repo
     species = utils.get_species(update_repo=True)
@@ -80,7 +81,8 @@ def test_get_species():
     assert "Mus_musculus" in species
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
-    assert len(species) == 4
+    assert "Danio_rerio" in species 
+    assert len(species) == 5
 
     
 def test_get_ggd_channels():
@@ -207,6 +209,12 @@ def test_get_build():
         elif species == "Canis_familiaris":
             assert len(builds) == 1
             assert "canFam3" in builds
+        elif species == "Danio_rerio":
+            assert len(builds) == 4
+            assert "danRer10" in builds
+            assert "danRer11" in builds
+            assert "GRCz10" in builds
+            assert "GRCz11" in builds
         else:
             assert False
 
