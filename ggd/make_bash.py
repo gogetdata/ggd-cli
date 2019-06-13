@@ -31,16 +31,17 @@ def add_make_bash(p):
     c2.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
                     required=True)
     c2.add_argument("--authors", help="authors of the recipe", default=os.environ.get("USER", ""))
-    c2.add_argument("-gv", "--ggd_version", help="The version of the ggd package. (First time package = 1, updated package > 1)",
+    c2.add_argument("-pv", "--package_version", help="The version of the ggd package. (First time package = 1, updated package > 1)",
                     required=True)
     c2.add_argument("-dv", "--data_version", help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)", 
                     required=True)
-    c2.add_argument("--summary", help="a comment describing the recipe",
+    c2.add_argument("-dp", "--data_provider", required=True, help="The data provider where the data was accessed. (Example: UCSC, Ensembl, gnomAD, etc.)")
+    c2.add_argument("--summary", help="A detailed comment describing the recipe",
                 default="", required=True)
     c2.add_argument("-k", "--keyword", help="a keyword to associate with the recipe." +
                     " may be specified more that once.", action="append", default=[],
                     required=True)
-    c.add_argument("name", help="name of recipe")
+    c2.add_argument("-n", "--name", help="The name of recipe", required=True)
     c.add_argument("script", help="bash script that contains the commands that build the recipe")
 
     c.set_defaults(func=make_bash)
@@ -49,9 +50,16 @@ def add_make_bash(p):
 def make_bash(parser, args):
 
     name = args.name.replace(args.species, "").replace(args.genome_build, "").strip("- ").strip()
-    name = "{0}-{1}-v{2}".format(args.genome_build, name, args.ggd_version).lower()
-    assert name.strip() != "{0}--v{1}".format(args.genome_build,args.ggd_version) ## test for missing name 
-    assert args.summary.strip() != ""
+    data_provider = args.data_provider.replace(args.species, "").replace(args.genome_build, "").strip("- ").strip().lower()
+    name = "{0}-{1}-{2}-v{3}".format(args.genome_build, name, data_provider, args.package_version).lower()
+    name = name.replace("_","-")
+    assert name.strip() != "{0}--{1}-v{2}".format(args.genome_build,data_provider,args.package_version), ("The recipe name is required") ## test for missing name 
+    assert name.strip() != "{0}-{1}--v{2}".format(args.genome_build,args.name.lower(),args.package_version), ("The data provider is required") ## test for missing name 
+    assert args.summary.strip() != "", ("Please provide a thorough summary of the data package")
+
+    wildcards = ["?", "*", "[", "]", "{", "}", "!", "\\", "(", ")", ".", "+", "^", "$", "|"]
+    for x in wildcards:
+        assert x not in name, ("\n\n\t\"{}\" wildcard is not allowed in the recipe name. Please rename the recipe. \n\tRecipe name = {} \n\tList of wildcards not allowed: {}".format(x,name, " ".join(wildcards)))
 
     try:
         os.makedirs(name)
@@ -100,7 +108,7 @@ def make_bash(parser, args):
                     "authors": args.authors,
                     "extra-files": extra_files,
                 }}
-    yml3 = {"package": {"name": name, "version": args.ggd_version}}
+    yml3 = {"package": {"name": name, "version": args.package_version}}
     yml4 = {"requirements": {"build": deps[:],
                     "run": deps[:]}}
     yml5 = { "source": {"path": "."}}
@@ -114,6 +122,7 @@ def make_bash(parser, args):
                     "summary": args.summary,
                     "tags": {
                         "data-version": args.data_version,
+                        "data-provider": args.data_provider,
                         "ggd-channel": args.channel
                     },
                 }}
@@ -172,7 +181,7 @@ done
 if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
 then
     recipe_env_file_name="ggd_{name}_file"
-    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g' | sed 's/\./_/g')"
     file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
 
 elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
@@ -181,14 +190,14 @@ then
     if [[ ! -z "$indexed_file" ]] ## If index file exists
     then
         recipe_env_file_name="ggd_{name}_file"
-        recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+        recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g' | sed 's/\./_/g')"
         file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
     fi
 fi 
 
 #### Dir
 recipe_env_dir_name="ggd_{name}_dir"
-recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g' | sed 's/\./_/g')"
 
 activate_dir="$env_dir/etc/conda/activate.d"
 deactivate_dir="$env_dir/etc/conda/deactivate.d"
@@ -212,7 +221,7 @@ echo 'Recipe successfully built!'
 """.format(species=args.species,
            name=name,
            build=args.genome_build,
-           version=args.ggd_version,
+           version=args.package_version,
            ext_string="{f#*.}", ## Bash get extention. (.bed, .bed.gz, etc.) 
            filename_string="{f%%.*}",
            file_env_var="{recipe_env_file_name:-}"))
