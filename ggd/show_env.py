@@ -47,12 +47,12 @@ def show_env(parser, args):
         
         if len(active_vars) > 0:
             print ("Active environment variables:")
-            for active_var in active_vars:
+            for active_var in sorted(active_vars):
                 print ("> $" + active_var)
             print()
         if len(inactive_vars) > 0:
             print ("Inactive or out-of-date environment variables:")
-            for inactive_var in inactive_vars:
+            for inactive_var in sorted(inactive_vars):
                 print ("> $" + inactive_var)
             print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % conda_env)
         if not active_vars and not inactive_vars:
