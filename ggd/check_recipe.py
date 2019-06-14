@@ -31,7 +31,9 @@ def add_check_recipe(p):
 
     c = p.add_parser('check-recipe', help="build, install, and check a recipe")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) Set the stdout log level to debug")
+    c.add_argument("-du", "--dont_uninstall", action="store_true", help="(Optional) By default the newly installed local ggd data package is uninstalled after the check has finished. To bypass this uninstall step set this flag \"--dont_uninstall")
     c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2)")
+
     c.set_defaults(func=check_recipe)
 
 #---------------------------------------------------------------------------------------------------
@@ -144,16 +146,28 @@ def _install(bz2,recipe_name,debug=False):
     -----------
     1) bz2: The bz2 tarball package file created from the conda build
     2) recipe_name: The name of the ggd recipe/package
+
+    Returns:
+    +++++++
+    1) True if the installation was successful and the package was not already installed on the system
+    2) False if the package has already been installed on the system
+    3) If the installation fails progam exits. ggd data handeling is initated to remove any new/updated files from the installation process
     """
 
     conda_version = get_required_conda_version()
     conda_install = "conda=" + conda_version
+
+    ## See if it is already installed 
+    pkg_out = sp.check_output(["conda list {}".format(recipe_name)], shell=True).decode("utf8")
+    if recipe_name in pkg_out: ## If already installed
+        return(False)
+
+    ## Install the new recipe
     try:
         if conda_version != -1:
             if debug:
                 sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install, "--debug"], stderr=sys.stderr,
                             stdout=sys.stdout)
-                
             else:
                 sp.check_call(['conda', 'install', '-v', '--use-local', '-y', recipe_name, conda_install], stderr=sys.stderr,
                             stdout=sys.stdout)
@@ -260,14 +274,43 @@ def check_recipe(parser, args):
     before = list_files(install_path)
 
     if args.debug:
-        _install(bz2,str(recipe['package']['name']),debug=True)
+        new_installed = _install(bz2,str(recipe['package']['name']),debug=True)
     else:
-        _install(bz2,str(recipe['package']['name']))
+        new_installed = _install(bz2,str(recipe['package']['name']))
 
-    check_files(install_path, species, build, recipe['package']['name'],
-                recipe['extra'].get('extra-files', []), before)
+    ## Check if previous package is already installed or it is a new installation
+    if new_installed:
+        check_files(install_path, species, build, recipe['package']['name'],
+                    recipe['extra'].get('extra-files', []), before, bz2)
 
-    print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+        print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+
+    else: ## if already installed 
+        print("\nPackage already installed on your system")
+        print("\nIf the \"-du\" flag (dont_uninstall) is NOT set this package will be uninstalled") 
+        print("\nTo recheck this recipe")
+        print(" 1) Uninstall the reicpe with: \n\t$ ggd check-recipe {} \tNOTE: Make sure the \"-du\" flag is NOT set".format(args.recipe_path))
+        print(" 2) Run check recipes again once the local package is uninstalled (From step 1): \n\t $ggd check-recipe {} \tNOTE: With or without the \"-du\" flag.".format(args.recipe_path))
+
+
+    if args.dont_uninstall == False:
+        print("\n\n The --dont_uninstall flag was not set \n\n Uninstalling the locally built ggd data package")
+
+        recipe_dict = get_recipe_from_bz2(bz2)
+        species = recipe_dict["about"]["identifiers"]["species"]
+        genome_build = recipe_dict["about"]["identifiers"]["genome-build"]
+        version = recipe_dict["package"]["version"]
+        name = recipe_dict["package"]["name"]
+        ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
+        try:
+            check_for_installation(name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        except Exception as e:
+            print(e)
+    else:
+        recipe_dict = get_recipe_from_bz2(bz2)
+        name = recipe_dict["package"]["name"]
+        print("\n\n {} will remain installed on your system as a local data package.".format(name))
+
     return(True)
 
 
@@ -279,8 +322,39 @@ def get_modified_files(files, before_files):
     return files
 
 
+def remove_package_after_install(bz2, recipe_name, exit_num):
+    """Method to remove a locally installed ggd package if the post installation checks fail
+
+    remove_package_after_install
+    ============================
+    Method to uninstall and remove data package files if the post installation steps fail. 
+    
+    Parameters:
+    -----------
+    1) bz2: The bz2 file created during the conda build process of the data package
+    2) exit_num: The exit number to exit the program with
+    """
+
+    print("\nPost-installation checks have failed. Rolling back installation")
+
+    recipe_dict = get_recipe_from_bz2(bz2)
+    species = recipe_dict["about"]["identifiers"]["species"]
+    genome_build = recipe_dict["about"]["identifiers"]["genome-build"]
+    version = recipe_dict["package"]["version"]
+    name = recipe_dict["package"]["name"]
+    ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
+    try:
+        check_for_installation(recipe_name,ggd_jdict) ## .uninstall method to remove extra ggd files
+    except Exception as e:
+        print(e)
+
+    print("\n\t-> Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
+    ## Exit
+    sys.exit(exit_num)   
+
+
 def check_files(install_path, species, build, recipe_name,
-                extra_files, before_files):
+                extra_files, before_files, bz2):
     """Method to check the presence of correct genomic files """
 
     P = "{species}/{build}:{recipe_name}".format(**locals())
@@ -289,7 +363,8 @@ def check_files(install_path, species, build, recipe_name,
     files = get_modified_files(files, before_files)
     if len(files) == 0:
         sys.stderr.write("ERROR: no modified files in %s\n" % install_path)
-        sys.exit(2)
+        remove_package_after_install(bz2,recipe_name,2)
+
     print("modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
 
     tbis = [x for x in files if x.endswith(".tbi")] # all tbi files
@@ -322,7 +397,7 @@ def check_files(install_path, species, build, recipe_name,
             sp.check_call(["check-sort-order", "--genome", gf, tbx], stderr=sys.stderr)
         except sp.CalledProcessError as e:
             sys.stderr.write("ERROR: in: %s(%s) with genome sort order compared to that specified in genome file\n" % (P, tbx))
-            sys.exit(e.returncode)
+            remove_package_after_install(bz2,recipe_name,e.returncode)
 
     missing = []
     not_tabixed = []
@@ -344,9 +419,10 @@ def check_files(install_path, species, build, recipe_name,
 
     if missing or not_tabixed or not_faidxed:
         print("\n".join(missing + not_tabixed + not_faidxed), file=sys.stderr)
-        sys.exit(2)
+        remove_package_after_install(bz2,recipe_name,2)
 
     return(True)
+
 
 def check_yaml(recipe):
     """Method to check if the correct information is contained within the ggd recipe's meta.yaml file """

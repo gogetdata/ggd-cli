@@ -9,6 +9,7 @@ import requests
 import argparse
 import json
 import re
+import shutil
 import time
 from copy import deepcopy
 from argparse import Namespace
@@ -941,6 +942,30 @@ def test__install_normal_run():
 
     recipe_name = "trial-hg38-gaps-v1"
     assert check_recipe._install(bz2_file, recipe_name) == True
+
+
+def test__install_package_already_installed():
+    """
+    Test the _install method properly identiifes an already installed package and does not install it
+    """
+
+    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+                        {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
+                        u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
+                        u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
+                        u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
+                        u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
+
+    ## Rerun the _build 
+    test__build_normal_run()
+
+    ## get bz2 file
+    bz2_file = pytest.global_tarball_testing_file
+    ## If fails, the tarball was not created 
+    assert os.path.exists(pytest.global_tarball_testing_file)
+
+    recipe_name = "trial-hg38-gaps-v1"
+    assert check_recipe._install(bz2_file, recipe_name) == False
    
 
 def test_get_recipe_from_bz2():
@@ -1039,7 +1064,7 @@ def test__check_build():
 
 def test_check_recipe_bz2_file():
     """
-    Test the main check_recipe funtion using an already build recipe ready for installation
+    Test the main check_recipe funtion using an already built recipe ready for installation
     """
     ## Uninstall the already installed recipe
     try:
@@ -1066,9 +1091,9 @@ def test_check_recipe_bz2_file():
     assert os.path.isfile(bz2_file)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True)
 
-    check_recipe.check_recipe((),args) == True
+    assert check_recipe.check_recipe((),args) == True 
    
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
     assert "trial-hg38-gaps-v1" in out
@@ -1077,7 +1102,16 @@ def test_check_recipe_bz2_file():
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == True 
 
+
+    ## Rerun and test that the post install check is not run because the package is already installed
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        check_recipe.check_recipe((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "* Successful recipe check! *" not in output
+    assert "Package already installed on your system" in output
     
+
 def test_check_recipe_recipe_path():
     """
     Test the main check_recipe funtion using an recipe path to install a ggd recipe
@@ -1105,15 +1139,56 @@ def test_check_recipe_recipe_path():
     assert os.path.exists(recipe_path)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True)
    
-    assert check_recipe.check_recipe((),args) == True
+    assert check_recipe.check_recipe((),args) == True 
+
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
     assert "trial-hg38-gaps-v1" in out
     out = utils.check_output(["ggd", "show-env"])
     assert "ggd_trial_hg38_gaps_v1" in out
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == True 
+
+
+def test_check_recipe_uninstall_local():
+   """
+   Test the main check_recipe funtion using an recipe path to install a ggd recipe and uninstalling the local recipe after checks
+    (Using the --dont_uninstall or -du flag) (If the flag is not set, it is false)
+   """
+   ## Uninstall the already installed recipe
+   try:
+       sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
+   except Exception as e:
+       pass
+
+   ## Remove fragment files
+   jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+                       {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
+                       u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
+                       u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
+                       u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
+                       u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
+
+
+   uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+
+
+   ## Uces the previously created ggd recipe path
+   recipe_path = pytest.global_ggd_recipe_path
+   assert os.path.exists(recipe_path)
+
+   ## Set args
+   args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False)
+
+   assert check_recipe.check_recipe((),args) == True 
+  
+   out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
+   assert "trial-hg38-gaps-v1" not in out
+   out = utils.check_output(["ggd", "show-env"])
+   assert "ggd_trial_hg38_gaps_v1" not in out
+   conda_root = utils.conda_root()
+   assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
 
 
 def test_check_recipe_package_env_vars():
@@ -1250,7 +1325,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["one_file_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1410,7 +1485,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["two_files_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1565,7 +1640,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["two_files_noindex_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1720,7 +1795,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["three_files_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1797,6 +1872,348 @@ def test_get_modified_files():
         else:
             assert file_tuple[0] not in filtered_list
 
+
+
+def test_remove_package_after_installation():
+    """
+    Test the remove_package_after_insllation method correctly uninstalls a local ggd recipe 
+     This method is used to remove a package that was installed but that failed post intallation tests
+    """
+
+    recipe = CreateRecipe(
+    """
+    trial-hg38-gaps-ucsc-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: trial-hg38-gaps-ucsc-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                data-version: 11-Mar-2019
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+        
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "trial-hg38-gaps-ucsc-v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-ucsc-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+    """, from_string=True)
+
+    recipe.write_recipes()
+
+    ## Test a normal run of _build()
+    recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-ucsc-v1"] 
+    ## Get yaml file
+    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
+    check_recipe._install(tarball_file_path,"trial-hg38-gaps-ucsc-v1")
+    assert os.path.isfile(tarball_file_path)
+    assert "noarch" in tarball_file_path
+
+    pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
+    assert "trial-hg38-gaps-ucsc-v1" in pkg_out ## Identify that it was installed in the conda env
+
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.remove_package_after_install(tarball_file_path,"trial-hg38-gaps-ucsc-v1",2)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
+
+    pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
+    assert "trial-hg38-gaps-ucsc-v1" not in pkg_out ## Identify that it was removed from the conda env
+
+
+def get_a_tarfile():
+    """
+    helper script to run conda build on a recipe and get the tar file location 
+    """
+    
+    recipe = CreateRecipe(
+    """
+    trial-hg38-gaps-ucsc-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: trial-hg38-gaps-ucsc-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                data-version: 11-Mar-2019
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+        
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "trial-hg38-gaps-ucsc-v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-ucsc-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+    """, from_string=True)
+
+    recipe.write_recipes()
+
+    ## Test a normal run of _build()
+    recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-ucsc-v1"] 
+    ## Get yaml file
+    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
+
+    return(tarball_file_path)
+
+
+def copy_tarfile(tarfile_path, new_path):
+    """
+    Helper script to copy a tarfile from one location to another to perserve the tarfile for muultiple iterations
+     of processesing
+
+    Parameters:
+    -----------
+    1) tarfile_path: The file path to a tarfile created using conda build
+    2) new_path: A directory path of where to copy the tarfile to 
+
+    Returns:
+    ++++++++
+    1) The file path to the copied/new tarfile
+    """
+
+    ## Check that the new path exists 
+    if os.path.exists(new_path) == False:
+        os.mkdir(new_path)
+    else: ## Remove the existing file in the target file path if it exists
+        file_name = os.path.basename(tarfile_path)
+        if os.path.exists(os.path.join(new_path, file_name)):
+            os.remove(os.path.join(new_path, file_name))
+
+    ## Copy the tarfile from tarfile_path to the new path, along with file metadata, using shutil
+    shutil.copy2(tarfile_path, new_path)
+    file_name = os.path.basename(tarfile_path)
+    new_tarfile_path = os.path.join(new_path, file_name)
+
+    ## Check that the new and old files both exists
+    assert os.path.exists(new_tarfile_path)
+    assert os.path.isfile(new_tarfile_path)
+    assert os.path.exists(tarfile_path)
+    assert os.path.isfile(tarfile_path)
+
+    ## Return the path to the new tarfile
+    return(new_tarfile_path)
 
 
 def test_check_files_good_genomic_file():
@@ -1892,11 +2309,21 @@ def test_check_files_good_genomic_file():
     name = "testing-hg19-recipe-v1"
     file_tuples = check_recipe.list_files(files_path)
 
+    ## Get tarfile
+    tarfile_path = get_a_tarfile()
+    ## Copy tarfile to temp location
+    tempdir = os.path.join(tempfile.gettempdir(), "tarfile_copy")
+    hold_tarfile_path = copy_tarfile(tarfile_path, tempdir)
+
     ## Test that unmodified files causes the system to exit(2)
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
+
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
 
     ## Modify files
     time.sleep(1)
@@ -1904,13 +2331,23 @@ def test_check_files_good_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     ## Check correct run of check_files
-    assert check_recipe.check_files(files_path, species, build, name, [],file_tuples) == True  
+    assert check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path) == True  
+
+    ## Remove the tempfile
+    os.remove(hold_tarfile_path)
 
 
 def test_check_files_unpaired_genomic_file():
     """
     Test the check_files function to properly check genomic file pairs and fail if the pairs are incorrectly present
     """
+
+    ## Get tarfile
+    tarfile_path = get_a_tarfile()
+    ## Copy tarfile to temp location
+    tempdir = os.path.join(tempfile.gettempdir(), "tarfile_copy")
+    hold_tarfile_path = copy_tarfile(tarfile_path, tempdir)
+
 
     species = "Homo_sapiens"
     build = "hg19"
@@ -1944,7 +2381,7 @@ def test_check_files_unpaired_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -1974,8 +2411,12 @@ def test_check_files_unpaired_genomic_file():
     for file_tuple in file_tuples:
         sp.check_output(["touch", "-m", file_tuple[0]])
     
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
+
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -2007,8 +2448,12 @@ def test_check_files_unpaired_genomic_file():
     for file_tuple in file_tuples:
         sp.check_output(["touch", "-m", file_tuple[0]])
 
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
+
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -2034,8 +2479,12 @@ def test_check_files_unpaired_genomic_file():
     for file_tuple in file_tuples:
         sp.check_output(["touch", "-m", file_tuple[0]])
 
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
+
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -2061,8 +2510,12 @@ def test_check_files_unpaired_genomic_file():
     for file_tuple in file_tuples:
         sp.check_output(["touch", "-m", file_tuple[0]])
 
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
+
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -2092,10 +2545,17 @@ def test_check_files_unpaired_genomic_file():
     for file_tuple in file_tuples:
         sp.check_output(["touch", "-m", file_tuple[0]])
 
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
+
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples)  
+        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
+
+    ## Remove the tempfile
+    os.remove(hold_tarfile_path)
 
 
 def test_check_yaml():
