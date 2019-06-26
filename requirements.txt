@@ -2,8 +2,8 @@ requests>=2.20.0
 pyyaml
 gitpython
 git
-conda-build=3.17.8
-conda=4.6.14
+conda-build=3.18.5
+conda=4.7.5
 fuzzywuzzy
 python-levenshtein
 htslib
