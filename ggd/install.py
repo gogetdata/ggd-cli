@@ -246,7 +246,7 @@ def get_file_locations(ggd_recipe,ggd_jdict,ggd_version):
         elif len(files) == 2: ## A file with an associated index will have a env var
             if [True for x in files if ".tbi" in x or ".bai" in x or ".crai" in x or ".fai" in x or ".gzi" in x]:
                 print("\n\t-> A new environment variable that points to the installed file has been created:")
-                print("\t\t $ggd_%s_file\n" %ggd_recipe.replace("-","_"))
+                print("\t\t $ggd_%s_file\n" %ggd_recipe.replace("-","_").replace(".","_"))
             
 
 def install(parser, args):
