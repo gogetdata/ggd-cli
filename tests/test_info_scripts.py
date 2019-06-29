@@ -356,7 +356,7 @@ def test_list_files():
     file2 = "{}.bed.gz.tbi".format(ggd_package)
 
     ##Test that the correct file paths are returned 
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species=None, version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -367,7 +367,7 @@ def test_list_files():
     assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with the genome_build key set
-    args = Namespace(channel='genomics', command='list-files', genome_build="hg19", name=ggd_package, pattern=None, species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build="hg19", name=ggd_package, pattern=None, prefix=None, species=None, version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -378,7 +378,7 @@ def test_list_files():
     assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with the species key set
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species="Homo_sapiens", version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species="Homo_sapiens", version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -389,7 +389,7 @@ def test_list_files():
     assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with version  key set
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species=None, version="1")
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species=None, version="1")
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -400,7 +400,7 @@ def test_list_files():
     assert len(output.split("\n")) == 2
 
     ##Test that the correct file paths are returned with the patterns key set  key set
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=file1, species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=file1, prefix=None, species=None, version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -410,7 +410,7 @@ def test_list_files():
     assert re.search(file2+"$", output) == None
     assert len(output.split("\n")) == 1
 
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=file2, species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=file2, prefix=None, species=None, version=None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -421,7 +421,7 @@ def test_list_files():
     assert len(output.split("\n")) == 1
 
     ## Test that nothing is returned when a bad ggd package name is given
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name="NOT_a_real_package_name", pattern=None, species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name="NOT_a_real_package_name", pattern=None, prefix=None, species=None, version=None)
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
@@ -429,7 +429,7 @@ def test_list_files():
     assert pytest_wrapped_e.match("1") ## check that the exit code is 1
 
     ##Test that the function exits if a bad genome build is given
-    args = Namespace(channel='genomics', command='list-files', genome_build="Bad_Build", name=ggd_package, pattern=None, species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build="Bad_Build", name=ggd_package, pattern=None, species=None, prefix=None, version=None)
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
@@ -437,7 +437,7 @@ def test_list_files():
     assert pytest_wrapped_e.match("1") ## check that the exit code is 1
 
     ##Test that the function exits if a bad species is given
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species="Mus_musculus", version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species="Mus_musculus", version=None)
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
@@ -445,7 +445,7 @@ def test_list_files():
     assert pytest_wrapped_e.match("1") ## check that the exit code is 1
 
     ##Test that the function exits if a bad version is given
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, species=None, version="99999")
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species=None, version="99999")
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
@@ -453,13 +453,40 @@ def test_list_files():
     assert pytest_wrapped_e.match("1") ## check that the exit code is 1
 
     ##Test that the function exits if a bad pattern is given
-    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern="BAD_PATTERN", species=None, version=None)
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern="BAD_PATTERN", prefix=None, species=None, version=None)
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
     assert pytest_wrapped_e.match("1") ## check that the exit code is 1
 
+
+def test_list_file_with_prefix():
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
+    sp.check_output(["conda", "create", "--name", "temp_env"])
+
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    file1 = "{}.bed.gz".format(ggd_package)
+    file2 = "{}.bed.gz.tbi".format(ggd_package)
+
+    ## Install ggd recipe using conda into temp_env
+    sp.check_output(["ggd", "install", "--prefix", "temp_env", ggd_package])
+
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=temp_env, species=None, version=None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_files.list_files((),args)
+    output = str(temp_stdout.getvalue().strip()) 
+    assert re.search(file1+"$", output)
+    assert re.search(file2+"$", output) == None
+    assert temp_env in output
+    assert len(output.split("\n")) == 2
+    
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
 
 
 ### pkg-info
