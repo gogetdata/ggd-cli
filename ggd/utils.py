@@ -259,6 +259,59 @@ def active_conda_env():
     return(active_environment)
 
 
+def prefix_in_conda(prefix):
+    """Method to check if a perfix is a conda environment or not
+
+    prefix_in_conda
+    ===============
+    This method is used to check if a full file path is a conda environment or not. If it is
+     True is returned. If it is not, the CondaEnvironmentNotFound error is raised
+
+    Parameters:
+    -----------
+    1) prefix: The conda enviroment full file path/prefix
+
+    Returns:
+    ++++++++
+    1) True if prefix is a conda environment, raises an error otherwise
+    """
+
+    environments = [os.path.join(x+"/") for x in check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
+    print(environments)
+    cbase = min(environments)
+
+    if prefix[-1] != "/":
+        prefix = prefix+"/"
+
+    ## Check that the file path includes the conda base directory
+    if cbase not in prefix: 
+        raise CondaEnvironmentNotFound(prefix)
+    ## Check that the file is in the enviroment lists
+    if prefix not in environments:
+        raise CondaEnvironmentNotFound(prefix)
+    ## Check that the prefix is an existing directory
+    if not os.path.isdir(prefix):
+        raise CondaEnvironmentNotFound(prefix)
+    
+    return(True)
+
+
+class CondaEnvironmentNotFound(Exception):
+    """
+    Exception Class for a bad conda environment given 
+    """
+    def __init__(self, location):
+        self.message = "The prefix supplied is not a conda enviroment: %s" %(location)
+        return_code = 1
+        sys.tracebacklimit = 0
+        print("\n")
+        super(CondaEnvironmentNotFound, self).__init__(self.message)
+
+    def __str__(self):
+        return(self.message)
+    
+
+
 def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=False):
     """Method to bypass the sat solver used by conda when a cached recipe is being installed
 
