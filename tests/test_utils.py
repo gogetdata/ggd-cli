@@ -285,7 +285,58 @@ def test_active_conda_env():
 
     ## TODO: Add a test to check a different environment is active
 
-    
+def test_prefix_in_conda():
+    """
+    Test that the prefis in conda properly identifes a prefix that is in the conda enviroment, and those that are not
+    """
+
+    ## Test a bad env (environments not in base environment path)
+    try:
+        utils.prefix_in_conda(os.getcwd())
+    except utils.CondaEnvironmentNotFound as e:
+        assert "The prefix supplied is not a conda enviroment: {}".format(os.getcwd()) in str(e) 
+    except Exception as e:
+        assert False
+
+    try:
+        utils.prefix_in_conda("/Not/A/Real/Location")
+    except utils.CondaEnvironmentNotFound as e:
+        assert "The prefix supplied is not a conda enviroment: {}".format("/Not/A/Real/Location") in str(e) 
+    except Exception as e:
+        assert False
+
+    try:
+        utils.prefix_in_conda("current")
+    except utils.CondaEnvironmentNotFound as e:
+        assert "The prefix supplied is not a conda enviroment: {}".format("current") in str(e) 
+    except Exception as e:
+        assert False
+
+    ## Test that the prefix is or is not in the environmnets   
+    ### List of enviroments
+    environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
+    base_env = min(environments)
+    temp_env = os.path.join(base_env, "envs", "temp_env")
+
+    try:
+        utils.prefix_in_conda(temp_env)
+    except utils.CondaEnvironmentNotFound as e:
+        assert "The prefix supplied is not a conda enviroment: {}".format(temp_env) in str(e) 
+    except Exception as e:
+        assert False
+
+    ## Test the prefix passes all checks, is in the base environment, is in the list of environments, and it is a directoyr
+    #os.mkdir(temp_env) 
+    sp.check_output(["conda", "create", "--name", "temp_env"])
+    environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
+
+    for env in environments:
+        assert utils.prefix_in_conda(env)
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+
+
 def test_bypass_satsolver_on_install():
     """
     Test that the bypass_satsolver_on_install function properly installs a cached packages and bypasses sat solving
