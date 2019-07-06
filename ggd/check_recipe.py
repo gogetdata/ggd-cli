@@ -162,6 +162,9 @@ def _install(bz2,recipe_name,debug=False):
     if recipe_name in pkg_out: ## If already installed
         return(False)
 
+    ## Set CONDA_SOURCE_PREFIX environment variable
+    os.environ["CONDA_SOURCE_PREFIX"] = conda_root() 
+
     ## Install the new recipe
     try:
         if conda_version != -1:
