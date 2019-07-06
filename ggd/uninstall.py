@@ -95,19 +95,13 @@ def check_conda_installation(ggd_recipe):
     Method used to check if the recipe has been installed with conda. If so, it uses conda to uninstall the recipe
     """
 
-    conda_package_list = sp.check_output(["conda", "list"]).decode('utf8')
-    if conda_package_list.find(ggd_recipe) == -1:
-        print("\n\t-> %s is NOT installed on your system" %ggd_recipe)
+    conda_package_set = set(sp.check_output(["conda", "list"]).decode('utf8').strip().replace("\n"," ").split(" "))
+    if ggd_recipe in conda_package_set:
+        print("\n\t-> %s is installed by conda on your system" %ggd_recipe)
+        return(conda_uninstall(ggd_recipe))
     else:
-        start_index = conda_package_list.find(ggd_recipe) 
-        end_index = start_index + len(ggd_recipe)
-        ## Check if it really is the package, or some other form of hte package 
-        if conda_package_list[int(start_index) - 1] == "\n" and conda_package_list[int(end_index) + 1] == " ":
-            print("\n\t-> %s is installed by conda on your system" %ggd_recipe)
-            return(conda_uninstall(ggd_recipe))
-        else:
-            print("\n\t-> %s is NOT installed on your system" %ggd_recipe)
-
+        print("\n\t-> %s is NOT installed on your system" %ggd_recipe)
+        
 
 def conda_uninstall(ggd_recipe):
     """Method use to uninstall the ggd recipe using conda
