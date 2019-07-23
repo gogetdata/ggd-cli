@@ -372,7 +372,7 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     ## Set specs map to an empty map. (No need to check other specs)
     add_spec = []
     for p_name, spec  in iteritems(ssc.specs_map):
-        if str(p_name.decode('utf8')) == pkg_name:
+        if str(p_name) == pkg_name:
             add_spec.append((pkg_name, MatchSpec(pkg_name)))
 
     ssc.specs_map = odict(add_spec)
