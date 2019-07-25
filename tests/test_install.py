@@ -10,6 +10,7 @@ import argparse
 import json
 import re
 import time
+import shutil
 from copy import deepcopy
 from argparse import Namespace
 from argparse import ArgumentParser
@@ -21,6 +22,8 @@ from helpers import install_hg19_gaps_ucsc_v1, uninstall_hg19_gaps_ucsc_v1
 from ggd import install 
 from ggd import utils
 from ggd import uninstall
+from ggd.utils import CondaEnvironmentNotFound 
+from ggd.utils import get_conda_package_list
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -74,7 +77,7 @@ def test_check_ggd_recipe_fake_channel():
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
 
-#
+
 def test_check_ggd_recipe_good_run():
     """
     Test the check_ggd_recipe function returns a dict with information from the recipe
@@ -173,6 +176,74 @@ def test_check_if_installed_recipe_v9999_is_not_installed():
     if path_added:
        os.rmdir(path) ## Remove the bottom directory from the path if it was created. 
 
+
+def test_check_if_installed_with_prefix_set():
+    """
+    Test that the ggd can identify in a data package has been installed in a different (targeted) conda environemnt 
+    """
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env"])
+
+
+    ## Check that an uninstalled data package is correclty stated as such
+    recipe = "Fake_hg19-gaps"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Fake_hg19-gaps': 
+                    {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', 
+                    u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': 
+                    {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/Fake-hg19-gaps-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], 
+                    u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'hg19', u'species': u'Homo_sapiens'}}}}
+    default_version = -1
+    
+    assert install.check_if_installed(recipe,ggd_jdict,default_version,prefix=temp_env) == False
+
+    ## Check that an installed data package is stated as such
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    sp.check_output(["ggd", "install", "--prefix", temp_env, ggd_package])
+
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-pfam-domains-ucsc-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'16-Apr-2017'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/hg19-pfam-domains-ucsc-v1-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'pfam', u'domains',u'protein',u'protein-domains',u'UCSC',u'bed',u'bed-file'], 
+                    u'summary': u'Pfam domain annotation in bed12 format. (From UCSC)', u'text_prefix': False, 
+                    u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}}}
+
+    default_version = "-1"
+
+    species = ggd_jdict["packages"][ggd_package]["identifiers"]["species"]
+    build = ggd_jdict["packages"][ggd_package]["identifiers"]["genome-build"]
+    version = ggd_jdict["packages"][ggd_package]["version"]
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        install.check_if_installed(ggd_package,ggd_jdict,default_version, prefix=temp_env)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+
+    file1 = "{}.bed12.bed.gz".format(ggd_package)
+    file2 = "{}.bed12.bed.gz.tbi".format(ggd_package)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_package,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_package,version,file2)) == False
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+    
    
 def test_check_conda_installation_pacakge_no_installed():
     """
@@ -199,9 +270,19 @@ def test_check_conda_installation_pacakge_is_installed():
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      This method calls the install_hg19_gaps  to run.
     """
-    recipe = "hg19-gaps-ucsc-v1"
-    version = install_hg19_gaps_ucsc_v1()
 
+    ## Install hg19-gaps-ucsc-v1
+    recipe = "hg19-gaps-ucsc-v1"
+    args = Namespace(channel='genomics', command='install', debug=False, name=recipe, version='-1', prefix=None)
+    try:
+        install.install((), args)
+    except SystemExit:
+        pass
+    jdict = install.check_ggd_recipe(recipe,"genomics")
+    version = jdict["packages"][recipe]["version"]
+    
+
+    ## Test that it is already installed
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.check_conda_installation(recipe,version)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
@@ -249,6 +330,64 @@ def test_check_conda_installation_pacakge_no_installed_shorter_package_name():
     version = "-1"
 
     assert install.check_conda_installation(recipe,version) == False
+
+
+def test_check_conda_installed_with_prefix_set():
+    """
+    Test that an installed data package designated by the prfeix flag can be detected by conda 
+    """
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env2")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env2"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env2"])
+
+    ## Check that an uninstalled package in a specific prefix is properly identified
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-pfam-domains-ucsc-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'16-Apr-2017'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/hg19-pfam-domains-ucsc-v1-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'pfam', u'domains',u'protein',u'protein-domains',u'UCSC',u'bed',u'bed-file'], 
+                    u'summary': u'Pfam domain annotation in bed12 format. (From UCSC)', u'text_prefix': False, 
+                    u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}}}
+
+    default_version = "-1"
+
+    assert install.check_conda_installation(ggd_package,default_version,prefix=temp_env) == False
+
+
+    ## Check that an installed data package is stated as such
+    sp.check_output(["ggd", "install", "--prefix", temp_env, ggd_package])
+
+    species = ggd_jdict["packages"][ggd_package]["identifiers"]["species"]
+    build = ggd_jdict["packages"][ggd_package]["identifiers"]["genome-build"]
+    version = ggd_jdict["packages"][ggd_package]["version"]
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        install.check_conda_installation(ggd_package,default_version,prefix=temp_env) 
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+
+    file1 = "{}.bed12.bed.gz".format(ggd_package)
+    file2 = "{}.bed12.bed.gz.tbi".format(ggd_package)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_package,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_package,version,file2)) == False
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env2"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 def test_check_S3_bucket_not_uploaded():
@@ -340,6 +479,80 @@ def test_install_from_cache():
     assert install.install_from_cached(name, ggd_channel,jdict,default_version) == True   
 
 
+def test_install_from_cache_with_prefix_set():
+    """
+    Test install from cache function for proper installation from cached recipe
+    """
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env3")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env3"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env3"])
+
+    ## Bad install
+    name = "Fake_hg19-gaps"
+    ggd_channel = "genomics"
+    default_version = -1
+    jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Fake_hg19-gaps': 
+                {u'activate.d': False, u'version': u'1', u'tags': {u'cached': ["uploaded_to_aws"], u'ggd-channel': u'genomics', 
+                u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': 
+                {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                u'noarch/Fake-hg19-gaps-1-1.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], 
+                u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                u'hg19', u'species': u'Homo_sapiens'}}}}
+    
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        install.install_from_cached(name, ggd_channel,jdict,default_version,prefix=temp_env)   
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+
+
+    ## Good install 
+    name = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel = "genomics"
+    default_version = "-1"
+    jdict = install.check_ggd_recipe(name,ggd_channel)
+
+    os.environ["CONDA_SOURCE_PREFIX"] = utils.conda_root()
+
+    assert install.install_from_cached(name, ggd_channel,jdict,default_version,prefix=temp_env) == True   
+
+    species = jdict["packages"][name]["identifiers"]["species"]
+    build = jdict["packages"][name]["identifiers"]["genome-build"]
+    version = jdict["packages"][name]["version"]
+
+    file1 = "{}.bed12.bed.gz".format(name)
+    file2 = "{}.bed12.bed.gz.tbi".format(name)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file2)) == False
+
+    ## Test that the tarfile and the pkg dir were correctly copied to the prefix
+    data_packages = get_conda_package_list(temp_env)
+    version = str(data_packages[name]["version"])
+    build_number = str(data_packages[name]["build"])
+    tarfile = "{}-{}-{}.tar.bz2".format(name,version,build_number)
+    pkgdir = "{}-{}-{}".format(name,version,build_number)
+
+    assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env3"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
 def test_conda_install_bad_recipe():
     """
     Test that the conda_install function properly handels a bad recipe
@@ -392,7 +605,18 @@ def test_conda_install():
 
     jdict = install.check_ggd_recipe(name,ggd_channel)
 
+    species = jdict["packages"][name]["identifiers"]["species"]
+    build = jdict["packages"][name]["identifiers"]["genome-build"]
+    version = jdict["packages"][name]["version"]
+
     assert install.conda_install(name, ggd_channel,jdict,default_version) == True   
+
+    ### Test that the file is in the correct prefix (the current conda root)
+    file1 = "{}.bed.gz".format(name)
+    file2 = "{}.bed.gz.tbi".format(name)
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file2))
 
     uninstall_hg19_gaps_ucsc_v1()
 
@@ -400,6 +624,62 @@ def test_conda_install():
     default_version = "1" 
 
     assert install.conda_install(name, ggd_channel,jdict,default_version) == True   
+
+
+def test_conda_install_with_prefix_set():
+    """
+    Test conda install function for proper installation of a ggd recipe using conda
+    """
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env4")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env4"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env4"])
+
+    name = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel = "genomics"
+    default_version = "-1"
+    jdict = install.check_ggd_recipe(name,ggd_channel)
+
+    os.environ["CONDA_SOURCE_PREFIX"] = utils.conda_root()
+
+    assert install.conda_install(name, ggd_channel,jdict,default_version,prefix=temp_env) == True   
+
+    species = jdict["packages"][name]["identifiers"]["species"]
+    build = jdict["packages"][name]["identifiers"]["genome-build"]
+    version = jdict["packages"][name]["version"]
+
+    file1 = "{}.bed12.bed.gz".format(name)
+    file2 = "{}.bed12.bed.gz.tbi".format(name)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file2)) == False
+
+    ## Test that the tarfile and the pkg dir were correctly copied to the prefix
+    data_packages = get_conda_package_list(temp_env)
+    version = str(data_packages[name]["version"])
+    build_number = str(data_packages[name]["build"])
+    tarfile = "{}-{}-{}.tar.bz2".format(name,version,build_number)
+    pkgdir = "{}-{}-{}".format(name,version,build_number)
+
+    assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env4"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 def test_get_file_location():
@@ -460,38 +740,177 @@ def test_get_file_location():
     assert "$ggd_{}_file".format(ggd_recipe.replace("-","_")) in output
 
 
+def test_get_file_location_with_prefix_set():
+    """
+    Test that get_file_location function to properly reterive the location of the ggd file when it is associated with a different prefix (conda environment)
+    """
+
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env5")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env5"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env5"])
+
+    ### Install the recipe
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel = "genomics"
+    default_version = "-1"
+
+    jdict = install.check_ggd_recipe(ggd_recipe,ggd_channel)
+    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = jdict["packages"][ggd_recipe]["version"]
+
+    os.environ["CONDA_SOURCE_PREFIX"] = utils.conda_root()
+    assert install.install_from_cached(ggd_recipe, ggd_channel,jdict,default_version,prefix=temp_env) == True   
+
+    path = os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version)
+
+    ### Test output from get file location
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        install.get_file_locations(ggd_recipe,jdict,default_version,prefix=temp_env)
+    output = temp_stdout.getvalue().strip() 
+    assert "Installation complete. The downloaded data files are located at:" in output
+    assert path in output
+    assert "A new environment variable that points to data package directory path has been created:" in output
+    assert "-> NOTE: These environment variables are specific to the {p} conda environment and can only be accessed from within that environmnet".format(p=temp_env) in output
+    assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) in output
+    assert "A new environment variable that points to the installed file has been created:" in output
+    assert "$ggd_{}_file".format(ggd_recipe.replace("-","_")) in output
+
+    ### Test the file exists in the correct prefix and not the current prefix
+    file1 = "{}.bed12.bed.gz".format(ggd_recipe)
+    file2 = "{}.bed12.bed.gz.tbi".format(ggd_recipe)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version,file2)) == False
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env5"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
+def test_copy_pkg_files_to_prefix():
+    """
+    Test that the copy_pkg_files_to_prefix method correctly copies the tarball and pkg files from the current 
+     conda environment to the target prefix
+    """
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env6")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env6"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env6"])
+
+    ### Install the recipe
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel = "genomics"
+    default_version = "-1"
+    jdict = install.check_ggd_recipe(ggd_recipe,ggd_channel)
+
+    os.environ["CONDA_SOURCE_PREFIX"] = utils.conda_root()
+    assert install.install_from_cached(ggd_recipe, ggd_channel,jdict,default_version,prefix=temp_env) == True   
+
+    ## Test a prefix that is the same and the conda root returns False
+    assert install.copy_pkg_files_to_prefix(utils.conda_root(),ggd_recipe) == False
+
+    ## Extra info
+    data_packages = get_conda_package_list(temp_env)
+    version = str(data_packages[ggd_recipe]["version"])
+    build = str(data_packages[ggd_recipe]["build"])
+
+    ## Test that the files were properly copied
+    tarfile = "{}-{}-{}.tar.bz2".format(ggd_recipe,version,build)
+    pkgdir = "{}-{}-{}".format(ggd_recipe,version,build)
+    assert  os.path.isfile(os.path.join(temp_env,"pkgs",tarfile)) == True
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir)) == True
+
+    ## Remove them from the target prefix
+    os.remove(os.path.join(temp_env,"pkgs",tarfile))
+    shutil.rmtree(os.path.join(temp_env,"pkgs",pkgdir))
+    assert  os.path.isfile(os.path.join(temp_env,"pkgs",tarfile)) == False
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir)) == False
+
+    ### Test the function passes
+    assert install.copy_pkg_files_to_prefix(temp_env,ggd_recipe) == True
+
+    ### Test the files are correct
+    assert  os.path.isfile(os.path.join(utils.conda_root(),"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(utils.conda_root(),"pkgs",pkgdir))
+    assert  os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+    
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env6"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+    
+
 def test_install_main_function():
     """
     Test the main install function
     """
 
+    CONDA_ROOT = utils.conda_root()
+
     ## Test a non ggd recipe
-    ggd_recipe = "Fake-hg19-gaps"
-    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
+    ggd_recipe1 = "Fake-hg19-gaps"
+    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe1, version='-1',prefix=None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
+    ## Install hg19-gaps-ucsc-v1
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    uninstall.uninstall((),Namespace(channel='genomics', command='uninstall', name=ggd_recipe))
+    try:
+        sp.check_output(["conda", "uninstall", ggd_recipe]) 
+    except Exception:
+        pass
+    assert ggd_recipe not in str(sp.check_output(["conda", "list"]).decode('utf8'))
+
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1',prefix=None)
+    assert install.install((), args) == True
+
     ## Test an already installed ggd recipe
-    install_hg19_gaps_ucsc_v1()
-    ggd_recipe = "hg19-gaps-ucsc-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
+    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1',prefix=None)
     
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
     ## Test a previously installed recipe, but the recipe path is broken 
-    install_hg19_gaps_ucsc_v1()
-    ggd_recipe = "hg19-gaps-ucsc-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1',prefix=None)
 
     jdict = install.check_ggd_recipe(ggd_recipe,"genomics")
     species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = jdict["packages"][ggd_recipe]["version"]
-    CONDA_ROOT = utils.conda_root()
+
     path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
     for f in os.listdir(path):
         os.remove(os.path.join(path,f))
@@ -500,12 +919,75 @@ def test_install_main_function():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    
-    ## Install hg19-gaps-ucsc-v1
-    uninstall_hg19_gaps_ucsc_v1()
-    ggd_recipe = "hg19-gaps-ucsc-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1')
+
+
+def test_install_main_function_with_prefix_set():
+    """
+    Test the main install function with the prefix flag set
+    """
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env7")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env7"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel="genomics"
+    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = temp_env)
+
+    ## Test that an environemnt that doesn't exist is probably handeld
+    try:
+        install.install((), args)
+        ## If it passes then there is an error
+        assert False
+    except CondaEnvironmentNotFound as e:
+        pass
+    except Exception as e:
+        assert False
+
+    ## Test a good install into a designated prefix
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_env7"])
+
+    jdict = install.check_ggd_recipe(ggd_recipe,ggd_channel)
+    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = jdict["packages"][ggd_recipe]["version"]
+
     assert install.install((), args) == True
 
+    ### Test the file exists in the correct prefix and not the current prefix
+    file1 = "{}.bed12.bed.gz".format(ggd_recipe)
+    file2 = "{}.bed12.bed.gz.tbi".format(ggd_recipe)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version,file2)) == False
 
-    
+    assert "CONDA_SOURCE_PREFIX" in os.environ
+
+    ## Test that the tarfile and the pkg dir were correctly copied to the prefix
+    data_packages = get_conda_package_list(temp_env)
+    version = str(data_packages[ggd_recipe]["version"])
+    build_number = str(data_packages[ggd_recipe]["build"])
+    tarfile = "{}-{}-{}.tar.bz2".format(ggd_recipe,version,build_number)
+    pkgdir = "{}-{}-{}".format(ggd_recipe,version,build_number)
+
+    assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env7"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
+
