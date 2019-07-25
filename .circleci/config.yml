@@ -87,7 +87,7 @@ workflows:
       - test-linux-python3
       - test-macos-python2
       - test-macos-python3
-  ggd-recipe-nightly-build:
+  ggd-cli-nightly-build:
     triggers:
       - schedule:
           cron: "0 3 * * *" # "0 3 * * *" = ~9PM MST, 3AM UTC
