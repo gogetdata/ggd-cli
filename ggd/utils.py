@@ -277,12 +277,10 @@ def prefix_in_conda(prefix):
     """
 
     environments = [os.path.join(x+"/") for x in check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
-    print(environments)
     cbase = min(environments)
 
     if prefix[-1] != "/":
-        prefix = prefix+"/"
-
+        prefix = prefix+"/" 
     ## Check that the file path includes the conda base directory
     if cbase not in prefix: 
         raise CondaEnvironmentNotFound(prefix)
@@ -301,7 +299,7 @@ class CondaEnvironmentNotFound(Exception):
     Exception Class for a bad conda environment given 
     """
     def __init__(self, location):
-        self.message = "The prefix supplied is not a conda enviroment: %s" %(location)
+        self.message = "The prefix supplied is not a conda enviroment: %s\n" %(location)
         return_code = 1
         sys.tracebacklimit = 0
         print("\n")
@@ -309,7 +307,43 @@ class CondaEnvironmentNotFound(Exception):
 
     def __str__(self):
         return(self.message)
+
+
+def get_conda_package_list(prefix, regex=None):
+    """
+    This method is used to get the list of packages in a specifc conda environmnet (prefix). Rather then running 
+     `conda list` itself, it uses the conda module to grab the information 
+
     
+    Parameters:
+    -----------
+    1) prefix: The directory path to a conda environment in which you would like to extract the ggd data packages that have been installed
+    2) regex: A pattern to match to (default = None)
+
+    Returns:
+    +++++++
+    1) A dictionary with the package name as a key, and the value as another dictionary with name, version, build, and channel keys
+    """
+
+    from logging import getLogger
+    from conda.gateways import logging
+    from conda.core.prefix_data import PrefixData
+    from conda.base.context import context
+    from conda.cli.main_list import get_packages
+
+    ## Get a list of availble ggd channels
+    ggd_channels = ["ggd-"+x for x in get_ggd_channels()]
+    
+    ## Get a prefix data object with installed package information
+    installed_packages = sorted(PrefixData(prefix, pip_interop_enabled=True).iter_records(), key=lambda x: x.name)
+
+    ## Create a dictionary with ggd packages
+    package_dict = {}
+    for precs in get_packages(installed_packages, regex):
+        if str(precs.schannel) in ggd_channels: ## Filter based off packages from the ggd channels only
+            package_dict[precs.name] = {"name":precs.name,"version":precs.version,"build":precs.build,"channel":precs.schannel}
+
+    return(package_dict)
 
 
 def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=False,prefix=None):
