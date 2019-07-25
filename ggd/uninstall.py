@@ -15,6 +15,7 @@ from .utils import get_channel_data
 from .utils import get_channeldata_url
 from .search import load_json, load_json_from_url, search_packages
 from .show_env import remove_env_variable, activate_enviroment_variables
+from .utils import get_conda_package_list
 
 SPECIES_LIST = get_species()
 
@@ -95,8 +96,10 @@ def check_conda_installation(ggd_recipe):
     Method used to check if the recipe has been installed with conda. If so, it uses conda to uninstall the recipe
     """
 
-    conda_package_set = set(sp.check_output(["conda", "list"]).decode('utf8').strip().replace("\n"," ").split(" "))
-    if ggd_recipe in conda_package_set:
+    #conda_package_set = set(sp.check_output(["conda", "list"]).decode('utf8').strip().replace("\n"," ").split(" "))
+    #if ggd_recipe in conda_package_set:
+    installed_ggd_packages = get_conda_package_list(conda_root()).keys() ## Get the installed ggd data package names
+    if ggd_recipe in installed_ggd_packages:
         print("\n\t-> %s is installed by conda on your system" %ggd_recipe)
         return(conda_uninstall(ggd_recipe))
     else:
