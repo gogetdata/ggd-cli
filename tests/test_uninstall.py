@@ -152,7 +152,7 @@ def test_check_conda_installation():
     with redirect_stdout(temp_stdout):
         uninstall.check_conda_installation(ggd_recipe)
     output = temp_stdout.getvalue().strip() 
-    assert "{} is NOT installed on your system".format(ggd_recipe) in output
+    assert "{r} is NOT installed on your system".format(r=ggd_recipe) in output
 
 
     ## Test that a similar package name that is not installed is handled correctly 
@@ -161,7 +161,7 @@ def test_check_conda_installation():
     with redirect_stdout(temp_stdout):
         uninstall.check_conda_installation(ggd_recipe)
     output = temp_stdout.getvalue().strip() 
-    assert "{} is NOT installed on your system".format(ggd_recipe) in output
+    assert "{r} is NOT installed on your system".format(r=ggd_recipe) in output
 
 
     ## test conda correctly uninstalls the hg19-gaps-ucsc-v1 package previously installed
