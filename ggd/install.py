@@ -7,6 +7,7 @@ import os
 import subprocess as sp
 import glob
 import traceback
+import shutil
 from .utils import conda_root
 from .utils import get_species
 from .utils import get_ggd_channels
@@ -19,6 +20,7 @@ from .search import load_json, load_json_from_url, search_packages
 from .uninstall import remove_from_condaroot, check_for_installation
 from .utils import get_required_conda_version
 from .utils import prefix_in_conda
+from .utils import get_conda_package_list
 
 SPECIES_LIST = get_species()
 #-------------------------------------------------------------------------------------------------------------
@@ -30,9 +32,10 @@ def add_install(p):
                      help="The ggd channel the desired recipe is stored in. (Default = genomics)")
     c.add_argument("-v", "--version", default="-1", help="A specific ggd package version to install. If the -v flag is not used the latest version will be installed.")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) When the -d flag is set debug output will be printed to stdout.") 
-    c.add_argument("--prefix", default=None)
+    c.add_argument("--prefix", default=None, help="(Optional) The full directory path to an existing conda environment where you want to install a ggd data pacakge. (Only needed if you want to install the data package into a different conda environment then the one you are currently in)")
     c.add_argument("name", help="the name of the recipe to install")
     c.set_defaults(func=install)
+
 
 #-------------------------------------------------------------------------------------------------------------
 ## Functions/Methods
@@ -101,17 +104,17 @@ def check_conda_installation(ggd_recipe,ggd_version,prefix=None):
      reinstalled. If not, the system continues to install the package using ggd.
     """
 
-    if prefix != None:
-        conda_package_list = sp.check_output(["conda", "list", "--prefix", prefix]).decode('utf8')
-    else:
-        conda_package_list = sp.check_output(["conda", "list"]).decode('utf8')
-    recipe_find = conda_package_list.find(ggd_recipe)
-    if recipe_find == -1:
+    ## Get the target prefix
+    target_prefix = prefix if prefix != None else conda_root() 
+    conda_package_list = get_conda_package_list(target_prefix) ## Get a list of installed ggd packages using conda list
+
+    if ggd_recipe not in conda_package_list.keys(): 
         print("\n\t-> %s has not been installed by conda" %ggd_recipe)
         return(False)
     else:
         if ggd_version != "-1": ## Check if ggd version was designated 
-            installed_version = conda_package_list[recipe_find:recipe_find+100].split("\n")[0].replace(" ","")[len(ggd_recipe)]
+            installed_version = conda_package_list[ggd_recipe]["version"]
+            installed_build = conda_package_list[ggd_recipe]["build"]
             if installed_version != ggd_version:
                 print("\n\t-> %s version %s has not been installed by conda" %(ggd_recipe,str(ggd_version)))
                 return(False)
@@ -119,17 +122,10 @@ def check_conda_installation(ggd_recipe,ggd_version,prefix=None):
                 print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
                 print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
                 sys.exit()
-        else: ## If version is not specified check if exact package in conda list
-            start_index = conda_package_list.find(ggd_recipe) 
-            end_index = start_index + len(ggd_recipe)
-            ## Check if it really is the package, or something similar to the package 
-            if conda_package_list[int(start_index) - 1] == "\n" and conda_package_list[int(end_index) + 1] == " ":
-                print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
-                print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
-                sys.exit()
-            else: ## IF not exactly in conda list
-                print("\n\t-> %s has not been installed by conda" %ggd_recipe)
-                return(False)
+        else: 
+            print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
+            print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+            sys.exit()
 
 
 def check_S3_bucket(ggd_recipe, ggd_jdict):
@@ -178,6 +174,10 @@ def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=Fals
         print("\n\t-> %s was not installed. Please correct the errors and try again." %ggd_recipe)
         sys.exit(1) 
 
+    ## copy tarball and pkg file to target prefix
+    if prefix != None and prefix != conda_root():
+        copy_pkg_files_to_prefix(prefix,ggd_recipe)
+
     return(True)
 
 
@@ -192,46 +192,36 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version, debug=False, pr
     If installed correctly the method returns True
     """
     
+    ## Get the target prefix
+    target_prefix = prefix if prefix != None else conda_root() 
+
+    ## Get conda version
     conda_version = get_required_conda_version()
+
+    ## create install string
     conda_install_str = "conda=" + conda_version
-    if ggd_version != "-1":
-        print("\n\t-> Installing %s version %s" %(ggd_recipe,ggd_version))
-        try:
-            if debug:
-                if prefix != None:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", "--prefix", prefix, ggd_recipe+"="+str(ggd_version)+"*", conda_install_str, "--debug"], stderr=sys.stderr, stdout=sys.stdout)
-                else:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+str(ggd_version)+"*", conda_install_str, "--debug"], stderr=sys.stderr, stdout=sys.stdout)
-            else:
-                if prefix != None:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", "--prefix", prefix,  ggd_recipe+"="+str(ggd_version)+"*", conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
-                else:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe+"="+str(ggd_version)+"*", conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
-        except sp.CalledProcessError as e:
-            sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
-            sys.stderr.write(str(e))
-            sys.stderr.write("\n\t-> Removing files created by ggd during installation")
-            check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
-            sys.exit(e.returncode)
-    else:
-        print("\n\t-> Installing %s" %ggd_recipe)
-        try:
-            if debug:
-                if prefix != None:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", "--prefix", prefix, ggd_recipe, conda_install_str, "--debug"], stderr=sys.stderr, stdout=sys.stdout)
-                else:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe, conda_install_str, "--debug"], stderr=sys.stderr, stdout=sys.stdout)
-            else:
-                if prefix != None:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", "--prefix", prefix, ggd_recipe, conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
-                else:
-                    sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", ggd_recipe, conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
-        except sp.CalledProcessError as e:
-            sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
-            sys.stderr.write(str(e))
-            sys.stderr.write("\n\t-> Removing files created by ggd during installation")
-            check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
-            sys.exit(e.returncode)
+
+    ## Add debug option
+    conda_install_str += " --debug" if debug else "" 
+
+    try:
+        if ggd_version != "-1":
+            print("\n\t-> Installing %s version %s" %(ggd_recipe,ggd_version))
+            sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", "--prefix", target_prefix,  ggd_recipe+"="+str(ggd_version)+"*", conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
+        else:
+            print("\n\t-> Installing %s" %ggd_recipe)
+            sp.check_call(["conda", "install", "-c", "ggd-"+ggd_channel, "-y", "--prefix", target_prefix, ggd_recipe, conda_install_str], stderr=sys.stderr, stdout=sys.stdout)
+
+    except sp.CalledProcessError as e:
+        sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
+        sys.stderr.write(str(e))
+        sys.stderr.write("\n\t-> Removing files created by ggd during installation")
+        check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
+        sys.exit(e.returncode)
+
+    ## copy tarball and pkg file to target prefix
+    if prefix != None and prefix != conda_root():
+        copy_pkg_files_to_prefix(prefix,ggd_recipe)
 
     return(True)
 
@@ -250,8 +240,16 @@ def get_file_locations(ggd_recipe,ggd_jdict,ggd_version,prefix=None):
     version = ggd_jdict["packages"][ggd_recipe]["version"]
     CONDA_ROOT = prefix if prefix != None else conda_root()
     path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
+
+    try:
+        assert os.path.exists(path)
+    except AssertionError as e:
+        print("\n\t->There was an error durring installation")
+
     print("\n\t-> Installation complete. The downloaded data files are located at:")
     print("\t\t%s" %path)
+    if prefix != None:
+        print("\n\t-> NOTE: These environment variables are specific to the %s conda environment and can only be accessed from within that environmnet" %prefix)
     print("\n\t-> A new environment variable that points to data package directory path has been created:")
     print("\t\t $ggd_%s_dir\n" %ggd_recipe.replace("-","_"))
     if os.path.exists(path):
@@ -265,6 +263,52 @@ def get_file_locations(ggd_recipe,ggd_jdict,ggd_version,prefix=None):
                 print("\t\t $ggd_%s_file\n" %ggd_recipe.replace("-","_").replace(".","_"))
             
 
+def copy_pkg_files_to_prefix(prefix,pkg_name):
+    """Method to copy the tar and package files from the current conda envrionment to the target prefix
+    
+    copy_pkg_files_to_prefix
+    ========================
+    This method is used to copy the tarball file and the pkg file from the current conda envrionment to the 
+     target prefix if the prefix flag is set. This will support pkg info lookup for data managment when installing
+     a package using the prefix flag
+
+    Parameters:
+    -----------
+    1) prefix: The user set prefix 
+    2) pkg_name: The name of the package being installed
+
+    Returs:
+    +++++++
+    True: If files have been copied 
+    False: If files were not copied (due to the prefix being the same as the current conda environment)
+    Exception: If copying failed
+    """
+
+    CONDA_ROOT = conda_root()
+        
+    ## Check that the prefix is not the same as the conda root
+    if CONDA_ROOT == prefix:
+        return(False)
+
+    ## Create the path if it does not already exists
+    if os.path.exists(os.path.join(prefix,"pkgs")) == False:
+        os.mkdir(os.path.join(prefix,"pkgs"))
+
+    ## Get the file paths for the tar file and package
+    data_packages = get_conda_package_list(prefix)
+    version = str(data_packages[pkg_name]["version"])
+    build = str(data_packages[pkg_name]["build"])
+
+    tarfile_path = os.path.join(CONDA_ROOT,"pkgs","{}-{}-{}.tar.bz2".format(pkg_name,version,build))
+    pkg_path = os.path.join(CONDA_ROOT,"pkgs","{}-{}-{}".format(pkg_name,version,build))
+
+    ## Copy files to new location 
+    shutil.copy2(tarfile_path, os.path.join(prefix,"pkgs"))
+    shutil.copytree(pkg_path, os.path.join(prefix,"pkgs","{}-{}-{}".format(pkg_name,version,build)))
+
+    return(True)
+    
+
 def install(parser, args):
     """Main method for installing a ggd data package
 
@@ -274,7 +318,11 @@ def install(parser, args):
     and file handeling. 
     """
 
-    conda_prefix = args.prefix if prefix_in_conda  else None 
+    ## Check the prefix is a real one
+    if args.prefix != None:
+        prefix_in_conda(args.prefix)
+
+    conda_prefix = args.prefix 
 
     print("\n\t-> Looking for %s in the 'ggd-%s' channel" %(args.name,args.channel))
     ## Check if the recipe is in ggd
