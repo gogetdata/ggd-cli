@@ -39,7 +39,9 @@ jobs:
       - run: 
           shell: /bin/bash
           name: ggd cli unit tests (Linux)
-          command: py.test tests/ --duration=0 -v
+          command: |
+            conda --version
+            py.test tests/ --duration=0 -v
           no_output_timeout: 9900
   test-linux-python3:
     <<: *linux
@@ -51,7 +53,9 @@ jobs:
       - run: 
           shell: /bin/bash
           name: ggd cli unit tests (Linux)
-          command: py.test tests/ --duration=0 -v
+          command: |
+            conda --version
+            py.test tests/ --durations=0 -v
           no_output_timeout: 9900
   test-macos-python2:
     <<: *macos
@@ -63,7 +67,9 @@ jobs:
       - run: 
           shell: /bin/bash
           name: ggd cli unit tests (macOS)
-          command: py.test tests/ --duration=0 -v
+          command: |
+            conda --version
+            py.test tests/ --duration=0 -v
           no_output_timeout: 9900
   test-macos-python3:
     <<: *macos
@@ -75,7 +81,9 @@ jobs:
       - run: 
           shell: /bin/bash
           name: ggd cli unit tests (macOS)
-          command: py.test tests/ --duration=0 -v
+          command: |
+            conda --version
+            py.test tests/ --durations=0 -v
           no_output_timeout: 9900
 
 

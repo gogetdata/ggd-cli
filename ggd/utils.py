@@ -460,12 +460,19 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     with Spinner("Collecting package metadata", not context.verbosity and not context.quiet, context.json):
         ssc = solve._collect_all_metadata(ssc)
 
+    ## Set specs map to an empty map. (No need to check other specs)
+    add_spec = []
+    for p_name, spec  in iteritems(ssc.specs_map):
+        if str(p_name) == pkg_name:
+            add_spec.append((pkg_name, MatchSpec(pkg_name)))
+
+    ssc.specs_map = odict(add_spec)
+
     ## Process the data in the solver state container 
     with Spinner("Processing data", not context.verbosity and not context.quiet, context.json):
         ssc = solve._add_specs(ssc)
         ssc = bypass_sat(pkg_name, ssc)
         ssc = solve._post_sat_handling(ssc)
-        ssc = solve._check_solution(ssc)
 
     ## create an IndexedSet from ssc.solution_precs
     ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
