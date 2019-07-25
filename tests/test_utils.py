@@ -7,7 +7,6 @@ import yaml
 import tempfile
 import requests
 import argparse
-import json
 import re
 import time
 import json
@@ -335,6 +334,52 @@ def test_prefix_in_conda():
 
     ## Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+
+
+def test_get_conda_package_list():
+    """
+    Test that the get_conda_package_list properly returns the correct installed packages from the conda list
+    """
+
+    ## Get the available ggd data packages in the ggd-genomics channel
+    channeldata_path = utils.get_channel_data("genomics")
+    cdata_dict = {}
+    with open(channeldata_path, "r") as j:
+        cdata_dict = json.load(j)
+
+    ## Test the current environment
+    current_packages = utils.get_conda_package_list(utils.conda_root())
+
+    for p_name, p_info in current_packages.items():
+        assert p_info["channel"] == "ggd-genomics"
+        assert p_name in cdata_dict["packages"].keys() 
+        assert p_info["name"] in cdata_dict["packages"].keys() 
+
+    assert len(current_packages) > 0 
+
+
+    ## Test a different environment
+    environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
+    base_env = min(environments)
+    temp_env = os.path.join(base_env, "envs", "temp_env")
+    sp.check_output(["conda", "create", "--name", "temp_env"])
+
+    ### Install a pacakge into the temp_env
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    sp.check_output(["ggd", "install", "--prefix", temp_env, ggd_package])
+
+    temp_env_packages = utils.get_conda_package_list(temp_env)
+
+    assert ggd_package in temp_env_packages.keys()
+    assert temp_env_packages[ggd_package]["channel"] == "ggd-genomics"
+    assert temp_env_packages[ggd_package]["name"] == ggd_package
+    assert len(temp_env_packages) == 1 ## Only 1 ggd package should be installed in this env
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+
+    ## TODO: add regex test, where a pacakge is listed based off the prefix and pattern (regex) provided
+
 
 
 def test_bypass_satsolver_on_install():
