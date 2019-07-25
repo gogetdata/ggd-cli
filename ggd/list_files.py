@@ -27,7 +27,7 @@ def add_list_files(p):
     c.add_argument("-g", "--genome-build", help="(Optional) genome build the recipe is for. Use '*' for any genome build.")
     c.add_argument("-v", "--version", help="(Optional) pattern to match the version of the file desired. Use '*' for any version")
     c.add_argument("-p", "--pattern", help="(Optional) pattern to match the name of the file desired. To list all files for a ggd package, do not use the -p option")
-    c.add_argument("--prefix", help="(Optional) The full directory path to an conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)") 
+    c.add_argument("--prefix", default=None, help="(Optional) The full directory path to an conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)") 
     c.add_argument("name", help="pattern to match recipe name(s)."+
         " Ex. `ggd list-files \"hg19-hello*\" -s \"Homo_sapiens\" -g \"hg19\" -p \"out*\"`")
     c.set_defaults(func=list_files)
@@ -76,13 +76,8 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
 def list_files(parser, args): 
     """Main method. Method used to list files for an installed ggd-recipe"""
 
-    CONDA_ROOT = conda_root()
-
-    ## Check if prefix paramter is set, and if so check that the prefix is a real conda enviroment
-    if args.prefix:
-        if prefix_in_conda(args.prefix): 
-            CONDA_ROOT = args.prefix
-            
+    CONDA_ROOT = args.prefix if args.prefix != None and prefix_in_conda(args.prefix) else conda_root()
+           
     name = args.name
     channeldata_species, channeldata_build, channeldata_version = in_ggd_channel(args.name, args.channel)
     species = args.species if args.species else channeldata_species
