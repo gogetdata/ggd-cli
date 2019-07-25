@@ -19,6 +19,7 @@ from ggd import show_env
 from ggd import list_files
 from ggd import list_pkg_info
 from ggd import utils
+from ggd import install
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -465,28 +466,51 @@ def test_list_file_with_prefix():
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ## Create conda environmnet 
     sp.check_output(["conda", "create", "--name", "temp_env"])
 
-    ggd_package = "hg19-pfam-domains-ucsc-v1"
-    file1 = "{}.bed.gz".format(ggd_package)
-    file2 = "{}.bed.gz.tbi".format(ggd_package)
-
     ## Install ggd recipe using conda into temp_env
-    sp.check_output(["ggd", "install", "--prefix", "temp_env", ggd_package])
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package, version='-1', prefix = temp_env)
+    assert install.install((), install_args) == True
 
+    ## Test the list-files method can access info from the files in a different prefix
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=temp_env, species=None, version=None)
 
+    file1 = "{}.bed12.bed.gz".format(ggd_package)
+    file2 = "{}.bed12.bed.gz.tbi".format(ggd_package)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_files.list_files((),args)
     output = str(temp_stdout.getvalue().strip()) 
-    assert re.search(file1+"$", output)
-    assert re.search(file2+"$", output) == None
+    assert file1 in  output
+    assert file2 in  output
     assert temp_env in output
     assert len(output.split("\n")) == 2
+
+    ## Check output has correct file path
+    jdict = install.check_ggd_recipe(ggd_package,"genomics")
+    species = jdict["packages"][ggd_package]["identifiers"]["species"]
+    build = jdict["packages"][ggd_package]["identifiers"]["genome-build"]
+    version = jdict["packages"][ggd_package]["version"]
+    assert os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1) in output
+    assert os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2) in output
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2))
     
     ## Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 ### pkg-info
