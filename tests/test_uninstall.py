@@ -20,6 +20,7 @@ from helpers import install_hg19_gaps_ucsc_v1, uninstall_hg19_gaps_ucsc_v1, Crea
 from ggd import utils
 from ggd import uninstall
 from ggd import show_env
+from ggd import list_files
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -135,7 +136,14 @@ def test_get_similar_pkg_installed_by_conda():
     assert "requests" not in output
     
     ## Make sure hg19-gaps-v1 is installed
-    install_hg19_gaps_ucsc_v1()
+    ggd_recipe = "hg19-gaps-ucsc-v1"
+    list_files_args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_recipe, pattern=None, prefix=None, species=None, version=None)
+    try:
+        list_files.list_files((),list_files_args)
+    except SystemExit as e:
+        if str(e) == "1": ## If exit code is 1, implying that there were not files found
+            install_hg19_gaps_ucsc_v1()
+
     ggd_recipe = "hg19-gaps"
     output = uninstall.get_similar_pkg_installed_by_conda(ggd_recipe)
     assert "hg19-gaps-ucsc-v1" in output
@@ -175,26 +183,20 @@ def test_conda_uninstall():
     """
     Test the conda_uninstall function to properly uninstall a ggd package using conda
     """
-    ## Uninstall hg19-gaps-ucsc-v1
+
+    ggd_recipe = "hg19-gaps-ucsc-v1"
+
     try:
         uninstall_hg19_gaps_ucsc_v1()
     except:
         pass
 
     ## Install hg19-gaps-ucsc-v1
-    try:
-        install_hg19_gaps_ucsc_v1()
-    except:
-        pass
+    sp.check_call(["ggd", "install", ggd_recipe])
 
     ## uninstall hg19-gaps-ucsc-v1
-    ggd_recipe = "hg19-gaps-ucsc-v1"
     assert uninstall.conda_uninstall(ggd_recipe) == 0
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        uninstall.check_conda_installation(ggd_recipe)
-    output = temp_stdout.getvalue().strip() 
-    assert "{} is NOT installed on your system".format(ggd_recipe) in output
+    assert ggd_recipe not in str(sp.check_output(["conda", "list"]).decode("utf8"))
 
     ## Test a bad uninstall
     ggd_recipe = "Not_A_Real_GGD_Recipe"
@@ -243,7 +245,10 @@ def test_remove_from_condaroot():
     """
 
     ## install hg19-gaps-v1
-    install_hg19_gaps_ucsc_v1()
+    try:
+        install_hg19_gaps_ucsc_v1()
+    except:
+        pass
 
     ggd_recipe = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
@@ -289,7 +294,10 @@ def test_uninstall():
 
     ## Test a good uninstall
     #### Install hg19-gaps-ucsc-v1
-    install_hg19_gaps_ucsc_v1()
+    try:
+        install_hg19_gaps_ucsc_v1()
+    except:
+        pass
 
     #### Check non-failure uninstall command
     ggd_recipe = "hg19-gaps-ucsc-v1"

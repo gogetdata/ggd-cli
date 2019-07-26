@@ -25,7 +25,7 @@ def install_hg19_gaps_ucsc_v1():
 
     name = "hg19-gaps-ucsc-v1"
     try:
-        assert sp.check_call(["ggd", "install", name]) == True
+        assert sp.check_call(["ggd", "install", name])
     except Exception as e:
         print("Assertion failed")
         jdict = install.check_ggd_recipe(name,"genomics")

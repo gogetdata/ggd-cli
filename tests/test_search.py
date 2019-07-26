@@ -11,6 +11,7 @@ import contextlib
 import json
 from ggd import search 
 from ggd import utils
+from ggd import list_files
 from helpers import install_hg19_gaps_ucsc_v1
 from argparse import Namespace
 from argparse import ArgumentParser
@@ -152,9 +153,15 @@ def test_check_installed():
 
     ## GGD package that is installed
     ### Install hg19-gaps-ucsc-v1
-    install_hg19_gaps_ucsc_v1()
-    ## Check that it is installed
     ggd_recipe = "hg19-gaps-ucsc-v1"
+    list_files_args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_recipe, pattern=None, prefix=None, species=None, version=None)
+    try:
+        list_files.list_files((),list_files_args)
+    except SystemExit as e:
+        if str(e) == "1": ## If exit code is 1, implying that there were not files found
+            install_hg19_gaps_ucsc_v1()
+
+    ### Check that it is installed
     isinstalled, path = search.check_installed(ggd_recipe, json_dict)
     assert isinstalled == True
     species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
