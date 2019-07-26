@@ -477,7 +477,8 @@ def test_make_bash():
                     recipe_dir = True
                 ### Check the assigning of PKG_DIR to conform with proper file filtering for Linus and macOSX
                 if "PKG_DIR=" in line:
-                    assert line.strip() == """PKG_DIR=`find "$CONDA_ROOT/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`"""
+                    assert line.strip() == """PKG_DIR=`find "$CONDA_SOURCE_PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`"""
+
                     pkd_dir = True
 
                 ### Check enivornment variable setting 
