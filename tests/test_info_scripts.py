@@ -344,7 +344,7 @@ def test_in_ggd_channel():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.in_ggd_channel(ggd_package, channel)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## check that the exit code is 1
+    assert pytest_wrapped_e.match("2") ## check that the exit code is 1
 
 
 def test_list_files():
@@ -427,7 +427,7 @@ def test_list_files():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## check that the exit code is 1
+    assert pytest_wrapped_e.match("2") ## check that the exit code is 1
 
     ##Test that the function exits if a bad genome build is given
     args = Namespace(channel='genomics', command='list-files', genome_build="Bad_Build", name=ggd_package, pattern=None, species=None, prefix=None, version=None)
@@ -435,7 +435,7 @@ def test_list_files():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## check that the exit code is 1
+    assert pytest_wrapped_e.match("3") ## check that the exit code is 1
 
     ##Test that the function exits if a bad species is given
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species="Mus_musculus", version=None)
@@ -443,7 +443,7 @@ def test_list_files():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.list_files((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## check that the exit code is 1
+    assert pytest_wrapped_e.match("3") ## check that the exit code is 1
 
     ##Test that the function exits if a bad version is given
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=None, species=None, version="99999")

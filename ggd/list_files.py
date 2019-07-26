@@ -70,7 +70,7 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
     else:
         print("\n\t-> %s is not in the ggd-%s channel" %(ggd_recipe, ggd_channel))
         print("\t-> Similar recipes include: \n\t\t- {recipe}".format(recipe="\n\t\t- ".join(package_list[0:5])))
-        sys.exit(1)
+        sys.exit(2)
 
 
 def list_files(parser, args): 
@@ -83,7 +83,7 @@ def list_files(parser, args):
     species = args.species if args.species else channeldata_species
     build = args.genome_build if args.genome_build else channeldata_build
     if not validate_build(build, species):
-        sys.exit(1)
+        sys.exit(3)
     version = args.version if args.version else "*"
     pattern = args.pattern if args.pattern else "*"
    
