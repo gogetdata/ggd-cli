@@ -10,6 +10,7 @@ import argparse
 import re
 import time
 import json
+import shutil
 from copy import deepcopy
 from argparse import Namespace
 from argparse import ArgumentParser
@@ -63,7 +64,7 @@ def test_get_species():
     """
 
     ## Get species list using the update repo option
-    species = utils.get_species(update_repo=True)
+    species = utils.get_species(update_files=True)
     species2 = utils.get_species()
     assert species == species2
     assert "Homo_sapiens" in species
@@ -74,7 +75,7 @@ def test_get_species():
     assert len(species) == 5
 
     ## Test not_updating repo
-    species = utils.get_species(update_repo=True)
+    species = utils.get_species(update_files=False)
     assert species == species2
     assert "Homo_sapiens" in species
     assert "Mus_musculus" in species
@@ -82,6 +83,28 @@ def test_get_species():
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
     assert len(species) == 5
+
+    ## Test that the full dictionary with species as keys and build as values is returned
+    species_dict = utils.get_species(update_files=False,full_dict=True)
+    species = species_dict.keys()
+    assert "Homo_sapiens" in species
+    assert "Mus_musculus" in species
+    assert "Drosophila_melanogaster" in species
+    assert "Canis_familiaris" in species
+    assert "Danio_rerio" in species 
+    assert len(species) == 5
+
+    for key in speices:
+        assert len(species_dict[key]) > 0
+
+    ### Test some builds are in the dict
+    assert "hg19" in species_dict["Homo_sapiens"]
+    assert "hg38" in species_dict["Homo_sapiens"]
+    assert "GRCh37" in species_dict["Homo_sapiens"]
+    assert "GRCh38" in species_dict["Homo_sapiens"]
+
+    ## Test genomic metadata file path
+    assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/species_to_build.json"))
 
     
 def test_get_ggd_channels():
@@ -94,6 +117,9 @@ def test_get_ggd_channels():
     assert "alpha" not in channels
     assert "dev" not in channels
     assert len(channels) == 1
+
+    ## Test genomic metadata file path
+    assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/ggd_channels.json"))
 
 
 def test_get_channel_data():
@@ -111,14 +137,19 @@ def test_get_channel_data():
 
     ## Test a fake channel
     channel = "fake"
-    channeldata_path = utils.get_channel_data(channel)
-    assert os.path.exists(channeldata_path) == False
+    try:
+        channeldata_path = utils.get_channel_data(channel)
+    except:
+        pass
     try:
         with open(channeldata_path, "r") as j:
             cdata_dict = json.load(j)
         assert False ## should not be able to load
     except:
         pass
+
+    ## Test channel metadata file path
+    assert os.path.exists(os.path.expanduser("~/.config/ggd-info/channeldata/genomics/channeldata.json"))
 
 
 def test_get_channeldata_url():
@@ -217,25 +248,72 @@ def test_get_build():
         else:
             assert False
 
+    builds2 = utils.get_builds("*")
+    assert "hg19" in builds2 and "hg38" in builds2 and "GRCh37" in builds2 and "GRCh38" in builds2 and "mm10" in builds2 and \
+    "mm9" in builds2 and "dm3" in builds2 and "dm6" in builds2 and "canFam3" in builds2 and "danRer10" in builds2 and \
+    "danRer11" in builds2 and "GRCz10" in builds2 and "GRCz11" in builds2
+    assert len(builds2) == 13
 
-def test_update_metadata_local_repo():
+    ## Test genomic metadata file path
+    assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/build_to_species.json"))
+
+
+def test_check_for_internet_connection():
     """
-    Test that update_metadata_local_repo function properly updates the ggd metadata local repo 
+    Method to check that their is an internet connection
     """
 
-    utils.update_metadata_local_repo()
-    assert os.path.exists(utils.LOCAL_REPO_DIR)
-    assert os.path.exists(utils.METADATA_REPO_DIR)
+    assert utils.check_for_internet_connection() == True
+    assert utils.check_for_internet_connection(3) == True
+    assert utils.check_for_internet_connection(0.00000000001) == False
 
 
-def test_update_local_repo():
+
+def test_update_channel_data_files():
     """
-    Test that update_local_repo function properly updates the ggd local repo 
+    Test that the update_channel_data_files function correctly updates the local copy of the channeldata.json file
     """
 
-    utils.update_local_repo()
-    assert os.path.exists(utils.LOCAL_REPO_DIR)
-    assert os.path.exists(utils.RECIPE_REPO_DIR)
+
+    file_path = os.path.expanduser("~/.config/ggd-info/channeldata")
+    if os.path.exists(file_path):
+        shutil.rmtree(file_path)
+
+    assert os.path.exists(file_path) == False
+
+
+    channel = "Fake-channel"
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        utils.update_channel_data_files(channel)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("The 'Fake-channel' channel is not a ggd conda channel") 
+
+    channel = "genomics"
+    assert utils.update_channel_data_files(channel) == True
+    
+    assert os.path.exists(file_path)
+    assert os.path.exists(os.path.join(file_path,channel,"channeldata.json"))
+
+
+def test_update_genome_metadata_files():
+    """
+    Test that the update_genome_metadata_files function properly updates the local species_to_build.json,
+     build_to_species.json, and ggd_channel.json files
+    """
+
+    file_path = os.path.expanduser("~/.config/ggd-info/genome_metadata")
+    if os.path.exists(file_path):
+        shutil.rmtree(file_path)
+
+    ## Test that there is no files/path
+    assert os.path.exists(file_path) == False
+
+    ## Test that running the update creates the files and file path
+    assert utils.update_genome_metadata_files()
+    assert os.path.exists(file_path)
+    assert os.path.exists(os.path.join(file_path,"build_to_species.json"))
+    assert os.path.exists(os.path.join(file_path,"species_to_build.json"))
+    assert os.path.exists(os.path.join(file_path,"ggd_channels.json"))
 
 
 def test_validate_build():

@@ -6,31 +6,45 @@ from git import Repo
 import subprocess as sp
 import requests
 import locale
+import json
+from pytest_socket import SocketBlockedError
 
-LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/"))
+LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/ggd-info/"))
+GENOME_METADATA_DIR = os.path.join(LOCAL_REPO_DIR,"genome_metadata")
+CHANNEL_DATA_DIR = os.path.join(LOCAL_REPO_DIR,"channeldata")
 RECIPE_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-recipes")
-GITHUB_URL = "https://github.com/gogetdata/ggd-recipes.git"
-METADATA_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-metadata")
-METADATA_GITHUB_URL = "https://github.com/gogetdata/ggd-metadata"
 GGD_CLI_REQUIREMENTS = "https://raw.githubusercontent.com/gogetdata/ggd-cli/master/requirements.txt"
 
 
-def get_species(update_repo=True):
+def get_species(update_files=True,full_dict=False):
     """ Method to get available annotated species in the ggd repo
 
     get_species
     ===========
     This method is used to get a list of all available/annotated species in the 
     ggd repo. It returns a list of species
+
+    Parameters:
+    ----------
+    1) update_files: Default=True. Update the local files before getting species
+    2) full_dcit: Default=False. Get the full dictionary with keys as species and values as genome builds
+
+    Returns:
+    ++++++++
+    1) If full_dict = False, a list of species
+    or
+    2) If full_dict = True, a dictionary with species as key and available genome builds as values 
     """
 
-    if update_repo:
-        update_local_repo()
-    elif not os.path.isdir(LOCAL_REPO_DIR): ## If There is no local repo directory 
-        update_local_repo()
+    if update_files and check_for_internet_connection():
+        update_genome_metadata_files()       
 
-    genomes_dir = os.path.join(RECIPE_REPO_DIR, "genomes")
-    return os.listdir(genomes_dir)
+    if full_dict:
+        with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"), "r") as f:
+            return(json.load(f))
+    else:
+        with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"), "r") as f:
+            return(json.load(f).keys())
 
 
 def get_ggd_channels():
@@ -40,10 +54,14 @@ def get_ggd_channels():
     ================
     This method is used to get all avaiable/created ggd conaa channels.
     This method will return a list of ggd conda channels.
+
+    Run get_species() before running get_ggd_channels(). get_species triggers an update
+     of local genomic metadata files
     """
 
-    recipe_dir = os.path.join(RECIPE_REPO_DIR, "recipes")
-    return os.listdir(recipe_dir)
+    
+    with open(os.path.join(GENOME_METADATA_DIR,"ggd_channels.json"), "r") as f:
+        return(json.load(f)["channels"])
 
 
 def get_channel_data(ggd_channel):
@@ -62,8 +80,10 @@ def get_channel_data(ggd_channel):
     1) The file path to the metadata file for the specifc channel
     """
 
-    update_metadata_local_repo()
-    channeldata_path = os.path.join(METADATA_REPO_DIR, "channeldata", ggd_channel, "channeldata.json")
+    if check_for_internet_connection():
+        update_channel_data_files(ggd_channel)
+
+    channeldata_path = os.path.join(CHANNEL_DATA_DIR,ggd_channel,"channeldata.json")
     return (channeldata_path)
 
 
@@ -82,6 +102,10 @@ def get_channeldata_url(ggd_channel):
     ++++++++
     1) The url for the metadata file
     """
+
+    ## Update local channel data file if internet connection availabe 
+    if check_for_internet_connection():
+        update_channel_data_files(ggd_channel)
 
     return(os.path.join("https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata", ggd_channel,
             "channeldata.json"))
@@ -133,54 +157,114 @@ def _to_str(s, enc=locale.getpreferredencoding()):
 def get_builds(species):
     """
     Method to get the annotated/available genome builds for a species within ggd  
-    """
 
-    update_local_repo()
-    species_dir = os.path.join(RECIPE_REPO_DIR, "genomes", species)
+    Run get_species() before running get_builds(). get_species triggers an update
+     of local genomic metadata files
+    """
 
     if species == "*":
-        paths = glob.glob(species_dir)
-        builds = []
-        for path in paths:
-            builds.extend(os.listdir(path))
-        return builds
+        with open(os.path.join(GENOME_METADATA_DIR,"build_to_species.json"), "r") as f:
+            return(json.load(f).keys())
     else:
-        if os.path.isdir(species_dir):
-            return os.listdir(species_dir)
+        ## Check if species is real
+        with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"), "r") as f:
+            jdict = json.load(f)
+            if species not in jdict.keys():
+                sys.exit("'{s}' is not an available species in ggd. Please contact the ggd team to have it added".format(s=species))
+            else:
+                return(jdict[species])
+        
 
-
-def update_metadata_local_repo():
-    """Method to update the ggd-metadata local repo
-
-    update_metadata_local_repo()
-    ============================
-    This method is used to update the ggd-metadata local repo. This local repo is used
-     to get information about the metadata for ggd recipes. This method updates the local
-     repo with any changes that have occured since the last update.
+def check_for_internet_connection(t=5):
+    """
+    Method to check if there is an internet connection or not
     """
 
-    if not os.path.isdir(LOCAL_REPO_DIR):
-        os.makedirs(LOCAL_REPO_DIR)
-    if not os.path.isdir(METADATA_REPO_DIR):
-        Repo.clone_from(METADATA_GITHUB_URL, METADATA_REPO_DIR)
-    Repo(METADATA_REPO_DIR).remotes.origin.pull()
 
 
-def update_local_repo():
-    """Method to update the local ggd-recipes repo
+    url='http://www.google.com/'
+    timeout=t
+    try:
+        _ = requests.get(url, timeout=timeout)
+        return True
+    except requests.ConnectionError:
+        pass 
+    except SocketBlockedError as e: 
+        ## A pytest_socket SocketBlockedError. (This is raised when the network connection is disabled using pytest-socket plugin. 
+        ## (For testing purposes)
+        pass
+
+    return False
+
+
+def update_channel_data_files(channel):
+    """Method to update the channel data metadata local files from the ggd-metadata repo
     
-    update_local_repo
-    =================
-    This method is used to update the a local version of the ggd-recipe repo. This local 
-     ggd-recipe repo is used to access information about the repo. This method updates the 
-     local repo with any changes made to the repo since the last update. 
+    update_channel_data_files
+    =========================
+    This method will download the json metadata json files for the channel data 
+
+    Parameters:
+    -----------
+    1) channel: The channel to download for the channeldata
+    """
+    
+    if channel in get_ggd_channels(): 
+
+        if not os.path.isdir(LOCAL_REPO_DIR):
+            os.makedirs(LOCAL_REPO_DIR)
+        if not os.path.isdir(CHANNEL_DATA_DIR):
+            os.makedirs(CHANNEL_DATA_DIR)
+
+        channel_dir = os.path.join(CHANNEL_DATA_DIR,channel)
+        if not os.path.isdir(channel_dir):
+            os.makedirs(channel_dir)
+        
+        ## Dowload json file
+        channeldata_url = os.path.join("https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata/",channel,"channeldata.json")
+
+        channeldata_json = requests.get(channeldata_url).json()
+        with open(os.path.join(channel_dir, "channeldata.json"), "w") as c:
+            json.dump(channeldata_json,c)
+
+    else: 
+        sys.exit("The '{c}' channel is not a ggd conda channel".format(c=channel))
+ 
+    return(True)
+
+
+def update_genome_metadata_files():
+    """Method to update the species and genome build, and ggd channel metadata files locally 
+
+    update_genome_metadata_files
+    ==========================================
+    This method will download the json metadata species and genome-build files from ggd-metadata and store 
+     in the LOCAL_REPO_DIR. 
     """
 
     if not os.path.isdir(LOCAL_REPO_DIR):
         os.makedirs(LOCAL_REPO_DIR)
-    if not os.path.isdir(RECIPE_REPO_DIR):
-        Repo.clone_from(GITHUB_URL, RECIPE_REPO_DIR)
-    Repo(RECIPE_REPO_DIR).remotes.origin.pull()
+    if not os.path.isdir(GENOME_METADATA_DIR):
+        os.makedirs(GENOME_METADATA_DIR)
+
+    ## Download the json files
+    build_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/build_to_species.json" 
+    species_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/species_to_build.json" 
+    ggd_channels_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/ggd_channels.json" 
+    
+    buildjson = requests.get(build_url).json()
+    with open(os.path.join(GENOME_METADATA_DIR,"build_to_species.json"),"w") as b:
+        json.dump(buildjson,b)
+
+    speciesjson = requests.get(species_url).json()
+    with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"),"w") as s:
+        json.dump(speciesjson,s)
+
+    channeljson = requests.get(ggd_channels_url).json()
+    with open(os.path.join(GENOME_METADATA_DIR,"ggd_channels.json"),"w") as s:
+        json.dump(channeljson,s)
+
+    return(True)
 
 
 def validate_build(build, species):
