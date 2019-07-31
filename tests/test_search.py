@@ -159,7 +159,10 @@ def test_check_installed():
         list_files.list_files((),list_files_args)
     except SystemExit as e:
         if str(e) == "1": ## If exit code is 1, implying that there were not files found
-            install_hg19_gaps_ucsc_v1()
+            try:
+                install_hg19_gaps_ucsc_v1()
+            except:
+                pass
 
     ### Check that it is installed
     isinstalled, path = search.check_installed(ggd_recipe, json_dict)
