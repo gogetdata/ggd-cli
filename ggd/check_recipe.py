@@ -9,7 +9,7 @@ import subprocess as sp
 import yaml 
 import locale
 from fnmatch import fnmatch
-from .utils import get_required_conda_version, check_output, conda_root
+from .utils import get_required_conda_version, check_output, conda_root, check_for_internet_connection, get_species
 from .uninstall import check_for_installation
 from .install import check_ggd_recipe
 
@@ -239,16 +239,25 @@ def get_recipe_from_bz2(fbz2):
 
 def _check_build(species, build):
     #print("\nWarning: _check_build is deprecated\n")
-    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
-    try:
-        ret = urlopen(gf)
-        if ret.getcode() >= 400:
-            raise Exception("%s at url: %s" % (ret.getcode(), gf))
-    except:
-        sys.stderr.write("ERROR: genome-build: %s not found in github repo for the %s species.\n" %(build,species))
-        raise
-    return(True)
-
+    if check_for_internet_connection():
+        gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
+        try:
+            ret = urlopen(gf)
+            if ret.getcode() >= 400:
+                raise Exception("%s at url: %s" % (ret.getcode(), gf))
+        except:
+            sys.stderr.write("ERROR: genome-build: %s not found in github repo for the %s species.\n" %(build,species))
+            raise
+        return(True)
+    else: ## If no internet conection (mostly for make-recipe in an internet free context)
+        ## Get a dictionary with keys as species and values as genome builds
+        species_build_dict = get_species(full_dict=True) 
+        if build in species_build_dict[species]:
+            return(True)
+        else:
+            sys.stderr.write("ERROR: genome-build: %s not found in github repo for the %s species.\n" %(build,species))
+            raise
+            
 
 def check_recipe(parser, args):
     """Main method to check a ggd recipe for proper filing, system handeling, package building, install, etc. 
