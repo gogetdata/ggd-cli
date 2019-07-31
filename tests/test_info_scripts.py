@@ -335,7 +335,7 @@ def test_in_ggd_channel():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_files.in_ggd_channel(ggd_package, channel)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## check that the exit code is 1
+    assert pytest_wrapped_e.match("The '{c}' channel is not a ggd conda channel".format(c=channel)) ## check that the exit code is 1
 
     
     ## test that in_ggd_channel properly handels bad recipe name 
@@ -463,6 +463,9 @@ def test_list_files():
 
 
 def test_list_file_with_prefix():
+    """
+    test the list-files function with --prefix flag set
+    """
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
@@ -590,7 +593,7 @@ def test_check_if_ggd_recipe():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## check that the exit code is 1
+    assert pytest_wrapped_e.match("The '{c}' channel is not a ggd conda channel".format(c=ggd_channel)) ## check that the exit code is 1
 
     ## Test a bad package name and normal channel
     ggd_package = "BAD_Recipe"
