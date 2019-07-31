@@ -13,6 +13,7 @@ from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channel_data
 from .utils import get_channeldata_url
+from .utils import check_for_internet_connection
 from .search import load_json, load_json_from_url, search_packages
 from .show_env import remove_env_variable, activate_enviroment_variables
 from .utils import get_conda_package_list
@@ -46,8 +47,17 @@ def get_channeldata(ggd_recipe,ggd_channel):
 
     """
 
-    CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
-    jdict = load_json_from_url(CHANNEL_DATA_URL)
+    jdict = {'channeldata_version': 1, 'packages': {}}
+    if check_for_internet_connection(): 
+        CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
+        jdict = load_json_from_url(CHANNEL_DATA_URL)
+    else:
+        try:
+            ## If no internet connection just load from the local file
+            jdict = load_json(get_channel_data(ggd_channel)) 
+        except:
+            pass
+
     package_list = [x[0] for x in search_packages(jdict,ggd_recipe)]
     if ggd_recipe in package_list:
         return(jdict)
@@ -62,7 +72,6 @@ def get_channeldata(ggd_recipe,ggd_channel):
         else:
             print("\n\t-> Unable to find any package similar to the package entered. Use 'ggd search' or 'conda find' to identify the right package")
             print("\n\t-> This package may not be installed on your system")
-#        sys.exit(1)
         return(False)
         
 

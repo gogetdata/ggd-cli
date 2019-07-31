@@ -13,7 +13,9 @@ from .utils import validate_build
 from .utils import get_ggd_channels
 from .utils import get_channeldata_url
 from .utils import prefix_in_conda
-from .search import load_json_from_url, search_packages
+from .utils import check_for_internet_connection
+from .utils import get_channel_data
+from .search import load_json_from_url, search_packages, load_json
 
 SPECIES_LIST = get_species()
 
@@ -59,8 +61,18 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
 
     """
 
-    CHANNELDATA_URL = get_channeldata_url(ggd_channel)
-    json_dict = load_json_from_url(CHANNELDATA_URL)
+
+    json_dict = {'channeldata_version': 1, 'packages': {}}
+    if check_for_internet_connection(3): 
+        CHANNELDATA_URL = get_channeldata_url(ggd_channel)
+        json_dict = load_json_from_url(CHANNELDATA_URL)
+    else:
+        try:
+            ## If no internet connection just load from the local file
+            json_dict = load_json(get_channel_data(ggd_channel)) 
+        except:
+            pass
+
     package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
     if ggd_recipe in package_list:
         species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
