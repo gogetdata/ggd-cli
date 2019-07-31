@@ -16,7 +16,7 @@ from .utils import get_ggd_channels
 from .utils import get_channeldata_url
 from .utils import conda_root
 
-SPECIES_LIST = get_species(update_repo=False)
+SPECIES_LIST = get_species(update_files=False)
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 
 #-------------------------------------------------------------------------------------------------------------
@@ -308,7 +308,7 @@ def search(parser, args):
     if args.genome_build:
         matchResults = filter_by_identifiers("genome-build",matchResults,jDict,args.genome_build)
     if args.species:
-        get_species(update_repo=True) ## update the local repo.
+        get_species(update_files=True) ## update the local files.
         matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
     if args.keyword:
         matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
