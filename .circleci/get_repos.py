@@ -15,14 +15,14 @@ from ggd import utils
 ## Clone repos
 #---------------------------------------------------------------------
 
-## Update local repo
-utils.update_local_repo()
+## Update local genomic metadata files
+utils.update_genome_metadata_files()
 
-##Uupdate metadata repo
-utils.update_metadata_local_repo()
+##Update local channeldata.json metadata file
+utils.update_channel_data_files("genomics")
 
 ## Get species
-utils.get_species(update_repo=True)
+utils.get_species(update_files=True)
 
 ## get channels
 channels = utils.get_ggd_channels()
