@@ -16,6 +16,8 @@ from .utils import get_species
 from .utils import get_ggd_channels
 from .utils import get_channel_data
 from .utils import get_channeldata_url
+from .utils import check_for_internet_connection
+from .utils import get_conda_package_list
 from .search import load_json, load_json_from_url, search_packages
 from .list_files import list_files
 
@@ -75,8 +77,17 @@ def check_if_ggd_recipe(ggd_recipe, ggd_channel):
     2) ggd_channel: The ggd channel to look at
     """
 
-    CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
-    jdict = load_json_from_url(CHANNEL_DATA_URL)
+    jdict = {'channeldata_version': 1, 'packages': {}}
+    if check_for_internet_connection(3): 
+        CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
+        jdict = load_json_from_url(CHANNEL_DATA_URL)
+    else:
+        try:
+            ## If no internet connection just load from the local file
+            jdict = load_json(get_channel_data(ggd_channel)) 
+        except:
+            pass
+
     package_list = [x[0] for x in search_packages(jdict, ggd_recipe)]
     if ggd_recipe in package_list:
         return(True)
@@ -169,7 +180,7 @@ def print_recipe(tarball_info_object, ggd_recipe):
     return(True)
  
 
-def get_pkg_info(ggd_recipe, ggd_channel,show_recipe):
+def get_pkg_info(ggd_recipe,ggd_channel,show_recipe):
     """Method to get the package info from an installed package
 
     get_pkg_info
@@ -184,15 +195,15 @@ def get_pkg_info(ggd_recipe, ggd_channel,show_recipe):
     3) show_recipe: A bool value, where if true will print the recipe.sh script
     """
 
-    installed_pkg = sp.check_output(['conda', 'list', ggd_recipe]).decode('utf8')
-    found = [x for x in re.sub(r"\s+","\t", installed_pkg.strip()).split("\t") if re.search(ggd_recipe+"$", x)] 
-    if len(found) > 0:
-        pkg_str = [x for x in installed_pkg.split("\n") if ggd_recipe in x][0]
-        pkg_version = re.sub(" +","\t",pkg_str).split("\t")[1] # Pkg Version 
-        pkg_build = re.sub(" +","\t",pkg_str).split("\t")[2] # Pkg Build
+    ## Get a list of installed ggd packages using conda list
+    conda_package_list = get_conda_package_list(conda_root())
+
+    ## Check if ggd recipe in the list
+    if ggd_recipe in conda_package_list.keys(): 
+        pkg_version = conda_package_list[ggd_recipe]["version"]
+        pkg_build = conda_package_list[ggd_recipe]["build"]
         pkg_tar_file = "{}-{}-{}.tar.bz2".format(ggd_recipe, pkg_version, pkg_build)
-        CONDA_ROOT = conda_root()    
-        file_path = os.path.join(CONDA_ROOT, "pkgs", pkg_tar_file)
+        file_path = os.path.join(conda_root(), "pkgs", pkg_tar_file)
         with tarfile.open(file_path, "r:bz2") as tarball_file:
             get_meta_yaml_info(tarball_file.extractfile(tarball_file.getmember("info/recipe/meta.yaml.template")), ggd_recipe, ggd_channel)
             if show_recipe:
