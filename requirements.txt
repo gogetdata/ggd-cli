@@ -16,3 +16,4 @@ wget
 pytest
 future
 oyaml
+pytest-socket
