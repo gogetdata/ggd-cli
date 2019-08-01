@@ -106,7 +106,7 @@ def search_packages(jsonDict,searchTerm):
     """
 
     packages = jsonDict["packages"].keys()
-    match_list = process.extract(searchTerm,packages,limit=10000) 
+    match_list = process.extract(searchTerm,packages,limit=5000) 
 
     return(match_list)
 

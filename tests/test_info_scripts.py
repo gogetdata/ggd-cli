@@ -26,6 +26,13 @@ if sys.version_info[0] == 3:
 elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
+#---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
 
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
@@ -63,6 +70,13 @@ def test_show_env_goodrun():
     """
     Test that show_env functoin properly provides the environment variable for an installed package
     """
+    pytest_enable_socket()
+
+    try:
+        uninstall_hg19_gaps_ucsc_v1()
+    except:
+        pass
+
     try:
         install_hg19_gaps_ucsc_v1()
     except:
@@ -104,6 +118,9 @@ def test_show_env_with_pattern():
     """
     Test that adding the pattern parameter to show-env properly filters the results
     """
+    pytest_enable_socket()
+
+
     dir_env_var_name = "$ggd_hg19_gaps_ucsc_v1_dir"
     file_env_var_name = "$ggd_hg19_gaps_ucsc_v1_file"
     parser = ()
@@ -140,6 +157,8 @@ def replace_env_var(active_var, deactive_var, active_loc, deactive_loc):
     """
     Helper method for test_remove_env_variables. Replaces environment variable removed 
     """
+    pytest_enable_socket()
+
     with open(active_loc, "a") as a:
         a.write(active_var)
     with open(deactive_loc, "a") as d:
@@ -150,6 +169,8 @@ def test_remove_env_variable():
     """
     Test that the remove_env_varial correctly removes the env var from the activated.d/env_vars.sh file
     """
+    pytest_enable_socket()
+
     dir_main_env_var = "ggd_hg19_gaps_ucsc_v1_dir"
     file_main_env_var = "ggd_hg19_gaps_ucsc_v1_file"
 
@@ -278,6 +299,8 @@ def test_activate_environment_variables():
     """
     Test that the activate_environment_variables function properly activates the environment variables
     """
+    pytest_enable_socket()
+
     dir_env_var_name = "$ggd_hg19_gaps_ucsc_v1_dir"
     file_env_var_name = "$ggd_hg19_gaps_ucsc_v1_file"
     temp_stdout = StringIO()
@@ -301,6 +324,7 @@ def test_test_vars():
     """
     Test that the test_vars function correclty provides the active and inactive environemnt variables
     """
+    pytest_enable_socket()
 
     matching_vars = {'ggd_hg38_gaps_11_mar_2019': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg38/hg38-gaps_11-mar-2019/1', 'ggd_hg38_reference_genome_ucsc': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg38/hg38-reference-genome-ucsc/1', 'ggd_hg38_cpg_islands': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg38/hg38-cpg-islands/1', 'ggd_grch38_reference_genome_ensembl': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/GRCh38/grch38-reference-genome-ensembl/1', 'ggd_hg19_cpg_islands': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg19/hg19-cpg-islands/1', 'ggd_hg19_gaps': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg19/hg19-gaps/1', 'ggd_hg19_reference_genome_ucsc': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg19/hg19-reference-genome-ucsc/1', 'ggd_hg38_simplerepeats': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg38/hg38-simplerepeats/1', 'ggd_hg19_pfam_domains_ucsc': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg19/hg19-pfam-domains-ucsc/1', 'ggd_grch37_esp_variants': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/GRCh37/grch37-esp-variants/1', 'ggd_hg38_pfam_domains_ucsc': '/uufs/chpc.utah.edu/common/home/quinlan-ucgdstor/u1138933/ucgdscratch/anaconda2/share/ggd/Homo_sapiens/hg38/hg38-pfam-domains-ucsc/1'}
     active = [x for x in matching_vars if x in os.environ and os.environ[x] == matching_vars[x]]  
@@ -321,6 +345,8 @@ def test_in_ggd_channel():
     """
     Test that the in_ggd_channel from ggd list-files works correctly 
     """
+    pytest_enable_socket()
+
     ## Test that in_ggd_channel properly returns the species, genome-build, and versoin if it is in the channel
     ggd_package = "hg19-gaps-ucsc-v1"
     channel = "genomics"
@@ -351,6 +377,7 @@ def test_list_files():
     """
     Test the main method of list-files 
     """
+    pytest_enable_socket()
 
     ggd_package = "hg19-gaps-ucsc-v1"
     file1 = "{}.bed.gz".format(ggd_package)
@@ -466,6 +493,7 @@ def test_list_file_with_prefix():
     """
     test the list-files function with --prefix flag set
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
@@ -522,6 +550,7 @@ def test_list_all_versions():
     """
     Test that the list all versions handles different situations correctly 
     """
+    pytest_enable_socket()
     
     ### Test that all vresion of a hg19-gaps in the ggd-dev channel are properly listed
 
@@ -582,6 +611,8 @@ def test_check_if_ggd_recipe():
     Test if check_if_ggd_recipe correclty identifies if a ggd recipe is a recipe or not
     """
 
+    pytest_enable_socket()
+
     ## Test a normal package name and channel
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
@@ -606,6 +637,8 @@ def test_get_pkg_info():
     Test that get_pkg_info correctly returns the pkg info or handles other problems 
     """
 
+    pytest_enable_socket()
+
     ## Test a normal run that should pass
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
@@ -627,6 +660,8 @@ def test_get_meta_yaml_info():
     """
     Test the get_meta_yaml_info file to correctly get the correct info
     """
+    pytest_enable_socket()
+
 
     recipe = CreateRecipe(
 
@@ -906,6 +941,7 @@ def test_print_recipe():
     """
     Test the print_recipe fucntion 
     """
+    pytest_enable_socket()
 
     message = "TESTING THE CREATION OF A RECIPE SCRIPT"
     recipe = CreateRecipe(
@@ -960,6 +996,7 @@ def test_info_main():
     """
     test the main funtion, info(parser, args), of pkg-info
     """
+    pytest_enable_socket()
 
     ## Normal run
     ggd_package = "hg19-gaps-ucsc-v1"
@@ -1065,6 +1102,8 @@ def test_info_main():
 
 
 def test_show_env_no_envvars():
+    pytest_enable_socket()
+
     ## uninstalled hg19_gaps() testing 
     uninstall_hg19_gaps_ucsc_v1()
     parser = ()

@@ -30,6 +30,15 @@ if sys.version_info[0] == 3:
 elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
+
+#---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
+
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
 #---------------------------------------------------------------------------------------------------------
@@ -65,6 +74,8 @@ def test_check_ggd_recipe_fake_recipe():
     """
     Test the check_ggd_recipe function returns None if an invalide recipe is provided
     """
+    pytest_enable_socket()
+
     assert install.check_ggd_recipe("Not_a_real_recipe","genomics") == None
 
 
@@ -72,16 +83,20 @@ def test_check_ggd_recipe_fake_channel():
     """
     Test the check_ggd_recipe function exits if an invalide ggd channel is provided
     """
+    pytest_enable_socket()
+
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.check_ggd_recipe("hg19-gaps","ggd-fake-channel")
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
+    assert pytest_wrapped_e.match("The 'ggd-fake-channel' channel is not a ggd conda channel") ## Check that the exit code is 1
 
 
 def test_check_ggd_recipe_good_run():
     """
     Test the check_ggd_recipe function returns a dict with information from the recipe
     """
+    pytest_enable_socket()
+
     tmp_recipe = "hg19-gaps-ucsc-v1"
 
     jdict = install.check_ggd_recipe(tmp_recipe,"genomics")
@@ -95,6 +110,7 @@ def test_check_if_installed_recipe_not_installed():
     """
     Test if the check_if_installed function correclty identifies that the ggd data package is not installed.
     """
+    pytest_enable_socket()
 
     recipe = "Fake_hg19-gaps"
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Fake_hg19-gaps': 
@@ -113,6 +129,9 @@ def test_check_if_installed_recipe_is_installed():
     """
     Test if the check_if_installed function correclty identifies that the ggd data package is installed.
     """
+    pytest_enable_socket()
+
+
     recipe = "hg19-gaps-ucsc-v1"
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
@@ -148,6 +167,8 @@ def test_check_if_installed_recipe_v9999_is_not_installed():
     """
     Test if the check_if_installed function correclty identifies that the ggd data package is installed but not the sepcific version.
     """
+    pytest_enable_socket()
+
     recipe = "hg19-gaps-ucsc-v1"
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
                     False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
@@ -181,6 +202,7 @@ def test_check_if_installed_with_prefix_set():
     """
     Test that the ggd can identify in a data package has been installed in a different (targeted) conda environemnt 
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
@@ -249,6 +271,8 @@ def test_check_conda_installation_pacakge_no_installed():
     """
     Test check conda instllation function correclty identifies that a data pacakges is not installed by conda
     """
+    pytest_enable_socket()
+
     recipe = "Fake-hg19-gaps"
     version = "1"
 
@@ -259,6 +283,8 @@ def test_check_conda_installation_pacakge_no_installed_no_version_designation():
     """
     Test check conda instllation function correclty identifies that a data pacakges is not installed by conda
     """
+    pytest_enable_socket()
+
     recipe = "Fake-hg19-gaps"
     version = "-1"
 
@@ -270,6 +296,7 @@ def test_check_conda_installation_pacakge_is_installed():
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      This method calls the install_hg19_gaps  to run.
     """
+    pytest_enable_socket()
 
     ## Install hg19-gaps-ucsc-v1
     recipe = "hg19-gaps-ucsc-v1"
@@ -293,6 +320,8 @@ def test_check_conda_installation_pacakge_is_installed_noninstalled_version_desi
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      but that it has not installed the specied version
     """
+    pytest_enable_socket()
+
     recipe = "hg19-gaps-ucsc-v1"
     version = "9999"
 
@@ -304,6 +333,8 @@ def test_check_conda_installation_pacakge_is_installed_no_version_designation():
     Test check conda instllation function correclty identifies that a data pacakges has been installed by conda.
      The version will be set to -1, meaning the version is not specified
     """
+    pytest_enable_socket()
+
     recipe = "hg19-gaps-ucsc-v1"
     version = "-1"
 
@@ -316,6 +347,8 @@ def test_check_conda_installation_pacakge_no_installed_longer_package_name():
     """
     Test check conda instllation function correclty identifies that a data pacakges is not installed by conda
     """
+    pytest_enable_socket()
+
     recipe = "hg19-gapsss-ucsc-v1"
     version = "-1"
 
@@ -326,6 +359,8 @@ def test_check_conda_installation_pacakge_no_installed_shorter_package_name():
     """
     Test check conda instllation function correclty identifies that a data pacakges is not installed by conda
     """
+    pytest_enable_socket()
+
     recipe = "hg19-ga"
     version = "-1"
 
@@ -336,6 +371,7 @@ def test_check_conda_installed_with_prefix_set():
     """
     Test that an installed data package designated by the prfeix flag can be detected by conda 
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env2")
@@ -394,6 +430,8 @@ def test_check_S3_bucket_not_uploaded():
     """
     Test if a recipe is cached on s3 or not. 
     """     
+    pytest_enable_socket()
+
     recipe = "hg19-gaps-ucsc-v1"
 
     ## If no tags key avaible return false
@@ -433,6 +471,8 @@ def test_check_S3_bucket_is_uploaded():
     """
     Test if a recipe is cached on s3 not. 
     """     
+    pytest_enable_socket()
+
     recipe = "hg19-gaps-ucsc-v1"
     ## Return True if uploaded to aws
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'hg19-gaps-ucsc-v1': {u'activate.d': 
@@ -450,7 +490,12 @@ def test_install_from_cache():
     """
     Test install from cache function for proper installation from cached recipe
     """
-    uninstall_hg19_gaps_ucsc_v1()
+    pytest_enable_socket()
+
+    try:
+        uninstall_hg19_gaps_ucsc_v1()
+    except:
+        pass
 
     ## Bad install
     name = "Fake_hg19-gaps"
@@ -483,6 +528,7 @@ def test_install_from_cache_with_prefix_set():
     """
     Test install from cache function for proper installation from cached recipe
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env3")
@@ -557,6 +603,8 @@ def test_conda_install_bad_recipe():
     """
     Test that the conda_install function properly handels a bad recipe
     """
+    pytest_enable_socket()
+
 
     ## Test with undesignated version
     name = "Fake_hg19-gaps"
@@ -596,7 +644,13 @@ def test_conda_install():
     """
     Test conda install function for proper installation of a ggd recipe using conda
     """
-    uninstall_hg19_gaps_ucsc_v1()
+    pytest_enable_socket()
+
+    try:
+        uninstall_hg19_gaps_ucsc_v1()
+    except:
+        pass
+
     name = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
 
@@ -630,6 +684,7 @@ def test_conda_install_with_prefix_set():
     """
     Test conda install function for proper installation of a ggd recipe using conda
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env4")
@@ -686,6 +741,7 @@ def test_get_file_location():
     """
     Test that get_file_location function to properly reterive the location of the ggd file
     """
+    pytest_enable_socket()
 
     ## Fake recipe
     ggd_recipe = "Fake_hg19-gaps"
@@ -744,6 +800,7 @@ def test_get_file_location_with_prefix_set():
     """
     Test that get_file_location function to properly reterive the location of the ggd file when it is associated with a different prefix (conda environment)
     """
+    pytest_enable_socket()
 
     ### Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env5")
@@ -807,6 +864,7 @@ def test_copy_pkg_files_to_prefix():
     Test that the copy_pkg_files_to_prefix method correctly copies the tarball and pkg files from the current 
      conda environment to the target prefix
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env6")
@@ -871,6 +929,7 @@ def test_install_main_function():
     """
     Test the main install function
     """
+    pytest_enable_socket()
 
     CONDA_ROOT = utils.conda_root()
 
@@ -925,6 +984,7 @@ def test_install_main_function_with_prefix_set():
     """
     Test the main install function with the prefix flag set
     """
+    pytest_enable_socket()
 
     ## Temp conda environment 
     temp_env = os.path.join(utils.conda_root(), "envs", "temp_env7")

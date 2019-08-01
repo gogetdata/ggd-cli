@@ -73,7 +73,10 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
         except:
             pass
 
-    package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
+    package_list = []
+    if len(json_dict["packages"].keys()) > 0:
+        package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
+
     if ggd_recipe in package_list:
         species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
         build = json_dict["packages"][ggd_recipe]["identifiers"]["genome-build"]

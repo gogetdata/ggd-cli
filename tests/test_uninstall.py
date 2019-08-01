@@ -27,6 +27,13 @@ if sys.version_info[0] == 3:
 elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
+#---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
 
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
@@ -64,6 +71,8 @@ def test_get_channeldata():
     """
     Test the get_channeldata method properly finds a good ggd package and handles a bad ggd package 
     """
+    pytest_enable_socket()
+
     ## Uninstall hg19-gaps-v1
     try:
         uninstall_hg19_gaps_ucsc_v1()
@@ -111,13 +120,14 @@ def test_get_channeldata():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         uninstall.get_channeldata(ggd_recipe,bad_channel) ## Exit due to bad url from ggd.search
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
+    assert pytest_wrapped_e.match("The 'BadChannel' channel is not a ggd conda channel") ## Check that the exit code is 1
 
 
 def test_get_similar_pkg_installed_by_conda():
     """
     Test the get_similar_pkg_installed_by_conda function 
     """
+    pytest_enable_socket()
 
     ## Test a non similar package name
     not_installed = "Not_an_installed_package"
@@ -153,6 +163,7 @@ def test_check_conda_installation():
     """
     Test the check_conda_installation function. Test if conda can properly remove the installed ggd package if it is installed
     """
+    pytest_enable_socket()
 
     ## Test that the function properly handles not installed 
     ggd_recipe = "grch37-reference-genome-1000g-v1"
@@ -183,6 +194,7 @@ def test_conda_uninstall():
     """
     Test the conda_uninstall function to properly uninstall a ggd package using conda
     """
+    pytest_enable_socket()
 
     ggd_recipe = "hg19-gaps-ucsc-v1"
 
@@ -210,6 +222,8 @@ def test_check_for_installation():
     """
     Test the check_for_installation function to check if the ggd package is installed using the ggd file handling information
     """
+    pytest_enable_socket()
+
     ## Test a not installed ggd recipe 
     ggd_recipe = "grch37-reference-genome-1000g-v1"
     ggd_channel = "genomics"
@@ -243,6 +257,7 @@ def test_remove_from_condaroot():
     """
     Test that the remove_from_condaroot function properly removes installed ggd packages from the conda root
     """
+    pytest_enable_socket()
 
     ## install hg19-gaps-v1
     try:
@@ -282,6 +297,7 @@ def test_uninstall():
     """
     Test that a package is properly uninstalled using the main uninstall funciton
     """
+    pytest_enable_socket()
 
     ## Test handling of a package not installed
     ggd_recipe = "not-a-real-recipe"

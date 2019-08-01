@@ -25,6 +25,14 @@ if sys.version_info[0] == 3:
 elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
+#---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
+
 
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
@@ -62,6 +70,7 @@ def test_get_species():
     """
     Test the get_species method for the utils function in ggd
     """
+    pytest_enable_socket()
 
     ## Get species list using the update repo option
     species = utils.get_species(update_files=True)
@@ -94,7 +103,7 @@ def test_get_species():
     assert "Danio_rerio" in species 
     assert len(species) == 5
 
-    for key in speices:
+    for key in species:
         assert len(species_dict[key]) > 0
 
     ### Test some builds are in the dict
@@ -111,6 +120,7 @@ def test_get_ggd_channels():
     """
     Test the get_ggd_channels function to properly return the ggd channels 
     """
+    pytest_enable_socket()
 
     channels = utils.get_ggd_channels()
     assert "genomics" in channels
@@ -126,6 +136,7 @@ def test_get_channel_data():
     """
     Test that the get_channel_data correctly gets provides a path to the channel data file on your system
     """
+    pytest_enable_socket()
 
     ## Test a real channel
     channel = "genomics"
@@ -156,6 +167,7 @@ def test_get_channeldata_url():
     """
     Test the get_channeldata_url properly returns the url to the channel data
     """
+    pytest_enable_socket()
     
     ## Test a good url
     for channel in utils.get_ggd_channels():
@@ -176,6 +188,7 @@ def test_get_required_conda_version():
     """
     Test that get_required_conda_version correctly returns the required conda version for using ggd
     """
+    pytest_enable_socket()
 
     conda_version = utils.get_required_conda_version()
     assert  conda_version != -1
@@ -191,6 +204,8 @@ def test_check_output():
     """
     Test the check_output function properly runs returns a proper string output
     """
+    pytest_enable_socket()
+
     output = utils.check_output(["ls", "-lh"])
     assert isinstance(output, str) or isinstance(output, unicode) 
 
@@ -199,6 +214,7 @@ def test__to_str():
     """
     test that _to_str converts a byte into a string correctly
     """
+    pytest_enable_socket()
     
     test_string = "A test string"
 
@@ -219,6 +235,7 @@ def test_get_build():
     """
     Test the get_build function properly returns the builds for a species
     """
+    pytest_enable_socket()
 
     for species in utils.get_species():
         builds = utils.get_builds(species)
@@ -262,6 +279,7 @@ def test_check_for_internet_connection():
     """
     Method to check that their is an internet connection
     """
+    pytest_enable_socket()
 
     assert utils.check_for_internet_connection() == True
     assert utils.check_for_internet_connection(3) == True
@@ -273,6 +291,7 @@ def test_update_channel_data_files():
     """
     Test that the update_channel_data_files function correctly updates the local copy of the channeldata.json file
     """
+    pytest_enable_socket()
 
 
     file_path = os.path.expanduser("~/.config/ggd-info/channeldata")
@@ -300,6 +319,7 @@ def test_update_genome_metadata_files():
     Test that the update_genome_metadata_files function properly updates the local species_to_build.json,
      build_to_species.json, and ggd_channel.json files
     """
+    pytest_enable_socket()
 
     file_path = os.path.expanduser("~/.config/ggd-info/genome_metadata")
     if os.path.exists(file_path):
@@ -320,6 +340,7 @@ def test_validate_build():
     """
     Test that validate_build function properly handles different builds with different species
     """
+    pytest_enable_socket()
 
     assert utils.validate_build("hg19","Homo_sapiens") == True
     assert utils.validate_build("mm10","Homo_sapiens") == False
@@ -333,6 +354,7 @@ def test_conda_root():
     """
     Test that the conda_root function properly returns the conda root
     """
+    pytest_enable_socket()
 
     croot = sp.check_output(['conda', 'info', '--root'])
     assert croot.decode("utf8").strip() == utils.conda_root().strip()
@@ -342,6 +364,7 @@ def test_get_conda_env():
     """
     Test that the get_conda_env function properly identifies the current conda env 
     """
+    pytest_enable_socket()
 
     ## Test that the base environemnet is returned
     croot = sp.check_output(['conda', 'info', '--root'])
@@ -355,6 +378,7 @@ def test_active_conda_env():
     """
     Test the active_conda_env function properly returns the active environemnt 
     """
+    pytest_enable_socket()
 
     ## Test that the base environemnet is returned
     conda_env = utils.active_conda_env()
@@ -366,6 +390,7 @@ def test_prefix_in_conda():
     """
     Test that the prefis in conda properly identifes a prefix that is in the conda enviroment, and those that are not
     """
+    pytest_enable_socket()
 
     ## Test a bad env (environments not in base environment path)
     try:
@@ -418,6 +443,7 @@ def test_get_conda_package_list():
     """
     Test that the get_conda_package_list properly returns the correct installed packages from the conda list
     """
+    pytest_enable_socket()
 
     ## Get the available ggd data packages in the ggd-genomics channel
     channeldata_path = utils.get_channel_data("genomics")
@@ -438,8 +464,7 @@ def test_get_conda_package_list():
 
     ## Test a different environment
     environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
-    base_env = min(environments)
-    temp_env = os.path.join(base_env, "envs", "temp_env")
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
     sp.check_output(["conda", "create", "--name", "temp_env"])
 
     ### Install a pacakge into the temp_env
@@ -464,6 +489,7 @@ def test_bypass_satsolver_on_install():
     """
     Test that the bypass_satsolver_on_install function properly installs a cached packages and bypasses sat solving
     """
+    pytest_enable_socket()
 
     ## Test a bad install, bad recipe
     ggd_package = "Bad-package"

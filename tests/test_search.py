@@ -21,6 +21,16 @@ if sys.version_info[0] == 3:
 elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
+
+#---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
+
+
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
 #---------------------------------------------------------------------------------------------------------
@@ -52,7 +62,9 @@ def redirect_stderr(target):
 ## Unit Tests for ggd search
 #-------------------------------------------------------------------------------------------------------
 
-def test_load_json_goodjson():
+def test_load_json_goodjson():  
+
+    pytest_enable_socket()
     
     ## Make file 
     file_name = "./tempjson.json"
@@ -73,6 +85,8 @@ def test_load_json_from_url_badurl():
     """
     Test if a bad url fails to load
     """
+    pytest_enable_socket()
+            
     bad_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata/NOTAREALCHANNEL.channeldata.json"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         search.load_json_from_url(bad_url)
@@ -84,6 +98,8 @@ def test_load_json_from_url_goodurl():
     """
     test if a good url does load
     """
+    pytest_enable_socket()
+            
     good_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata/genomics/channeldata.json"
     assert search.load_json_from_url(good_url)
 
@@ -92,6 +108,8 @@ def test_search_package_madeup_package():
     """
     Test the search_pacakge method to see if it properly identifies a madeup package
     """
+    pytest_enable_socket()
+            
     name = "Madeup-package"
     search_term = "madeup"
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Madeup_package': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/Madeup_package-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}}}
@@ -108,6 +126,8 @@ def test_search_package_madeup_package_badsearchterm():
     """
     Test the search_pacakge method to see if it returns no package based on bad search terms
     """
+    pytest_enable_socket()
+            
     name = "Madeup-package"
     search_term = "NO"
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Madeup_package': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/Madeup_package-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}}}
@@ -124,6 +144,8 @@ def test_check_installed():
     """
     test the check_installed function properly identifies if something is already installed or not, and provides the path for it
     """
+    pytest_enable_socket()
+            
     ## json dict
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
                     {u'hg19-gaps': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
@@ -177,6 +199,8 @@ def filter_score_test(score,matchlist,results):
     """
     Helper script for the test_filter_by_score() function. Runs the assert test for a speciifc set of matches, results, and scores
     """
+    pytest_enable_socket()
+            
     for match in matchlist:
         if match[1] >= score:
             assert match in results
@@ -188,6 +212,8 @@ def test_filter_by_score():
     """
     test the filter_by_score function. Based off a specific filter score test that the appropriate packages are returned
     """
+    pytest_enable_socket()
+            
     matches = [("Zero-package", 0), ("twenty-pacakge", 20), ("fourty-five, package", 45),("hg19-gaps", 50), 
                 ("hg19-repeatmasker", 55), ("hg19-simplerepeats", 60), ("hg19-phastcons", 65), ("hg19-pfam-domains", 70), 
                 ("hg38-gaps", 75), ("hg38-repeatmasker", 80), ("hg38-simplerepeats", 85), ("hg38-phastcons", 90), 
@@ -216,7 +242,9 @@ def test_filter_by_score():
     filter_score_test(filterscore,matches,search.filter_by_score(filterscore, matches))
 
 
-def test_filter_by_identifiers_genome_build():
+def test_filter_by_identifiers_genome_build():  
+
+    pytest_enable_socket()
     
     key = "genome-build"
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
@@ -266,6 +294,8 @@ def test_filter_by_identifiers_bad_identifier():
     """
     Test that the filter_by_idenfiiers function correclty processes a bad identifier key passed to the function 
     """
+    pytest_enable_socket()
+            
     key = "Bad-Identifier"
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
                     {u'hg19-gaps': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
@@ -303,6 +333,8 @@ def test_filter_by_identifiers_species():
     """
     Test the filter by idenfiiers function using species 
     """
+    pytest_enable_socket()
+            
     key = "species"
     ## Create json dictionary with Homo_sapiens, Mus_musculus, and Drosophila_melanogaster species.
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
@@ -371,6 +403,7 @@ def test_filter_by_keywords():
     """
     Test the filter_by_keyword function to properly filter recipe based off keywords associated with packages
     """
+    pytest_enable_socket()
 
     ## create json dict
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
@@ -428,6 +461,7 @@ def test_print_summary():
     """
     Test that the print summary function correctly handels no matches, some matches, etc.
     """
+    pytest_enable_socket()
     
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': 
                     {u'hg19-gaps': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/hg19-gaps-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}, 
@@ -472,6 +506,8 @@ def test_main_search():
     """
     Test the main search method with different argument parameters
     """
+    pytest_enable_socket()
+            
     parser = ()
 
     ## Test a general search 

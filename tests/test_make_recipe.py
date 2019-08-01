@@ -26,6 +26,15 @@ elif sys.version_info[0] == 2:
 
 
 #---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
+
+
+#---------------------------------------------------------------------------------------------------------
 ## Test Label
 #---------------------------------------------------------------------------------------------------------
 
@@ -62,6 +71,7 @@ def test_make_bash_test_bad_summary():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
 
     ## test that make_bash fails when a bad summary is provided
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
@@ -98,6 +108,8 @@ def test_make_bash_test_bad_name():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
+
 
     ## test that make_bash fails when a bad name is provided
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
@@ -133,6 +145,7 @@ def test_make_bash_test_wildcards():
     """
     Test the main method of ggd make-recipe, make sure that a name with a wildcard raises and assertion error
     """
+    pytest_enable_socket()
 
     ## test that make_bash fails when a wild card is added to the name
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
@@ -334,12 +347,11 @@ def test_make_bash_test_wildcards():
         assert False
 
 
-
-
 def test_make_bash_test_bad_genome_build():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
 
     ## test that make_bash fails when a bad genome build is provided
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
@@ -376,6 +388,7 @@ def test_make_bash_test_bad_recipe():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
 
     ## test that make_bash fails when a bad recipe is provided
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
@@ -395,6 +408,7 @@ def test_make_bash():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
 
     recipe = CreateRecipe(
 
@@ -533,6 +547,7 @@ def test_make_bash_all_params():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
 
     recipe = CreateRecipe(
 
@@ -607,6 +622,7 @@ def test_make_bash_meta_yaml_key_order():
     """
     Test the main method of ggd make-recipe
     """
+    pytest_enable_socket()
 
     recipe = CreateRecipe(
 

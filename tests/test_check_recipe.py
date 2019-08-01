@@ -29,6 +29,16 @@ elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
 
+
+#---------------------------------------------------------------------------------------------------------
+## enable socket
+#---------------------------------------------------------------------------------------------------------
+from pytest_socket import enable_socket
+
+def pytest_enable_socket():
+    enable_socket()
+
+
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
 #---------------------------------------------------------------------------------------------------------
@@ -65,6 +75,7 @@ def test_list_files():
     """
     Test thate list_files function properly returns the list of files
     """
+    pytest_enable_socket()
 
     ## Use the CreateRecipe function to create a temporary directory to test list files with 
     dir1 = CreateRecipe(
@@ -119,6 +130,8 @@ def test_conda_platform():
     """
     Test that the conda_platform function correctly returns the system platform 
     """
+    pytest_enable_socket()
+
 
     platform = check_recipe.conda_platform()
     out = sys.platform
@@ -134,6 +147,8 @@ def test__build_use_system_platform():
     """
     test the _build function is affected by a bad order of the meta.yaml keys
     """
+    pytest_enable_socket()
+
 
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019 (noarch: generic removed from meta.yaml)
     recipe = CreateRecipe(
@@ -291,6 +306,8 @@ def test__build_bad_yaml_key_order():
     """
     test the _build function is affected by a bad order of the meta.yaml keys
     """
+    pytest_enable_socket()
+
 
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019 (meta.yaml keys reordered)
     recipe = CreateRecipe(
@@ -438,6 +455,8 @@ def test__build_ggd_requirments_removed_on_bad_build():
     """
     test the _build function is able to remove ggd requirements when the build fails
     """
+    pytest_enable_socket()
+
 
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019 (meta.yaml keys reordered)
     recipe = CreateRecipe(
@@ -591,6 +610,8 @@ def test__build_normal_run():
     """
     test the _build function properly builds a ggd recipe into a ggd pocakge using conda build
     """
+    pytest_enable_socket()
+
 
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019
     recipe = CreateRecipe(
@@ -741,6 +762,8 @@ def test__install_bad_run():
     """
     Test the _install method to properly handels a bad install 
     """
+    pytest_enable_socket()
+
 
     bz2_file = pytest.global_tarball_testing_file
     recipe_name = "bad-recipe"
@@ -922,6 +945,10 @@ def test__install_normal_run():
     """
     Test the _install method to properly install the trial-hg38-gaps-v1 package build using the "testing__build_normal_run" test
     """
+
+    pytest_enable_socket()
+
+
     ## Remove fragment files
     jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
                         {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
@@ -948,6 +975,8 @@ def test__install_package_already_installed():
     """
     Test the _install method properly identiifes an already installed package and does not install it
     """
+    pytest_enable_socket()
+
 
     jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
                         {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
@@ -972,6 +1001,8 @@ def test_get_recipe_from_bz2():
     """
     Test that get_recipe_from_bz2 function. 
     """
+    pytest_enable_socket()
+
     
     ## Use the previously created tarball.bz2 file from runing the _build funtion
     bz2_file = pytest.global_tarball_testing_file
@@ -1002,6 +1033,8 @@ def test__check_build():
     """
     Test the _check_build function to properly handle different genome builds
     """
+    pytest_enable_socket()
+
     
     ## Test Homo_sapiens
     species1 = "Homo_sapiens" 
@@ -1066,6 +1099,9 @@ def test_check_recipe_bz2_file():
     """
     Test the main check_recipe funtion using an already built recipe ready for installation
     """
+
+    pytest_enable_socket()
+
     ## Uninstall the already installed recipe
     try:
         sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
@@ -1116,6 +1152,9 @@ def test_check_recipe_recipe_path():
     """
     Test the main check_recipe funtion using an recipe path to install a ggd recipe
     """
+
+    pytest_enable_socket()
+
     ## Uninstall the already installed recipe
     try:
         sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
@@ -1156,6 +1195,8 @@ def test_check_recipe_uninstall_local():
    Test the main check_recipe funtion using an recipe path to install a ggd recipe and uninstalling the local recipe after checks
     (Using the --dont_uninstall or -du flag) (If the flag is not set, it is false)
    """
+   pytest_enable_socket()
+
    ## Uninstall the already installed recipe
    try:
        sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
@@ -1199,6 +1240,8 @@ def test_check_recipe_package_env_vars():
         3) If two files without an index, an env_var for only the dir
         4) If three+ files, an env_var for only the dir
     """
+
+    pytest_enable_socket()
 
     ## Test that an env_var is created for a single installed file and the dir
     recipe = CreateRecipe(
@@ -1826,6 +1869,8 @@ def test_get_modified_files():
     Test the get_modified_files correctly returns the modified files 
     """
 
+    pytest_enable_socket()
+
     ## Create temporary files
     files = CreateRecipe(
     """
@@ -1879,6 +1924,8 @@ def test_remove_package_after_installation():
     Test the remove_package_after_insllation method correctly uninstalls a local ggd recipe 
      This method is used to remove a package that was installed but that failed post intallation tests
     """
+
+    pytest_enable_socket()
 
     recipe = CreateRecipe(
     """
@@ -2037,6 +2084,8 @@ def get_a_tarfile():
     """
     helper script to run conda build on a recipe and get the tar file location 
     """
+    pytest_enable_socket()
+
     
     recipe = CreateRecipe(
     """
@@ -2193,6 +2242,8 @@ def copy_tarfile(tarfile_path, new_path):
     1) The file path to the copied/new tarfile
     """
 
+    pytest_enable_socket()
+
     ## Check that the new path exists 
     if os.path.exists(new_path) == False:
         os.mkdir(new_path)
@@ -2220,6 +2271,8 @@ def test_check_files_good_genomic_file():
     """
     Test the check_files function to properly check genomic file pairs
     """
+
+    pytest_enable_socket()
 
     files = CreateRecipe(
     """
@@ -2341,6 +2394,8 @@ def test_check_files_unpaired_genomic_file():
     """
     Test the check_files function to properly check genomic file pairs and fail if the pairs are incorrectly present
     """
+
+    pytest_enable_socket()
 
     ## Get tarfile
     tarfile_path = get_a_tarfile()
@@ -2562,6 +2617,8 @@ def test_check_yaml():
     """
     Test the check_yaml function  
     """
+
+    pytest_enable_socket()
 
     recipe = CreateRecipe(
     """

@@ -58,7 +58,10 @@ def get_channeldata(ggd_recipe,ggd_channel):
         except:
             pass
 
-    package_list = [x[0] for x in search_packages(jdict,ggd_recipe)]
+    package_list = []
+    if len(jdict["packages"].keys()) > 0:
+        package_list = [x[0] for x in search_packages(jdict, ggd_recipe)]
+
     if ggd_recipe in package_list:
         return(jdict)
     else:
