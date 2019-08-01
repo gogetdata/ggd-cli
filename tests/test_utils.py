@@ -28,7 +28,10 @@ elif sys.version_info[0] == 2:
 #---------------------------------------------------------------------------------------------------------
 ## enable socket
 #---------------------------------------------------------------------------------------------------------
-from pytest_socket import enable_socket
+from pytest_socket import disable_socket, enable_socket
+
+def pytest_disable_socket():
+    disable_socket()
 
 def pytest_enable_socket():
     enable_socket()
@@ -283,8 +286,10 @@ def test_check_for_internet_connection():
 
     assert utils.check_for_internet_connection() == True
     assert utils.check_for_internet_connection(3) == True
-    assert utils.check_for_internet_connection(0.00000000001) == False
-
+    
+    pytest_disable_socket()
+    assert utils.check_for_internet_connection() == False
+    pytest_enable_socket()
 
 
 def test_update_channel_data_files():
