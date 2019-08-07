@@ -49,14 +49,15 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
     conda config --system --add channels ggd-genomics
 
 
-    # step 3: install ggd requirements 
+    # step 3: cleanup
+    conda clean -y --all
+    
+    
+    # step 4: install ggd requirements 
     conda install -y --file requirements.txt 
 
 
-    # step 5: cleanup
-    conda clean -y --all
-
-    # Add local channel as highest priority
+    # step 5: Add local channel as highest priority
     mkdir -p $WORKSPACE/miniconda/conda-bld/{noarch,linux-64,osx-64}
     conda index $WORKSPACE/miniconda/conda-bld
     conda config --system --add channels file://$WORKSPACE/miniconda/conda-bld
