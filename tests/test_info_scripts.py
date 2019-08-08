@@ -62,6 +62,8 @@ def test_show_env_goodrun():
     """
     Test that show_env functoin properly provides the environment variable for an installed package
     """
+    print(sp.check_output(["conda", "--version"]))
+    
     try:
         install_hg19_gaps_ucsc_v1()
     except:
