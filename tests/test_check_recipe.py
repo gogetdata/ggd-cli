@@ -114,8 +114,6 @@ def test_list_files():
     files = check_recipe.list_files(dir1_path)
     assert len(files) == 0
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test_conda_platform():
     """
@@ -130,8 +128,6 @@ def test_conda_platform():
         assert "osx" in platform
     else:
         assert out in platform
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test__build_use_system_platform():
@@ -290,8 +286,6 @@ def test__build_use_system_platform():
     ## Remove the platform specific build
     os.remove(tarball_file_path)
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
     
 def test__build_bad_yaml_key_order():
     """
@@ -438,8 +432,6 @@ def test__build_bad_yaml_key_order():
         check_recipe._build(recipe_dir_path,yaml_file)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("5") ## Check that the exit code is 1
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test__build_ggd_requirments_removed_on_bad_build():
@@ -590,8 +582,6 @@ def test__build_ggd_requirments_removed_on_bad_build():
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("5") ## Check that the exit code is 1
     
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
  
 ## A global variable for a successfull tarball file created using the ggd _build function
 pytest.global_tarball_testing_file = ""
@@ -746,8 +736,6 @@ def test__build_normal_run():
     assert os.path.isfile(tarball_file_path)
     assert "noarch" in tarball_file_path
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test__install_bad_run():
     """
@@ -765,8 +753,6 @@ def test__install_bad_run():
         check_recipe._install(bz2_file,recipe_name)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test__install_bad_recipe():
@@ -931,8 +917,6 @@ def test__install_bad_recipe():
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/bad-recipe-hg38-gaps-v1/1")) == False 
     
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test__install_normal_run():
     """
@@ -959,8 +943,6 @@ def test__install_normal_run():
     recipe_name = "trial-hg38-gaps-v1"
     assert check_recipe._install(bz2_file, recipe_name) == True
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test__install_package_already_installed():
     """
@@ -985,8 +967,6 @@ def test__install_package_already_installed():
     recipe_name = "trial-hg38-gaps-v1"
     assert check_recipe._install(bz2_file, recipe_name) == False
    
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test_get_recipe_from_bz2():
     """
@@ -1016,8 +996,6 @@ def test_get_recipe_from_bz2():
     assert metafile["about"]["summary"] == "hg38 Assembly gaps from USCS" 
     assert metafile["about"]["tags"]["data-version"] == "11-Mar-2019" 
     assert metafile["about"]["tags"]["ggd-channel"] == "genomics" 
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test__check_build():
@@ -1083,8 +1061,6 @@ def test__check_build():
         output = temp_stderr.getvalue().strip() 
         assert "ERROR: genome-build: bad-build not found in github repo for the Homo_sapiens species" in str(output)
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test_check_recipe_bz2_file():
     """
@@ -1135,8 +1111,6 @@ def test_check_recipe_bz2_file():
     assert "* Successful recipe check! *" not in output
     assert "Package already installed on your system" in output
     
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test_check_recipe_recipe_path():
     """
@@ -1175,8 +1149,6 @@ def test_check_recipe_recipe_path():
     assert "ggd_trial_hg38_gaps_v1" in out
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == True 
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test_check_recipe_uninstall_local():
@@ -1218,8 +1190,6 @@ def test_check_recipe_uninstall_local():
    conda_root = utils.conda_root()
    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
    
-   assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test_check_recipe_package_env_vars():
     """
@@ -1850,8 +1820,6 @@ def test_check_recipe_package_env_vars():
     assert "$ggd_three_files_v1_file" not in output
     assert "$ggd_three_files_v1_dir" in output
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def test_get_modified_files():
     """
@@ -1903,8 +1871,6 @@ def test_get_modified_files():
             assert file_tuple[0] in filtered_list
         else:
             assert file_tuple[0] not in filtered_list
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test_remove_package_after_installation():
@@ -2065,8 +2031,6 @@ def test_remove_package_after_installation():
     pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial-hg38-gaps-ucsc-v1" not in pkg_out ## Identify that it was removed from the conda env
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def get_a_tarfile():
     """
@@ -2212,8 +2176,6 @@ def get_a_tarfile():
 
     return(tarball_file_path)
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
-
 
 def copy_tarfile(tarfile_path, new_path):
     """
@@ -2251,8 +2213,6 @@ def copy_tarfile(tarfile_path, new_path):
 
     ## Return the path to the new tarfile
     return(new_tarfile_path)
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test_check_files_good_genomic_file():
@@ -2374,8 +2334,6 @@ def test_check_files_good_genomic_file():
 
     ## Remove the tempfile
     os.remove(hold_tarfile_path)
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test_check_files_unpaired_genomic_file():
@@ -2597,8 +2555,6 @@ def test_check_files_unpaired_genomic_file():
 
     ## Remove the tempfile
     os.remove(hold_tarfile_path)
-
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
 def test_check_yaml():
@@ -2827,6 +2783,5 @@ def test_check_yaml():
         print(str(e))
         assert False
 
-    assert utils.get_required_conda_version() in str(sp.check_output(["conda","--version"]).decode("utf8"))
 
 
