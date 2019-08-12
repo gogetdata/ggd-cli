@@ -283,7 +283,7 @@ def test__build_use_system_platform():
 
     ## Test a normal run of _build()
     recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-v1"] 
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
 
@@ -442,7 +442,7 @@ def test__build_bad_yaml_key_order():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-v1"] 
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     
     ## Test conda build fail for bad yaml key order
     with pytest.raises(SystemExit) as pytest_wrapped_e:
@@ -593,7 +593,7 @@ def test__build_ggd_requirments_removed_on_bad_build():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-v1"] 
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     
     ## Test conda build fail for bad yaml key order
     with pytest.raises(SystemExit) as pytest_wrapped_e:
@@ -750,7 +750,7 @@ def test__build_normal_run():
     ## Set global recipe path
     pytest.global_ggd_recipe_path = recipe_dir_path
     ## Get yaml file
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
     ## Set global taraball file path
     pytest.global_tarball_testing_file = tarball_file_path
@@ -923,7 +923,7 @@ def test__install_bad_recipe():
 
     ## Build the recipe using the _build function
     recipe_dir_path = recipe.recipe_dirs["bad-recipe-hg38-gaps-v1"] 
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
     recipe_name = "bad-recipe-hg38-gaps-v1"
 
@@ -2060,7 +2060,7 @@ def test_remove_package_after_installation():
     ## Test a normal run of _build()
     recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-ucsc-v1"] 
     ## Get yaml file
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
     check_recipe._install(tarball_file_path,"trial-hg38-gaps-ucsc-v1")
     assert os.path.isfile(tarball_file_path)
@@ -2220,7 +2220,7 @@ def get_a_tarfile():
     ## Test a normal run of _build()
     recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-ucsc-v1"] 
     ## Get yaml file
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
 
     return(tarball_file_path)
@@ -2661,7 +2661,7 @@ def test_check_yaml():
     recipe.write_recipes()
 
     recipe_dir_path = recipe.recipe_dirs["testing-recipe"]
-    yaml_file = yaml.load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
 
     ## Test a good run of check_yaml
     species, build, version = check_recipe.check_yaml(yaml_file)
