@@ -1189,7 +1189,7 @@ def test_check_recipe_uninstall_local():
    assert "ggd_trial_hg38_gaps_v1" not in out
    conda_root = utils.conda_root()
    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
-
+   
 
 def test_check_recipe_package_env_vars():
     """
@@ -1871,7 +1871,6 @@ def test_get_modified_files():
             assert file_tuple[0] in filtered_list
         else:
             assert file_tuple[0] not in filtered_list
-
 
 
 def test_remove_package_after_installation():
