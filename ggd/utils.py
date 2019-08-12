@@ -538,7 +538,10 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
 
     ## Create a solver state container 
-    ssc = SolverStateContainer(prefix=target_prefix, update_modifier=context.update_modifier, deps_modifier=context.deps_modifier, prune=True, ignore_pinned=context.ignore_pinned, force_remove=context.force_remove)
+
+    ssc = SolverStateContainer(prefix=context.target_prefix, update_modifier=context.update_modifier, 
+                               deps_modifier=context.deps_modifier, prune=True, ignore_pinned=context.ignore_pinned, 
+                               force_remove=context.force_remove, should_retry_solve=False)
 
     ## Get channel metadata
     with Spinner("Collecting package metadata", not context.verbosity and not context.quiet, context.json):
