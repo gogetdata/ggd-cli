@@ -489,22 +489,22 @@ def test_list_files():
     assert pytest_wrapped_e.match("1") ## check that the exit code is 1
 
 
-def test_list_file_with_prefix():
+def test_list_files_with_prefix():
     """
     test the list-files function with --prefix flag set
     """
     pytest_enable_socket()
 
     ## Temp conda environment 
-    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_e")
     ### Remove temp env if it already exists
-    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    sp.check_output(["conda", "env", "remove", "--name", "temp_e"])
     try:
         shutil.rmtree(temp_env)
     except Exception:
         pass
     ## Create conda environmnet 
-    sp.check_output(["conda", "create", "--name", "temp_env"])
+    sp.check_output(["conda", "create", "--name", "temp_e"])
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
@@ -536,7 +536,7 @@ def test_list_file_with_prefix():
     assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2))
     
     ## Remove temp env
-    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    sp.check_output(["conda", "env", "remove", "--name", "temp_e"])
     try:
         shutil.rmtree(temp_env)
     except Exception:

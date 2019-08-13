@@ -467,6 +467,7 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     from conda._vendor.toolz import concat, concatv
     from conda.resolve import Resolve
     from conda.models.match_spec import MatchSpec
+    from conda.base.constants import UpdateModifier
     from conda.common.io import ProgressBar
     from conda.gateways.logging import set_all_logger_level, set_conda_log_level
     from conda.gateways.logging import VERBOSITY_LEVELS
@@ -538,8 +539,8 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
 
     ## Create a solver state container 
-
-    ssc = SolverStateContainer(prefix=context.target_prefix, update_modifier=context.update_modifier, 
+    ### Make sure to Freeze those packages already installed in the current env in order to bypass update checking.  
+    ssc = SolverStateContainer(prefix=context.target_prefix, update_modifier=UpdateModifier.FREEZE_INSTALLED, 
                                deps_modifier=context.deps_modifier, prune=True, ignore_pinned=context.ignore_pinned, 
                                force_remove=context.force_remove, should_retry_solve=False)
 
