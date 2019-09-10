@@ -7,6 +7,8 @@ import subprocess as sp
 import requests
 import locale
 import json
+import shutil
+import re
 from pytest_socket import SocketBlockedError
 
 LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/ggd-info/"))
@@ -263,6 +265,110 @@ def update_genome_metadata_files():
     channeljson = requests.get(ggd_channels_url).json()
     with open(os.path.join(GENOME_METADATA_DIR,"ggd_channels.json"),"w") as s:
         json.dump(channeljson,s)
+
+    return(True)
+
+
+def update_installed_pkg_metadata(prefix=None,channel="ggd-genomcs",remove_old=True,exclude_pkg=None,add_package=None):
+    """Method to update the local metadata file in a conda environment that contains information about the installed ggd packages
+
+    update_installed_pkg_metadata
+    =============================
+    Method to update the metadata file contains information on the packages installed by ggd. This method 
+     uses the "get_conda_package_list" method, a method to get the ggd packages from 'conda list', copies 
+     the tar.bz2 files to the ggd_info dir, and creates a channeldata.json file using "conda index". The
+     channeldata.json metadata file contains information on the installed ggd recipes
+
+    if:
+        remove_old == True
+        exclude_pkg != None (== some ggd package name)
+    then:
+        remove package from conda info list (Should be removed, but isn't because conda session still active. Used during uninstall)
+
+    if:
+        remove_old == False
+        add_package != None (== some ggd package name)
+    then:
+        do not re build ggd_info. 
+        Remove "add_package", a ggd package name, if it exists in the noarch dir
+        Add only that package to the dir and re-index ggd_info 
+        (Should speed up install)
+
+    Parameters:
+    ----------
+    1) prefix: The conda environment/prefix to update. (Default = the current conda environment)
+    2) channel: The conda channel the packages are from. (Default = ggd-genomics)
+    3) remove_old: whether or not to compelete remove the ggd_info dir and re-create it
+    4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
+    5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
+    """
+
+    ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
+    if add_package != None and remove_old == True:
+        add_package = None
+        print("\n\t-> Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata.")
+        print("\n\t    The ggd info metadata will be re-built and all ggd packages will be added.")
+
+    ## Check prefix
+    if prefix == None:
+        prefix = conda_root()
+    else: 
+        prefix_in_conda(prefix)
+
+    ## Get the ggd info metadata dir
+    ggd_info_dir = os.path.join(prefix,"share","ggd_info")
+
+    ## Remove old ggd_info dir and re-create it
+    if remove_old:
+        if os.path.isdir(ggd_info_dir):
+            shutil.rmtree(ggd_info_dir)
+
+    ## Make metadata dir if it doesn't exist
+    if not os.path.isdir(ggd_info_dir):
+        os.makedirs(ggd_info_dir)
+        os.makedirs(os.path.join(ggd_info_dir,"noarch"))
+        with open(os.path.join(ggd_info_dir,"channeldata.json"),"w") as f:
+            f.write("{}")
+
+    ## Create the "noarch" dir
+    if not os.path.isdir(os.path.join(ggd_info_dir,"noarch")):
+        os.makedirs(os.path.join(ggd_info_dir,"noarch"))
+
+    ## Remove a duplicate package being added 
+    if add_package != None and remove_old == False: 
+        current = [re.search(add_pacakge+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(add_package,x) != None]
+        if current:
+            os.remove(os.path.join(ggd_info_dir,"noarch",current[0]))
+
+    ## Get a list of pkgs installed in a conda environemnt (Using conda list)
+    pkg_list = get_conda_package_list(prefix,add_package) if add_package != None else get_conda_package_list(prefix)  
+
+    ## Get the dir to the pkgs dir
+    pkg_dir = os.path.join(prefix,"pkgs")
+
+    ## Remove package from list if specified and for some reason is in the conda package list 
+    if exclude_pkg != None and remove_old == True:
+        if exclude_pkg in pkg_list.keys():
+            try: 
+                assert not os.path.exists(os.path.join(pkg_dir,"{}-{}-{}.tab.bz2".format(exclude_pkg,pkg_list[exclude_pkg]["version"],pkg_list[exclude_pkg]["build"]))), ("\n\t-> ERROR: The package to exclude `{p}` is still installed on your system.".format(p=exclude_pkg))
+            except AssertionError as e:
+                print(str(e))
+                sys.exit(1)
+            pkg_list.pop(exclude_pkg)
+
+    ## Copy the ggd package tarfiles to the ggd info dir
+    for pkg_name in pkg_list.keys():
+        version = pkg_list[pkg_name]["version"]
+        build = pkg_list[pkg_name]["build"]
+        tarfile_path = os.path.join(pkg_dir,"{}-{}-{}.tar.bz2".format(pkg_name,version,build))
+        
+        try:
+            shutil.copy2(tarfile_path, os.path.join(ggd_info_dir,"noarch"))
+        except OSError as e:
+            sys.exit(e)
+
+    ## index the .tar.bz2 files in the ggd info metadata dir 
+    out = sp.check_call(['conda', 'index', ggd_info_dir, '-n',  channel],stdout=sp.PIPE,stderr=sp.PIPE)
 
     return(True)
 
