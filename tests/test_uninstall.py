@@ -21,6 +21,7 @@ from ggd import utils
 from ggd import uninstall
 from ggd import show_env
 from ggd import list_files
+from ggd.utils import get_conda_package_list
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -317,6 +318,12 @@ def test_uninstall():
 
     #### Check non-failure uninstall command
     ggd_recipe = "hg19-gaps-ucsc-v1"
+
+    #### Get conda list pkg info
+    pkg_info = get_conda_package_list(utils.conda_root(),ggd_recipe)
+    assert ggd_recipe in pkg_info.keys()
+
+    #### Test uninstall 
     args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
     assert uninstall.uninstall((),args) == True
 
@@ -351,4 +358,15 @@ def test_uninstall():
     #### Check that the ggd package is no longer in the list of conda packages
     output = sp.check_output(["conda", "list", ggd_recipe])
     assert ggd_recipe not in str(output)
+
+    ### Test that the ggd_info metadata is updated with ggd pkg
+    version = pkg_info[ggd_recipe]["version"]
+    build = pkg_info[ggd_recipe]["build"]
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch"))
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch",ggd_recipe+"-{}-{}.tar.bz2".format(version,build))) == False
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json"))
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jfile:
+        channeldata = json.load(jfile)
+        assert ggd_recipe not in channeldata["packages"]
+
 

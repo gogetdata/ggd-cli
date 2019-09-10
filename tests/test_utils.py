@@ -17,8 +17,9 @@ from argparse import ArgumentParser
 import glob
 import contextlib
 import tarfile
-from helpers import CreateRecipe, uninstall_hg19_gaps_ucsc_v1
+from helpers import CreateRecipe, install_hg19_gaps_ucsc_v1, uninstall_hg19_gaps_ucsc_v1
 from ggd import utils
+from ggd import install
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -339,6 +340,98 @@ def test_update_genome_metadata_files():
     assert os.path.exists(os.path.join(file_path,"build_to_species.json"))
     assert os.path.exists(os.path.join(file_path,"species_to_build.json"))
     assert os.path.exists(os.path.join(file_path,"ggd_channels.json"))
+
+
+def test_update_installed_pkg_metadata():
+    """
+    Test that the update_installed_pkg_metadata method correctly updates the ggd info metadata with installed packages
+    """
+
+    ## enable socket
+    pytest_enable_socket()
+
+    ggd_package = "hg19-gaps-ucsc-v1"
+
+    ## Try to install ggd_package. If fails, most likely due to the fact that it is already installed
+    try:
+        install_hg19_gaps_ucsc_v1()
+    except Exception:
+        pass
+
+    ggd_info_dir = os.path.join(utils.conda_root(),"share","ggd_info")
+
+    ## Test normal run
+    if os.path.isdir(ggd_info_dir):
+        shutil.rmtree(ggd_info_dir)
+    assert os.path.exists(ggd_info_dir) == False
+    
+    assert utils.update_installed_pkg_metadata() == True
+    matches = [re.search(ggd_package+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(ggd_package,x) != None]
+    assert len(matches) > 0
+    with open(os.path.join(ggd_info_dir,"channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert ggd_package in jdict["packages"]
+    assert os.path.exists(ggd_info_dir) == True
+
+
+    ## Test add_package != None and remove_old == True
+    ### add_package != None and remove_old == True should never happen. This would result in only 1 package in the metadata
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        utils.update_installed_pkg_metadata(add_package="hg19-gaps-ucsc-v1",remove_old=True)
+    output = temp_stdout.getvalue().strip() 
+    assert ("Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata" in output)
+    assert ("The ggd info metadata will be re-built and all ggd packages will be added" in output)
+
+
+    ## Test prefix not set:
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env9")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env9"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "temp_env9"])
+
+    ### Install ggd recipe using conda into temp_env
+    ggd_package2 = "hg19-pfam-domains-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package2, version='-1', prefix = temp_env)
+    assert install.install((), install_args) == True 
+
+    ggd_info_dir2 = os.path.join(temp_env,"share","ggd_info")
+
+    ## Test the installed created the ggd info metadata 
+    matches = [re.search(ggd_package2+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir2,"noarch")) if re.search(ggd_package2,x) != None]
+    assert len(matches) > 0
+    with open(os.path.join(ggd_info_dir2,"channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert ggd_package2 in jdict["packages"]
+    assert os.path.exists(ggd_info_dir2) == True
+
+    ## remove ggd info metadata
+    if os.path.isdir(ggd_info_dir2):
+        shutil.rmtree(ggd_info_dir2)
+    assert os.path.exists(ggd_info_dir2) == False
+
+    ## Run the update with prefix set and check the prefix
+    assert utils.update_installed_pkg_metadata(prefix=temp_env) == True
+    matches = [re.search(ggd_package2+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir2,"noarch")) if re.search(ggd_package2,x) != None]
+    assert len(matches) > 0
+    with open(os.path.join(ggd_info_dir2,"channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert ggd_package2 in jdict["packages"]
+    assert os.path.exists(ggd_info_dir2) == True
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env9"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 def test_validate_build():

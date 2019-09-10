@@ -70,11 +70,28 @@ def redirect_stderr(target):
 ## Unit Tests for ggd install
 #---------------------------------------------------------------------------------------------------------
 
+
+def remove_pfam():
+    """
+    Helper script to setup install run
+    """
+
+    ## Uninstall pfam for later use
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    if ggd_recipe not in str(sp.check_output(["conda", "list"]).decode('utf8')):
+        try:
+            uninstall.uninstall((),Namespace(channel='genomics', command='uninstall', name=ggd_recipe))
+            sp.check_output(["conda", "uninstall", ggd_recipe]) 
+        except:
+            pass
+
+
 def test_check_ggd_recipe_fake_recipe():
     """
     Test the check_ggd_recipe function returns None if an invalide recipe is provided
     """
     pytest_enable_socket()
+    remove_pfam()
 
     assert install.check_ggd_recipe("Not_a_real_recipe","genomics") == None
 
@@ -314,6 +331,11 @@ def test_check_conda_installation_pacakge_is_installed():
         install.check_conda_installation(recipe,version)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
+    try:
+        uninstall_hg19_gaps_ucsc_v1()
+    except:
+        pass
+
 
 def test_check_conda_installation_pacakge_is_installed_noninstalled_version_desingation():
     """
@@ -492,11 +514,6 @@ def test_install_from_cache():
     """
     pytest_enable_socket()
 
-    try:
-        uninstall_hg19_gaps_ucsc_v1()
-    except:
-        pass
-
     ## Bad install
     name = "Fake_hg19-gaps"
     ggd_channel = "genomics"
@@ -513,15 +530,32 @@ def test_install_from_cache():
         install.install_from_cached(name, ggd_channel,jdict,default_version)   
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
-
     ## Good Install 
-    name = "hg19-gaps-ucsc-v1"
+    name = "hg19-cpg-islands-ucsc-v1"
     ggd_channel = "genomics"
     default_version = "-1" 
 
     jdict = install.check_ggd_recipe(name,ggd_channel)
 
     assert install.install_from_cached(name, ggd_channel,jdict,default_version) == True   
+
+    ### Test that the ggd_info metadata is updated with ggd pkg
+    pkg_info = get_conda_package_list(utils.conda_root(),name)
+    assert name in pkg_info.keys()
+    version = pkg_info[name]["version"]
+    build = pkg_info[name]["build"]
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch"))
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch",name+"-{}-{}.tar.bz2".format(version,build)))
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json"))
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jfile:
+        channeldata = json.load(jfile)
+        assert name in channeldata["packages"]
+
+    try:
+        args = Namespace(channel='genomics', command='uninstall', name=name)
+        uninstall.uninstall((),args)
+    except:
+        pass
 
 
 def test_install_from_cache_with_prefix_set():
@@ -589,6 +623,18 @@ def test_install_from_cache_with_prefix_set():
 
     assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
     assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ### Test that the ggd_info metadata is updated with ggd pkg
+    pkg_info = get_conda_package_list(temp_env,name)
+    assert name in pkg_info.keys()
+    version = pkg_info[name]["version"]
+    build = pkg_info[name]["build"]
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","noarch"))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","noarch",name+"-{}-{}.tar.bz2".format(version,build)))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","channeldata.json"))
+    with open(os.path.join(temp_env,"share","ggd_info","channeldata.json")) as jfile:
+        channeldata = json.load(jfile)
+        assert name in channeldata["packages"]
 
     ## Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "temp_env3"])
@@ -672,6 +718,19 @@ def test_conda_install():
     assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
     assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file2))
 
+
+    ### Test that the ggd_info metadata is updated with ggd pkg
+    pkg_info = get_conda_package_list(utils.conda_root(),name)
+    assert name in pkg_info.keys()
+    version = pkg_info[name]["version"]
+    build = pkg_info[name]["build"]
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch"))
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch",name+"-{}-{}.tar.bz2".format(version,build)))
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json"))
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jfile:
+        channeldata = json.load(jfile)
+        assert name in channeldata["packages"]
+
     uninstall_hg19_gaps_ucsc_v1()
 
     ## Test with designated version
@@ -727,6 +786,18 @@ def test_conda_install_with_prefix_set():
 
     assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
     assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ### Test that the ggd_info metadata is updated with ggd pkg
+    pkg_info = get_conda_package_list(temp_env,name)
+    assert name in pkg_info.keys()
+    version = pkg_info[name]["version"]
+    build = pkg_info[name]["build"]
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","noarch"))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","noarch",name+"-{}-{}.tar.bz2".format(version,build)))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","channeldata.json"))
+    with open(os.path.join(temp_env,"share","ggd_info","channeldata.json")) as jfile:
+        channeldata = json.load(jfile)
+        assert name in channeldata["packages"]
 
     ## Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "temp_env4"])
@@ -941,15 +1012,7 @@ def test_install_main_function():
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
-    ## Install hg19-gaps-ucsc-v1
-    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
-    uninstall.uninstall((),Namespace(channel='genomics', command='uninstall', name=ggd_recipe))
-    try:
-        sp.check_output(["conda", "uninstall", ggd_recipe]) 
-    except Exception:
-        pass
-    assert ggd_recipe not in str(sp.check_output(["conda", "list"]).decode('utf8'))
-
+    ## Install pfam
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
     args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1',prefix=None)
     assert install.install((), args) == True
@@ -978,6 +1041,8 @@ def test_install_main_function():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+
+    remove_pfam
 
 
 def test_install_main_function_with_prefix_set():
