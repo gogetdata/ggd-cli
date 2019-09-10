@@ -23,7 +23,7 @@ import tarfile
 from helpers import CreateRecipe, uninstall_hg19_gaps_ucsc_v1, install_hg19_gaps_ucsc_v1
 from ggd import utils
 from ggd import install
-from ggd import list_pkg_info, list_files, show_env, make_bash, uninstall
+from ggd import list_pkg_info, list_files, show_env, make_bash, uninstall, list_installed_pkgs
 
 
 if sys.version_info[0] == 3:
@@ -854,6 +854,43 @@ def test_uninstall_internet_free():
     #### Check that the ggd package is no longer in the list of conda packages
     output = sp.check_output(["conda", "list", ggd_recipe])
     assert ggd_recipe not in str(output)
+
+
+def test_list_installed_packages_internet_free():
+    """
+    Test the main function of ggd list in an internet free context
+    """
+
+    ## Install hg19-gaps
+    try:
+        pytest_enable_socket()
+        install_hg19_gaps_ucsc_v1()
+    except:
+        pass
+
+    ## Check show-env in an internet free context
+    pytest_disable_socket()
+    ### Check that there is no interent 
+    assert utils.check_for_internet_connection() == False
+
+    args = Namespace(command='list', pattern=None, prefix=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-gaps-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "To use the environment variables run `source activate base" in output
+    assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
+
+    args = Namespace(command='list', pattern=None, prefix=utils.conda_root())
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-gaps-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "The environment variables are only available when you are using the '{}' conda environment".format(utils.conda_root()) in output
 
 
 

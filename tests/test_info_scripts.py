@@ -18,8 +18,10 @@ from helpers import install_hg19_gaps_ucsc_v1, uninstall_hg19_gaps_ucsc_v1, Crea
 from ggd import show_env
 from ggd import list_files
 from ggd import list_pkg_info
+from ggd import list_installed_pkgs
 from ggd import utils
 from ggd import install
+from ggd.utils import get_conda_package_list 
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -55,7 +57,7 @@ def redirect_stdout(target):
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Unit Test for ggd show-env, ggd list-files, and ggd pkg-info
+# Unit Test for ggd show-env, ggd get-files, ggd pkg-info, and ggd list
 #-----------------------------------------------------------------------------------------------------------------------
 
 
@@ -339,7 +341,7 @@ def test_test_vars():
         assert var in inactive
 
 
-### List files
+### get files
 
 def test_in_ggd_channel():
     """
@@ -1094,6 +1096,197 @@ def test_info_main():
     output = temp_stdout.getvalue().strip() 
     assert "-> The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
 
+
+### list (List installed packages)
+
+def test_load_json():  
+    """
+    Test that the load json file correctly returns a dictionary loaded from a json object 
+    """
+
+    pytest_enable_socket()
+    
+    ## Make file 
+    file_name = "./tempjson.json"
+    json_object = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Madeup_package': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/Madeup_package-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}}}
+    with open(file_name, "w") as fn:
+        json.dump(json_object, fn)
+
+    jdict = list_installed_pkgs.load_json(file_name)
+    assert list(jdict["packages"].keys())[0] == "Madeup_package"
+    assert jdict["packages"]["Madeup_package"]["version"] == "1"
+    assert jdict["packages"]["Madeup_package"]["identifiers"]["genome-build"] == "hg19"
+    assert jdict["packages"]["Madeup_package"]["identifiers"]["species"] == "Homo_sapiens"
+
+    os.remove(file_name)
+
+
+def test_get_environment_variables():
+    """
+    Test the get_environment_variables correctly gets the environment variables in the designated prefix
+    """
+
+    ## enable socket
+    pytest_enable_socket()
+
+    ## Test the hg19 gaps enviroment variable exists
+    try:
+        install_hg19_gaps_ucsc_v1()
+    except:
+        pass
+
+
+    env_vars = list_installed_pkgs.get_environment_variables(utils.conda_root())
+    assert "ggd_hg19_gaps_ucsc_v1_file" in env_vars.keys()
+    assert "ggd_hg19_gaps_ucsc_v1_dir" in env_vars.keys()
+
+    ## Test that "None" is returned for no enviroment variables
+    assert list_installed_pkgs.get_environment_variables(os.path.join(utils.conda_root(),"BadPath")) == None
+
+    ## Test using a different prefix
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "temp_env"])
+
+    ### Install ggd recipe using conda into temp_env
+    ggd_package2 = "hg19-pfam-domains-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package2, version='-1', prefix = temp_env)
+    assert install.install((), install_args) == True 
+
+    env_vars = list_installed_pkgs.get_environment_variables(temp_env)
+    assert "ggd_hg19_pfam_domains_ucsc_v1_file" in env_vars.keys()
+    assert "ggd_hg19_pfam_domains_ucsc_v1_dir" in env_vars.keys()
+    
+    ## Keep pfam in temp_env for future tests
+
+
+def test_list_pkg_info():
+    """
+    test the list_pkg_info function displays the correct info for the designated prefix
+    """
+    
+    ## Test a normal run
+    pkg_name = "hg19-gaps-ucsc-v1"
+    pkg_name = "hg19-gaps-ucsc-v1"
+    ggd_channel = "genomics"
+    prefix = utils.conda_root()
+    jdict = list_installed_pkgs.load_json(os.path.join(prefix,"share","ggd_info","channeldata.json"))
+    env_vars = list_installed_pkgs.get_environment_variables(prefix)
+    pkg_info = get_conda_package_list(prefix)
+
+
+    ### Prefix not set
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_pkg_info([pkg_name],jdict["packages"],env_vars,pkg_info,prefix,False)
+    output = temp_stdout.getvalue().strip() 
+    assert pkg_name in output
+    assert pkg_name.replace("-","_")+"_file" in output
+    assert pkg_name.replace("-","_")+"_dir" in output
+    assert "To use the environment variables run `source activate base" in output
+    assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+
+    ## prefix set
+    pkg_name = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel = "genomics"
+    prefix = temp_env = os.path.join(utils.conda_root(), "envs", "temp_env") ## From test_get_environment_variables()
+    jdict = list_installed_pkgs.load_json(os.path.join(prefix,"share","ggd_info","channeldata.json"))
+    env_vars = list_installed_pkgs.get_environment_variables(prefix)
+    pkg_info = get_conda_package_list(prefix)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_pkg_info([pkg_name],jdict["packages"],env_vars,pkg_info,prefix,True)
+    output = temp_stdout.getvalue().strip() 
+    assert pkg_name in output
+    assert pkg_name.replace("-","_")+"_file" in output
+    assert pkg_name.replace("-","_")+"_dir" in output
+    assert "The environment variables are only available when you are using the '{p}' conda environment".format(p=prefix) in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+
+
+def test_list_installed_packages():
+    """
+    Test the main function of ggd list
+    """
+
+    ## Normal Run
+    args = Namespace(command='list', pattern=None, prefix=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-gaps-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "To use the environment variables run `source activate base" in output
+    assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
+
+    ## Pattern set to exact package name
+    args = Namespace(command='list', pattern="hg19-gaps-ucsc-v1", prefix=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-gaps-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "To use the environment variables run `source activate base" in output
+    assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
+
+    ## Pattern set to beginning of package name
+    args = Namespace(command='list', pattern="hg19", prefix=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-gaps-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "To use the environment variables run `source activate base" in output
+    assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
+
+    ## Pattern set to middle of package name
+    args = Namespace(command='list', pattern="gaps", prefix=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-gaps-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "To use the environment variables run `source activate base" in output
+    assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
+
+    ## Pattern does not match an installed package
+    args = Namespace(command='list', pattern="BADPATTERN", prefix=None)
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        list_installed_pkgs.list_installed_packages((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("'{p}' did not match any installed data packages".format(p="BADPATTERN"))
+
+    ## Package in set prefix (Not conda_root)
+    p = temp_env = os.path.join(utils.conda_root(), "envs", "temp_env") ## From test_get_environment_variables()
+    args = Namespace(command='list', pattern=None, prefix=p)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-pfam-domains-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "The environment variables are only available when you are using the '{}' conda environment".format(p) in output
+
+    ## Remove temp env created in test_get_environment_variables()
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 #--------------------------------------------------------
