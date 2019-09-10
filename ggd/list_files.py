@@ -23,7 +23,7 @@ SPECIES_LIST = get_species()
 ## Argument Parser 
 #-------------------------------------------------------------------------------------------------------------
 def add_list_files(p):
-    c = p.add_parser('list-files', help="List files for an installed ggd recipe", description="Get a list of file(s) for an installed ggd package")
+    c = p.add_parser('get-files', help="Get the data files for a specific installed ggd data package", description="Get a list of file(s) for a specific installed ggd package")
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), help="The ggd channel of the recipe to find. (Default = genomics)")
     c.add_argument("-s", "--species", help="(Optional) species recipe is for. Use '*' for any species", choices=SPECIES_LIST)
     c.add_argument("-g", "--genome-build", help="(Optional) genome build the recipe is for. Use '*' for any genome build.")
