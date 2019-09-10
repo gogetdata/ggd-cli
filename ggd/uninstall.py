@@ -17,6 +17,7 @@ from .utils import check_for_internet_connection
 from .search import load_json, load_json_from_url, search_packages
 from .show_env import remove_env_variable, activate_enviroment_variables
 from .utils import get_conda_package_list
+from .utils import update_installed_pkg_metadata
 
 SPECIES_LIST = get_species()
 
@@ -24,7 +25,7 @@ SPECIES_LIST = get_species()
 ## Argument Parser 
 #-------------------------------------------------------------------------------------------------------------
 def add_uninstall(p):
-    c = p.add_parser('uninstall', help="uninstall a ggd data recipe")
+    c = p.add_parser('uninstall', help="Uninstall a ggd data data package", description="Use ggd to uninstall a ggd data package installed in the current conda environment")
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), help="The ggd channel of the recipe to uninstall. (Default = genomics)")
     c.add_argument("name", help="the name of the recipe to uninstall")
     c.set_defaults(func=uninstall)
@@ -114,6 +115,7 @@ def check_conda_installation(ggd_recipe):
     if ggd_recipe in installed_ggd_packages:
         print("\n\t-> %s is installed by conda on your system" %ggd_recipe)
         return(conda_uninstall(ggd_recipe))
+
     else:
         print("\n\t-> %s is NOT installed on your system" %ggd_recipe)
         
@@ -211,7 +213,11 @@ def uninstall(parser, args):
     if len(ggd_jsonDict) > 0:
         check_for_installation(args.name,ggd_jsonDict)
     else:
-        print("\n\t-> Skipping pakage removal from system step")
+        print("\n\t-> Skipping package removal from system step")
+
+    ## Update installed package list
+    print("\n\t-> Updating installed package list")
+    update_installed_pkg_metadata(exclude_pkg = args.name)
 
     print("\n\t-> DONE")
 

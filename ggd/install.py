@@ -21,13 +21,14 @@ from .uninstall import remove_from_condaroot, check_for_installation
 from .utils import get_required_conda_version
 from .utils import prefix_in_conda
 from .utils import get_conda_package_list
+from .utils import update_installed_pkg_metadata
 
 SPECIES_LIST = get_species()
 #-------------------------------------------------------------------------------------------------------------
 ## Argument Parser
 #-------------------------------------------------------------------------------------------------------------
 def add_install(p):
-    c = p.add_parser('install', help="install a data recipe from ggd")
+    c = p.add_parser('install', help="Install a ggd data package", description="Install a ggd data package into the current or specified conda environment")
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), 
                      help="The ggd channel the desired recipe is stored in. (Default = genomics)")
     c.add_argument("-v", "--version", default="-1", help="A specific ggd package version to install. If the -v flag is not used the latest version will be installed.")
@@ -165,7 +166,7 @@ def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=Fals
         get_file_locations(ggd_recipe,ggd_jdict,ggd_version,prefix)
         if prefix == None or os.path.normpath(prefix) == os.path.normpath(conda_root()):
             activate_enviroment_variables()
-        print("\n\t-> DONE")
+
 
     except Exception as e:
         print("\n\t-> %s did not install properly. Review the error message:\n" %ggd_recipe)
@@ -174,9 +175,18 @@ def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=Fals
         print("\n\t-> %s was not installed. Please correct the errors and try again." %ggd_recipe)
         sys.exit(1) 
 
+
     ## copy tarball and pkg file to target prefix
     if prefix != None and prefix != conda_root():
+        print("\n\t-> Updating package metadata in user defined prefix")
         copy_pkg_files_to_prefix(prefix,ggd_recipe)
+
+    ## Update installed metadata
+    print("\n\t-> Updating installed package list")
+    target_prefix = prefix if prefix != None else conda_root() 
+    update_installed_pkg_metadata(prefix=target_prefix,remove_old=False,add_package=ggd_recipe)
+
+    print("\n\t-> DONE")
 
     return(True)
 
@@ -222,6 +232,10 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version, debug=False, pr
     ## copy tarball and pkg file to target prefix
     if prefix != None and prefix != conda_root():
         copy_pkg_files_to_prefix(prefix,ggd_recipe)
+
+    ## Update installed metadata
+    print("\n\t-> Updating installed package list")
+    update_installed_pkg_metadata(prefix=target_prefix,remove_old=False,add_package=ggd_recipe)
 
     return(True)
 
@@ -357,4 +371,5 @@ def install(parser, args):
                 if conda_prefix == None or os.path.normpath(conda_prefix) == os.path.normpath(conda_root()):
                     activate_enviroment_variables()
                 print("\n\t-> DONE")
+            
     return(True) 
