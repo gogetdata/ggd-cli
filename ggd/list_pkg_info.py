@@ -28,7 +28,7 @@ SPECIES_LIST = get_species()
 ## Argument Parser
 #-------------------------------------------------------------------------------------------------------------
 def add_pkg_info(p):
-    c = p.add_parser("pkg-info", help="List pkg info for an installed ggd-recipe")
+    c = p.add_parser("pkg-info", help="List data package info for a specific installed ggd data package", description="Get the information for a specific ggd data pacakge installed in the current conda environmnet")
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), help="The ggd channel of the recipe to list info about (Default = genomics)")
     c.add_argument("-av", "--all_versions", action="store_true", help="(Optional) When the flag is set, list all ggd versions of a ggd-recipe for a specifc ggd-channel. (NOTE: -av flag does not accept arguments)")
     c.add_argument("-sr", "--show_recipe", action="store_true", help="(Optional) When the flag is set, the recipe will be printed to the stdout. This will provide info on where the data is hosted and how it was processed. (NOTE: -sr flag does not accept arguments)")

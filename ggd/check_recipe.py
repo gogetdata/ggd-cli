@@ -29,7 +29,7 @@ else:
 def add_check_recipe(p):
     """Argument method used to add check-recipes as a module arugment/function """
 
-    c = p.add_parser('check-recipe', help="build, install, and check a recipe")
+    c = p.add_parser('check-recipe', help="Build, install, check, and test a ggd data recipe", description="Convert a ggd recipe created from `ggd make-recipe` into a data package. Test both ggd data recipe and data package")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) Set the stdout log level to debug")
     c.add_argument("-du", "--dont_uninstall", action="store_true", help="(Optional) By default the newly installed local ggd data package is uninstalled after the check has finished. To bypass this uninstall step (to keep the local package installed) set this flag \"--dont_uninstall\"")
     c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2)")

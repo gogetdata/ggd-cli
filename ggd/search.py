@@ -23,7 +23,7 @@ CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 ## Argument Parser
 #-------------------------------------------------------------------------------------------------------------
 def add_search(p):
-    c = p.add_parser("search", help="Search for a data recipe stored in ggd")
+    c = p.add_parser("search", help="Search for a ggd data data package", description="Search for available ggd packages")
     c.add_argument("-t", "--term", nargs="+", required=True, help="**Required** The term(s) to search for. Multiple terms can be used. Example: '-t reference genome'")
     c.add_argument("-g", "--genome_build", help="(Optional) The genome build of the desired recipe")
     c.add_argument("-s", "--species", help="(Optional) The species for the desired recipe", choices=SPECIES_LIST)

@@ -7,7 +7,7 @@ from .utils import check_output, get_conda_env
 import subprocess as sp
 
 def add_show_env(p):
-    c = p.add_parser('show-env', help="show recipe variables available for this conda environment")
+    c = p.add_parser('show-env', help="Show ggd data package environment variables available for the current conda environment", description="Display the environment variables for data packages installed in the current conda environment")
     c.add_argument("-p", "--pattern", help="regular expression pattern to match the name of the variable desired")
     c.set_defaults(func=show_env)
 
