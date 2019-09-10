@@ -9,6 +9,7 @@ from . show_env import add_show_env
 from . install import add_install
 from . uninstall import add_uninstall
 from . list_pkg_info import add_pkg_info
+from . list_installed_pkgs import add_list_installed_packages
 
 def main(args=None):
     if args is None:
@@ -20,21 +21,24 @@ def main(args=None):
                         version="%(prog)s " + str(__version__))
     sub = parser.add_subparsers(title='[sub-commands]', dest='command')
     sub.required = True
-    add_make_bash(sub)
 
-    add_check_recipe(sub)
+    add_search(sub)
+
+    add_install(sub)
+
+    add_uninstall(sub)
+
+    add_list_installed_packages(sub)
 
     add_list_files(sub)
     
     add_pkg_info(sub)
 
-    add_search(sub)
-    
     add_show_env(sub)
 
-    add_install(sub)
+    add_make_bash(sub)
 
-    add_uninstall(sub)
+    add_check_recipe(sub)
 
     args = parser.parse_args(args)
     args.func(parser, args)
