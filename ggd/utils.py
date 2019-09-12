@@ -302,6 +302,8 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomcs",remove_old=T
     4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
     5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
     """
+    
+
 
     ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
     if add_package != None and remove_old == True:
@@ -341,7 +343,7 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomcs",remove_old=T
             os.remove(os.path.join(ggd_info_dir,"noarch",current[0]))
 
     ## Get a list of pkgs installed in a conda environemnt (Using conda list)
-    pkg_list = get_conda_package_list(prefix,add_package) if add_package != None else get_conda_package_list(prefix)  
+    pkg_list = get_conda_package_list(prefix,add_package,reload_imp=True) if add_package != None else get_conda_package_list(prefix,reload_imp=True)  
 
     ## Get the dir to the pkgs dir
     pkg_dir = os.path.join(prefix,"pkgs")
@@ -499,7 +501,7 @@ class CondaEnvironmentNotFound(Exception):
         return(self.message)
 
 
-def get_conda_package_list(prefix, regex=None):
+def get_conda_package_list(prefix, regex=None, reload_imp=False):
     """
     This method is used to get the list of packages in a specifc conda environmnet (prefix). Rather then running 
      `conda list` itself, it uses the conda module to grab the information 
@@ -509,17 +511,34 @@ def get_conda_package_list(prefix, regex=None):
     -----------
     1) prefix: The directory path to a conda environment in which you would like to extract the ggd data packages that have been installed
     2) regex: A pattern to match to (default = None)
+    3) reload_imp: A Boolean whether to reload the module or not. (Default = False)
 
     Returns:
     +++++++
     1) A dictionary with the package name as a key, and the value as another dictionary with name, version, build, and channel keys
     """
-
+    
+    import conda
     from logging import getLogger
     from conda.gateways import logging
     from conda.core.prefix_data import PrefixData
     from conda.base.context import context
     from conda.cli.main_list import get_packages
+
+    if reload_imp:
+        if sys.version_info[0] < 3:
+            reload(conda)
+        elif sys.version_info[0] >= 3 and sys.version_info[0] < 3.4:
+            import imp 
+            imp.reload(conda)
+        elif sys.version_info[0] >= 3.4:
+            import importlib as reload
+            importlib.relad(conda)
+
+        from conda.core.prefix_data import PrefixData
+        from conda.cli.main_list import get_packages
+       # reload(from conda.core.prefix_data import PrefixData)
+       # reload(from conda.cli.main_list import get_packages)
 
     ## Get a list of availble ggd channels
     ggd_channels = ["ggd-"+x for x in get_ggd_channels()]
