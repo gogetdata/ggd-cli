@@ -15,7 +15,7 @@ CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 
 
 def add_make_bash(p):
-    c = p.add_parser('make-recipe', help="Make a new ggd data recipe with a user develoepd bash script", description="Make a ggd data recipe from a bash script")
+    c = p.add_parser('make-recipe', help="Make a new ggd data recipe with a user developed bash script", description="Make a ggd data recipe from a bash script")
     c.add_argument("-c", "--channel", help="the ggd channel to use. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
                     default='genomics')
     c.add_argument("-d", "--dependency", default=[], action="append",
