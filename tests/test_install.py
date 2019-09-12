@@ -1002,6 +1002,8 @@ def test_install_main_function():
     """
     pytest_enable_socket()
 
+    remove_pfam()
+
     CONDA_ROOT = utils.conda_root()
 
     ## Test a non ggd recipe
@@ -1042,7 +1044,7 @@ def test_install_main_function():
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
-    remove_pfam
+    remove_pfam()
 
 
 def test_install_main_function_with_prefix_set():
