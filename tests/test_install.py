@@ -331,11 +331,6 @@ def test_check_conda_installation_pacakge_is_installed():
         install.check_conda_installation(recipe,version)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
-    try:
-        uninstall_hg19_gaps_ucsc_v1()
-    except:
-        pass
-
 
 def test_check_conda_installation_pacakge_is_installed_noninstalled_version_desingation():
     """
@@ -356,6 +351,11 @@ def test_check_conda_installation_pacakge_is_installed_no_version_designation():
      The version will be set to -1, meaning the version is not specified
     """
     pytest_enable_socket()
+
+    try:
+     install_hg19_gaps_ucsc_v1()
+    except:
+        pass
 
     recipe = "hg19-gaps-ucsc-v1"
     version = "-1"
