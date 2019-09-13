@@ -681,7 +681,7 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     unlink_precs = IndexedSet()
 
     ## Create a PrefixSetup
-    stp = PrefixSetup(solve.prefix, unlink_precs, link_precs, solve.specs_to_remove, solve.specs_to_add)
+    stp = PrefixSetup(solve.prefix, unlink_precs, link_precs, solve.specs_to_remove, solve.specs_to_add, solve.neutered_specs)
 
     ## Create an UnlinkLinkTransaction with stp
     unlink_link_transaction = UnlinkLinkTransaction(stp)
