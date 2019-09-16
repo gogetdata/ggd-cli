@@ -269,7 +269,7 @@ def update_genome_metadata_files():
     return(True)
 
 
-def update_installed_pkg_metadata(prefix=None,channel="ggd-genomcs",remove_old=True,exclude_pkg=None,add_package=None):
+def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=True,exclude_pkg=None,add_package=None):
     """Method to update the local metadata file in a conda environment that contains information about the installed ggd packages
 
     update_installed_pkg_metadata
@@ -640,16 +640,14 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     ## Set the context.always_yes to True to bypass user input
     context.always_yes = True
 
-    target_prefix = context.target_prefix
-    if prefix != None:
-        target_prefix = prefix
+    target_prefix = context.target_prefix if prefix == None else prefix
 
     # Setup solver object
     solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
 
     ## Create a solver state container 
     ### Make sure to Freeze those packages already installed in the current env in order to bypass update checking.  
-    ssc = SolverStateContainer(prefix=context.target_prefix, update_modifier=UpdateModifier.FREEZE_INSTALLED, 
+    ssc = SolverStateContainer(prefix=target_prefix, update_modifier=UpdateModifier.FREEZE_INSTALLED, 
                                deps_modifier=context.deps_modifier, prune=True, ignore_pinned=context.ignore_pinned, 
                                force_remove=context.force_remove, should_retry_solve=False)
 
