@@ -468,9 +468,51 @@ def test_get_conda_env():
     croot = sp.check_output(['conda', 'info', '--root'])
     conda_env, conda_path = utils.get_conda_env()
     assert conda_path.strip() == croot.decode("utf8").strip()
-    assert conda_env.strip() == "base"
+    assert conda_env.strip() == os.path.basename(croot).decode("utf8").strip()
 
-    ## TODO: Add a test to check a different environment is active
+
+    ## Test with conda_root() set as prefix
+    conda_env, conda_path = utils.get_conda_env(prefix=utils.conda_root())
+    assert conda_path.strip() == croot.decode("utf8").strip()
+    assert conda_env.strip() == os.path.basename(croot).decode("utf8").strip()
+
+    ### Test with environment name
+    conda_env, conda_path = utils.get_conda_env(prefix=conda_env)
+    assert conda_path.strip() == croot.decode("utf8").strip()
+    assert conda_env.strip() == os.path.basename(croot).decode("utf8").strip()
+
+
+    ## Test new environment set as prefix
+    env_name = "test_croot"
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", env_name])
+
+    ### Test with environment name
+    conda_env, conda_path = utils.get_conda_env(prefix=env_name)
+    assert conda_path.strip() == str(temp_env)
+    assert conda_env.strip() == env_name
+
+    ### Test with environment path
+    conda_env, conda_path = utils.get_conda_env(prefix=temp_env)
+    assert conda_path.strip() == str(temp_env)
+    assert conda_env.strip() == env_name
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
 
 def test_active_conda_env():
     """
@@ -483,6 +525,60 @@ def test_active_conda_env():
     assert conda_env.strip() == "base"
 
     ## TODO: Add a test to check a different environment is active
+
+
+def test_get_conda_prefix_path():
+    """
+    Test that get_conda_prefix_path() returns the correct prefix path 
+    """
+
+    pytest_enable_socket()
+
+    ## Test Normal Run
+    croot = utils.conda_root()
+    croot_name = os.path.basename(croot)
+    
+    prefix_path = utils.get_conda_prefix_path(croot)
+    assert prefix_path == croot
+
+    prefix_path = utils.get_conda_prefix_path(croot_name)
+    assert prefix_path == croot
+
+    try:
+        utils.get_conda_prefix_path("BAD_ENV")
+    except utils.CondaEnvironmentNotFound as e:
+        assert "The prefix supplied is not a conda enviroment: {}".format("BAD_ENV") in str(e) 
+    except Exception as e:
+        assert False
+
+
+    ## Test different conda prefix
+    env_name = "test_croot2"
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", env_name])
+
+    prefix_path = utils.get_conda_prefix_path(temp_env)
+    assert prefix_path == temp_env
+
+    prefix_path = utils.get_conda_prefix_path(env_name)
+    assert prefix_path == temp_env
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
 
 def test_prefix_in_conda():
     """
@@ -516,7 +612,8 @@ def test_prefix_in_conda():
     ### List of enviroments
     environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
     base_env = min(environments)
-    temp_env = os.path.join(base_env, "envs", "temp_env")
+    env_name = "temp_env"
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
 
     try:
         utils.prefix_in_conda(temp_env)
@@ -527,14 +624,27 @@ def test_prefix_in_conda():
 
     ## Test the prefix passes all checks, is in the base environment, is in the list of environments, and it is a directoyr
     #os.mkdir(temp_env) 
-    sp.check_output(["conda", "create", "--name", "temp_env"])
+    sp.check_output(["conda", "create", "--name", env_name])
+
+    assert utils.prefix_in_conda(utils.conda_root()) ## conda_root, Test environment path
+    assert utils.prefix_in_conda(os.path.basename(utils.conda_root())) ## conda_root, Test environment name
+
+    assert utils.prefix_in_conda(temp_env) ## temp_env, Test environment path
+    assert utils.prefix_in_conda(env_name) ## temp_env, test environment name
+
     environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
 
     for env in environments:
-        assert utils.prefix_in_conda(env)
+        assert utils.prefix_in_conda(env) ## test environment path
+        assert utils.prefix_in_conda(os.path.basename(env.rstrip("/"))) ## Test environment name (basename does not work if it is a directory. Must strip the trailing "/" if it exists
 
-    ## Remove temp env
-    sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 def test_get_conda_package_list():
