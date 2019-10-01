@@ -9,7 +9,7 @@ import locale
 import json
 import shutil
 import re
-from pytest_socket import SocketBlockedError
+
 
 LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/ggd-info/"))
 GENOME_METADATA_DIR = os.path.join(LOCAL_REPO_DIR,"genome_metadata")
@@ -182,7 +182,7 @@ def check_for_internet_connection(t=5):
     Method to check if there is an internet connection or not
     """
 
-
+    from pytest_socket import SocketBlockedError
 
     url='http://www.google.com/'
     timeout=t
@@ -401,20 +401,18 @@ def conda_root():
     is returned.
     """
 
-    croot = check_output(['conda', 'info', '--root'])
-    conda_env, conda_path = get_conda_env()
-    if conda_env != "base":
-        croot = conda_path
+    from conda.base.context import context
+    croot = context.root_prefix
     return(croot)
 
 
-def get_conda_env():
+def get_conda_env(prefix=conda_root()):
     """Method used to get the current conda environment
 
     get_conda_env
     =============
-    This method is used to get the current conda environment used to access the 
-     ggd environment variables created for this specific environment. 
+    This method is used to get the the name and prefix path for a specified conda environment. 
+     Used to access ggd environment variables created for this specific environment. 
 
     Returns:
     ++++++++
@@ -422,16 +420,21 @@ def get_conda_env():
     2) The path to the conda environent
     """
 
-    env_info = check_output(["conda", "info", "--envs"])
-    fields = env_info.split("\n")
-    curr_env = ""
-    for field in fields:
-        if len(field) > 0 and field[0] != "#":
-            env = field.split()
-            if len(env) > 0 and "*" in env:
-                return env[0],env[-1]
+    ## Get environment list
+    from conda.core.envs_manager import list_all_known_prefixes
+
+    prefix = prefix.rstrip("/")
+
+    env_var_paths = dict() ## Key = env_path, value = env_name
+    for env_path in list_all_known_prefixes():
+        name = os.path.basename(env_path.rstrip("/"))
+        env_var_paths[env_path.rstrip("/")] = name
+
+    prefix_path = get_conda_prefix_path(prefix)
+    return(env_var_paths[prefix_path],prefix_path)
+
     print("Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
-    exit()
+    sys.exit(1)
 
 
 def active_conda_env():
@@ -451,6 +454,47 @@ def active_conda_env():
     return(active_environment)
 
 
+def get_conda_prefix_path(prefix):
+    """Method to get the conda environment/prefix path from either the actual path or name
+
+    get_conda_prefix_path
+    =====================
+    This method is used to get the acutal prefix path from a file path or conda environment name 
+
+    Parameters:
+    -----------
+    1) prefix: The file path or conda environment name to get the prefix path for
+
+    Returns: 
+    ++++++++
+    1) The prefix path
+    
+    """
+
+    ## Get environment list
+    from conda.core.envs_manager import list_all_known_prefixes
+
+    env_var_names = dict() ## Key = env_name, value = env_path
+    env_var_paths = dict() ## Key - env_path, value = env_name
+    for env_path in list_all_known_prefixes():
+        name = os.path.basename(env_path.rstrip("/"))
+        env_var_names[name] = env_path.rstrip("/")
+        env_var_paths[env_path.rstrip("/")] = name
+
+    prefix = prefix.rstrip("/")
+
+    ## Check that the file is in the enviroment lists
+    if prefix not in env_var_names.keys() and prefix not in env_var_paths.keys():
+        raise CondaEnvironmentNotFound(prefix)
+
+    ## Check that the prefix is an existing directory
+    prefix_path = prefix
+    if prefix in env_var_names.keys():
+        prefix_path = env_var_names[prefix]
+
+    return(prefix_path)
+
+
 def prefix_in_conda(prefix):
     """Method to check if a perfix is a conda environment or not
 
@@ -468,19 +512,34 @@ def prefix_in_conda(prefix):
     1) True if prefix is a conda environment, raises an error otherwise
     """
 
-    environments = [os.path.join(x+"/") for x in check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
-    cbase = min(environments)
+    ## Get environment list
+    from conda.core.envs_manager import list_all_known_prefixes
 
-    if prefix[-1] != "/":
-        prefix = prefix+"/" 
-    ## Check that the file path includes the conda base directory
-    if cbase not in prefix: 
-        raise CondaEnvironmentNotFound(prefix)
+    env_var_names = dict() ## Key = env_name, value = env_path
+    env_var_paths = dict() ## Key - env_path, value = env_name
+    for env_path in list_all_known_prefixes():
+        name = os.path.basename(env_path.rstrip("/"))
+        env_var_names[name] = env_path.rstrip("/")
+        env_var_paths[env_path.rstrip("/")] = name
+
+    ## Get the base/first conda environment
+    cbase = min(env_var_paths.keys())
+
+    prefix = prefix.rstrip("/")
+
     ## Check that the file is in the enviroment lists
-    if prefix not in environments:
+    if prefix not in env_var_names.keys() and prefix not in env_var_paths.keys():
         raise CondaEnvironmentNotFound(prefix)
+
+    ## Get the prefix path dd
+    prefix_path = get_conda_prefix_path(prefix)
+
+    ## Check that the file path includes the conda base directory
+    if cbase not in prefix_path: 
+        raise CondaEnvironmentNotFound(prefix)
+        
     ## Check that the prefix is an existing directory
-    if not os.path.isdir(prefix):
+    if not os.path.isdir(prefix_path):
         raise CondaEnvironmentNotFound(prefix)
     
     return(True)
@@ -517,7 +576,6 @@ def get_conda_package_list(prefix, regex=None):
     1) A dictionary with the package name as a key, and the value as another dictionary with name, version, build, and channel keys
     """
     
-    import conda
     from logging import getLogger
     from conda.gateways import logging
     from conda.core.prefix_data import PrefixData
