@@ -54,7 +54,8 @@ def show_env(parser, args):
             print ("Inactive or out-of-date environment variables:")
             for inactive_var in sorted(inactive_vars):
                 print ("> $" + inactive_var)
-            print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % conda_env)
+            #print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % conda_env)
+            print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % "base")
         if not active_vars and not inactive_vars:
             raise ValueError 
     except (IOError, ValueError):
@@ -63,7 +64,7 @@ def show_env(parser, args):
         print ("*****************************\n")
 
 
-def remove_env_variable(env_var):
+def remove_env_variable(env_var,prefix=None):
     """Method to remove an environment variable if the files are removed from the system
 
     remove_env_variable
@@ -74,11 +75,16 @@ def remove_env_variable(env_var):
     Parameters:
     -----------
     1) env_var: The environment variable to remove
+    2) prefix: The conda environment/prefix to remove the environment var from
     """
+    
+    from .utils import conda_root
+
+    target_prefix = conda_root() if prefix == None else prefix 
 
     env_var = env_var.replace("-","_")
     print("\n\t-> Removing the %s environment variable" %env_var)
-    conda_env, conda_path = get_conda_env()
+    conda_env, conda_path = get_conda_env(target_prefix)
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
     deactive_env_file = os.path.join(conda_path, "etc", "conda", "deactivate.d", "env_vars.sh")
     var_list = []
@@ -109,7 +115,7 @@ def activate_enviroment_variables():
 
     conda_env, conda_path = get_conda_env()
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
-    sp.check_output(["activate", conda_env])
+    sp.check_output(["activate", "base"])
     show_env((),Namespace(command='show-env', pattern=None))
 
 def test_vars(env_vars):
