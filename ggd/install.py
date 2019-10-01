@@ -33,7 +33,7 @@ def add_install(p):
                      help="The ggd channel the desired recipe is stored in. (Default = genomics)")
     c.add_argument("-v", "--version", default="-1", help="A specific ggd package version to install. If the -v flag is not used the latest version will be installed.")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) When the -d flag is set debug output will be printed to stdout.") 
-    c.add_argument("--prefix", default=None, help="(Optional) The full directory path to an existing conda environment where you want to install a ggd data pacakge. (Only needed if you want to install the data package into a different conda environment then the one you are currently in)")
+    c.add_argument("--prefix", default=None, help="(Optional) The name or the full directory path to an existing conda environment where you want to install a ggd data pacakge. (Only needed if you want to install the data package into a different conda environment then the one you are currently in)")
     c.add_argument("name", help="the name of the recipe to install")
     c.set_defaults(func=install)
 
@@ -122,10 +122,14 @@ def check_conda_installation(ggd_recipe,ggd_version,prefix=None):
             else:
                 print("\n\t-> %s version %s has been installed by conda on your system and must be uninstalled to proceed." %(ggd_recipe,str(ggd_version)))
                 print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+                if prefix != conda_root():
+                    print("\t-> NOTE: You must activate the conda prefix {p} before running the uninstall command".format(p = target_prefix)) 
                 sys.exit()
         else: 
             print("\n\t-> %s has been installed by conda on your system and must be uninstalled to proceed." %ggd_recipe)
             print("\t-> To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s" %(ggd_recipe,ggd_recipe))
+            if prefix != conda_root():
+                print("\t-> NOTE: You must activate the conda prefix {p} before running the uninstall command".format(p = target_prefix)) 
             sys.exit()
 
 
@@ -171,7 +175,8 @@ def install_from_cached(ggd_recipe, ggd_channel,ggd_jdict,ggd_version,debug=Fals
     except Exception as e:
         print("\n\t-> %s did not install properly. Review the error message:\n" %ggd_recipe)
         print(traceback.format_exc())
-        check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
+        target_prefix = conda_root() if prefix == None else prefix
+        check_for_installation(ggd_recipe,ggd_jdict, target_prefix) ## .uninstall method to remove extra ggd files
         print("\n\t-> %s was not installed. Please correct the errors and try again." %ggd_recipe)
         sys.exit(1) 
 
@@ -226,7 +231,7 @@ def conda_install(ggd_recipe, ggd_channel,ggd_jdict,ggd_version, debug=False, pr
         sys.stderr.write("\n\t-> ERROR in install %s\n" %ggd_recipe)
         sys.stderr.write(str(e))
         sys.stderr.write("\n\t-> Removing files created by ggd during installation")
-        check_for_installation(ggd_recipe,ggd_jdict) ## .uninstall method to remove extra ggd files
+        check_for_installation(ggd_recipe,ggd_jdict,target_prefix) ## .uninstall method to remove extra ggd files
         sys.exit(e.returncode)
 
     ## copy tarball and pkg file to target prefix
@@ -332,11 +337,15 @@ def install(parser, args):
     and file handeling. 
     """
 
+    from .utils import conda_root, get_conda_prefix_path 
+
     ## Check the prefix is a real one
     if args.prefix != None:
         prefix_in_conda(args.prefix)
+    else:
+        args.prefix = conda_root()
 
-    conda_prefix = args.prefix 
+    conda_prefix = get_conda_prefix_path(args.prefix) 
 
     print("\n\t-> Looking for %s in the 'ggd-%s' channel" %(args.name,args.channel))
     ## Check if the recipe is in ggd
