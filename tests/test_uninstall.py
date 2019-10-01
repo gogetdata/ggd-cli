@@ -21,7 +21,9 @@ from ggd import utils
 from ggd import uninstall
 from ggd import show_env
 from ggd import list_files
-from ggd.utils import get_conda_package_list
+from ggd import install
+from ggd import list_installed_pkgs
+from ggd.utils import get_conda_package_list, conda_root
 
 if sys.version_info[0] == 3:
     from io import StringIO
@@ -245,6 +247,9 @@ def test_check_for_installation():
     output = temp_stdout.getvalue().strip() 
     assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
 
+    ## Update local metadata
+    utils.update_installed_pkg_metadata(prefix=conda_root())
+
     args = Namespace(command="show-env", pattern=None)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -254,21 +259,160 @@ def test_check_for_installation():
     assert "$ggd_hg19_gaps_v1_dir" not in output
 
 
-def test_remove_from_condaroot():
+def test_check_for_installation_different_prefix():
     """
-    Test that the remove_from_condaroot function properly removes installed ggd packages from the conda root
+    Test that check_for_installation when a prefix is provided
     """
-    pytest_enable_socket()
 
-    ## install hg19-gaps-v1
+    ## Test installed package
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel = "genomics"
+
+    ### Install ggd recipe
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = conda_root())
     try:
-        install_hg19_gaps_ucsc_v1()
+        install.install((), install_args) 
     except:
         pass
 
-    ggd_recipe = "hg19-gaps-ucsc-v1"
+    ## jdict and info
+    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = jdict["packages"][ggd_recipe]["version"]
+
+    ## Test the package in "conda_root" exists
+    args = Namespace(command='list', pattern=None, prefix=conda_root())
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip()
+    assert ggd_recipe in output
+    path = os.path.join(conda_root(),"share","ggd",species,build,ggd_recipe,version,"*")
+    files = glob.glob(path)
+    assert len(files) == 2
+
+    ## Create temp envi
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env10")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env10"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "temp_env10"])
+    
+    ## Test prefix 
+    ### Install ggd recipe using conda into temp_env
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = temp_env)
+    assert install.install((), install_args) == True 
+
+    ## Test that the files are removed
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        uninstall.check_for_installation(ggd_recipe,jdict,prefix=temp_env)
+    output = temp_stdout.getvalue().strip() 
+    assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
+
+    ## Update local metadata
+    utils.update_installed_pkg_metadata(prefix=temp_env)
+
+    ## Test the package was removed from the ggd info list
+    args = Namespace(command='list', pattern=None, prefix=temp_env)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip()
+    assert ggd_recipe not in output
+    path = os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,"*")
+    files = glob.glob(path)
+    assert len(files) == 0
+
+    ## Test the package in "conda_root" was not removed
+    args = Namespace(command='list', pattern=None, prefix=conda_root())
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip()
+    assert ggd_recipe in output
+    path = os.path.join(conda_root(),"share","ggd",species,build,ggd_recipe,version,"*")
+    files = glob.glob(path)
+    assert len(files) == 2
+
+    ## Remove prefix
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env10"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    assert os.path.exists(temp_env) == False
+
+
+    ## Test the current environment (conda_root)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        uninstall.check_for_installation(ggd_recipe,jdict,prefix=utils.conda_root())
+    output = temp_stdout.getvalue().strip() 
+    assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
+
+    ## Update local metadata
+    utils.update_installed_pkg_metadata(prefix=conda_root())
+
+    ## Test environment variables removed
+    args = Namespace(command="show-env", pattern=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        show_env.show_env((),args)
+    output = temp_stdout.getvalue().strip()
+    assert "hg19_pfam_domains_ucsc_v1_file" not in output
+    assert "hg19_pfam_domains_ucsc_v1_dir" not in output
+    
+    args = Namespace(command='list', pattern=None, prefix=conda_root())
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip()
+    assert ggd_recipe not in output
+
+    path = os.path.join(conda_root(),"share","ggd",species,build,ggd_recipe,version,"*")
+    files = glob.glob(path)
+    assert len(files) == 0
+
+
+def test_remove_from_condaroot():
+    """
+    Test that the remove_from_condaroot function properly removes installed ggd packages from the provided prefix/conda environment
+    """
+    pytest_enable_socket()
+
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
     ggd_channel = "genomics"
-    version = uninstall.get_channeldata(ggd_recipe,ggd_channel)["packages"][ggd_recipe]["version"]
+
+    ## Install hg19-gaps-ucsc-v1 into current environment
+    sp.check_call(["ggd", "install", ggd_recipe])
+
+    ## Create temp envi
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_env11")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env11"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "temp_env11"])
+    
+    ## Test prefix 
+    ### Install ggd recipe using conda into temp_env
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = temp_env)
+    assert install.install((), install_args) == True 
+
+    ## jdict and info
+    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = jdict["packages"][ggd_recipe]["version"]
 
     ## Check that the files are in the conda root
     conda_root = utils.conda_root()
@@ -277,9 +421,34 @@ def test_remove_from_condaroot():
         if conda_root in f:
             if conda_root+"/envs/" not in f:
                 assert ggd_recipe+"-"+str(version) in f 
-    
+
+    ## Check that the files are in the temp_env
+    check_list = sp.check_output(['find', temp_env, '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
+    for f in check_list:
+        if temp_env in f:
+            if temp_env+"/envs/" not in f:
+                assert ggd_recipe+"-"+str(version) in f 
+
+    ## Remove recipe from prefix
+    uninstall.remove_from_condaroot(ggd_recipe,version,temp_env)
+
+    ## Check that the files were removed from prefix
+    check_list = sp.check_output(['find', temp_env, '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
+    for f in check_list:
+        if temp_env in f:
+            if temp_env+"/envs/" not in f:
+                assert ggd_recipe+"-"+str(version) not in f 
+
+    ## Check that the files were NOT removed from the conda root
+    conda_root = utils.conda_root()
+    check_list = sp.check_output(['find', conda_root, '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
+    for f in check_list:
+        if conda_root in f:
+            if conda_root+"/envs/" not in f:
+                assert ggd_recipe+"-"+str(version) in f 
+
     ## remove ggd recipe files from conda root
-    uninstall.remove_from_condaroot(ggd_recipe,version)
+    uninstall.remove_from_condaroot(ggd_recipe,version,conda_root)
 
     ## Check that the files were removed
     conda_root = utils.conda_root()
@@ -290,8 +459,17 @@ def test_remove_from_condaroot():
                 assert ggd_recipe+"-"+str(version) not in f 
 
        
-    ## Finish uninstalling hg19-gaps-v1
-    uninstall_hg19_gaps_ucsc_v1()
+    ## Finish uninstalling recipe
+    args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    uninstall.uninstall((),args)
+
+    ## Remove temp_env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_env11"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    assert os.path.exists(temp_env) == False
 
 
 def test_uninstall():
