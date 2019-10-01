@@ -297,6 +297,91 @@ def test_remove_env_variable():
     assert found == True
 
 
+def test_remove_env_variable_different_prefix():
+    """
+    Test that the remove_env_varial correctly removes the env var in non conda_root prefix from the activated.d/env_vars.sh file
+    """
+    pytest_enable_socket()
+
+    ## Set up temp_env
+    env_name = "temp_env12"
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ## Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", env_name])
+
+    ## Install ggd recipe using conda into temp_env
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package, version='-1', prefix = temp_env)
+    assert install.install((), install_args) == True
+
+    dir_main_env_var = "ggd_hg19_pfam_domains_ucsc_v1_dir"
+    file_main_env_var = "ggd_hg19_pfam_domains_ucsc_v1_file"
+
+    conda_root, conda_path = utils.get_conda_env(prefix=temp_env)
+    assert conda_path == temp_env
+
+    active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
+    deactive_env_file = os.path.join(conda_path, "etc", "conda", "deactivate.d", "env_vars.sh")
+
+    dir_active_env_var = str([x for x in open(active_env_file, "r") if dir_main_env_var in x][0])
+    file_active_env_var = str([x for x in open(active_env_file, "r") if file_main_env_var in x][0])
+    dir_deactive_env_var = str([x for x in open(deactive_env_file, "r") if dir_main_env_var in x][0])
+    file_deactive_env_var = str([x for x in open(deactive_env_file, "r") if file_main_env_var in x][0])
+
+    ## Test a proper removal of a environment variable
+    show_env.remove_env_variable(dir_main_env_var,prefix=temp_env)
+    found = False
+    with open(active_env_file, "r") as a:
+        for var in a:
+            if re.search(r"\b"+dir_main_env_var+"=", var):
+                found = True
+                break
+    assert found == False
+
+    show_env.remove_env_variable(file_main_env_var,prefix=temp_env)
+    found = False
+    with open(active_env_file, "r") as a:
+        for var in a:
+            if re.search(r"\b"+file_main_env_var+"=", var):
+                found = True
+                break
+    assert found == False
+
+    found = False
+    with open(deactive_env_file, "r") as d:
+        for var in d:
+            if re.search(r"\b"+dir_main_env_var+r"\b", var):
+                found = True
+                break
+    assert found == False
+
+    found = False
+    with open(deactive_env_file, "r") as d:
+        for var in d:
+            if re.search(r"\b"+file_main_env_var+r"\b", var):
+                found = True
+                break
+    assert found == False
+
+    replace_env_var(dir_active_env_var, dir_deactive_env_var, active_env_file, deactive_env_file)
+    replace_env_var(file_active_env_var, file_deactive_env_var, active_env_file, deactive_env_file)
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
 def test_activate_environment_variables():
     """
     Test that the activate_environment_variables function properly activates the environment variables
@@ -497,21 +582,23 @@ def test_list_files_with_prefix():
     """
     pytest_enable_socket()
 
+    env_name = "temp_e"
     ## Temp conda environment 
-    temp_env = os.path.join(utils.conda_root(), "envs", "temp_e")
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
     ### Remove temp env if it already exists
-    sp.check_output(["conda", "env", "remove", "--name", "temp_e"])
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
     try:
         shutil.rmtree(temp_env)
     except Exception:
         pass
     ## Create conda environmnet 
-    sp.check_output(["conda", "create", "--name", "temp_e"])
+    sp.check_output(["conda", "create", "--name", env_name])
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
     install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package, version='-1', prefix = temp_env)
     assert install.install((), install_args) == True
+
 
     ## Test the list-files method can access info from the files in a different prefix
     args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=temp_env, species=None, version=None)
@@ -536,9 +623,26 @@ def test_list_files_with_prefix():
     assert os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2) in output
     assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1))
     assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2))
+
+
+    ## Test with environment name instead of path
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name=ggd_package, pattern=None, prefix=env_name, species=None, version=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_files.list_files((),args)
+    output = str(temp_stdout.getvalue().strip()) 
+    assert file1 in  output
+    assert file2 in  output
+    assert temp_env in output
+    assert len(output.split("\n")) == 2
+    assert os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1) in output
+    assert os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2) in output
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file1))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_package,version,file2))
     
+
     ## Remove temp env
-    sp.check_output(["conda", "env", "remove", "--name", "temp_e"])
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
     try:
         shutil.rmtree(temp_env)
     except Exception:
@@ -1174,7 +1278,6 @@ def test_list_pkg_info():
     
     ## Test a normal run
     pkg_name = "hg19-gaps-ucsc-v1"
-    pkg_name = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
     prefix = utils.conda_root()
     jdict = list_installed_pkgs.load_json(os.path.join(prefix,"share","ggd_info","channeldata.json"))
@@ -1270,8 +1373,18 @@ def test_list_installed_packages():
     assert pytest_wrapped_e.match("'{p}' did not match any installed data packages".format(p="BADPATTERN"))
 
     ## Package in set prefix (Not conda_root)
-    p = temp_env = os.path.join(utils.conda_root(), "envs", "temp_env") ## From test_get_environment_variables()
+    p = os.path.join(utils.conda_root(), "envs", "temp_env") ## From test_get_environment_variables()
     args = Namespace(command='list', pattern=None, prefix=p)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-pfam-domains-ucsc-v1" in output
+    assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
+    assert "The environment variables are only available when you are using the '{}' conda environment".format(p) in output
+
+    ## Package in set prefix (Not conda_root) and using the prefix name rather than the prefix path
+    args = Namespace(command='list', pattern=None, prefix="temp_env")
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1283,10 +1396,10 @@ def test_list_installed_packages():
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
     try:
-        shutil.rmtree(temp_env)
+        shutil.rmtree(p)
     except Exception:
         pass
-    assert os.path.exists(temp_env) == False
+    assert os.path.exists(p) == False
 
 
 #--------------------------------------------------------
