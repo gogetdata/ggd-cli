@@ -1126,5 +1126,59 @@ def test_install_main_function_with_prefix_set():
         pass
     assert os.path.exists(temp_env) == False
 
+    
+    ## Test using environment short name
+    ### Temp conda environment 
+    env_name = "temp_env_with_name"
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
 
+    ## Test a good install into a designated prefix
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", env_name])
+
+    ## Install
+    ggd_recipe = "hg19-pfam-domains-ucsc-v1"
+    ggd_channel="genomics"
+    jdict = install.check_ggd_recipe(ggd_recipe,ggd_channel)
+    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+    version = jdict["packages"][ggd_recipe]["version"]
+
+    args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = env_name)
+    assert install.install((), args) == True
+
+    ### Test the file exists in the correct prefix and not the current prefix
+    file1 = "{}.bed12.bed.gz".format(ggd_recipe)
+    file2 = "{}.bed12.bed.gz.tbi".format(ggd_recipe)
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,file1))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,ggd_recipe,version,file2))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version,file1)) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,ggd_recipe,version,file2)) == False
+
+    assert "CONDA_SOURCE_PREFIX" in os.environ
+
+    ## Test that the tarfile and the pkg dir were correctly copied to the prefix
+    data_packages = get_conda_package_list(temp_env)
+    version = str(data_packages[ggd_recipe]["version"])
+    build_number = str(data_packages[ggd_recipe]["build"])
+    tarfile = "{}-{}-{}.tar.bz2".format(ggd_recipe,version,build_number)
+    pkgdir = "{}-{}-{}".format(ggd_recipe,version,build_number)
+
+    assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
