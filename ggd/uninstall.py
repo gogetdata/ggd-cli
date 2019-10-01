@@ -137,7 +137,7 @@ def conda_uninstall(ggd_recipe):
         sys.exit(e.returncode)
 
 
-def check_for_installation(ggd_recipe,ggd_jdict):
+def check_for_installation(ggd_recipe,ggd_jdict,prefix=conda_root()):
     """Method to check for and processes ggd package if it is installed
 
     check_for_installation
@@ -146,28 +146,36 @@ def check_for_installation(ggd_recipe,ggd_jdict):
      removed during normal uninstallation. 
     This method depends on the get_channeldata method. If the recipe is not found in the 
      channeldata.json file the extra files will not be removed. 
+    
+    Parameters:
+    -----------
+    1) ggd_recipe: The ggd recipe name to check for installation. (Recipe being uninstalled)
+    2) ggd_jdict: The json dictionary describing the ggd recipe
+    3) prefix: The conda prefix/environment to uninstall from (Default = conda_root())
     """
+
+    from .utils import conda_root, get_conda_prefix_path 
 
     species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = ggd_jdict["packages"][ggd_recipe]["version"]
 
-    CONDA_ROOT = conda_root()
-    path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
+    prefix = get_conda_prefix_path(prefix) if prefix != conda_root() else prefix
+    path = os.path.join(prefix,"share","ggd",species,build,ggd_recipe,version)
     recipe_exists = glob.glob(path)
     if recipe_exists:
         print("\n\t-> Removing %s version %s file(s) from ggd recipe storage" %(ggd_recipe,str(version)))
         shutil.rmtree(path)
-        remove_from_condaroot(ggd_recipe,version)
+        remove_from_condaroot(ggd_recipe,version,prefix)
         dir_env_var = "ggd_" + ggd_recipe + "_dir"
-        remove_env_variable(dir_env_var)
+        remove_env_variable(dir_env_var,prefix)
         file_env_var = "ggd_" + ggd_recipe + "_file"
-        remove_env_variable(file_env_var)
+        remove_env_variable(file_env_var,prefix)
     else:
         print("\n\t-> %s is not in the ggd recipe storage" %ggd_recipe)
 
 
-def remove_from_condaroot(ggd_recipe,version):
+def remove_from_condaroot(ggd_recipe,version,prefix):
     """Method to use conda to remove an installed ggd package from the conda root. This is a method for ggd package file handling
 
     remove_from_condaroot
@@ -176,18 +184,18 @@ def remove_from_condaroot(ggd_recipe,version):
      when uninstalled. 
     """
 
-    find_list = sp.check_output(['find', conda_root(), '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
+    ## Get a list of files for the package starting at the prefix path
+    find_list = sp.check_output(['find', prefix, '-name', ggd_recipe+"-"+str(version)+"*"]).decode('utf8').strip().split("\n")
     ## Filter the list by conda env
-    croot = conda_root()
     filtered_list = []
     for path in find_list:
-        if croot in path:
-            if croot+"/envs/" not in path: ## If the conda env root is in the path, and conda env root/env/ is not in the path, then add it to the filtered list
+        if prefix in path:
+            if str(prefix)+"/envs/" not in path: ## If the conda env root is in the path, and conda env root/env/ is not in the path, then add it to the filtered list
                 filtered_list.append(path)
     print("\n\t-> Deleteing %d items of %s version %s from your conda root" %(len(filtered_list),ggd_recipe,version))
     ## Remove files
     for path in filtered_list:
-        if str(croot)+"/env/" not in path:
+        if str(prefix)+"/env/" not in path:
             if os.path.isdir(path):
                 shutil.rmtree(path)
             else:
