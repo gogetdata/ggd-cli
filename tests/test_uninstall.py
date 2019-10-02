@@ -268,6 +268,13 @@ def test_check_for_installation_different_prefix():
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
     ggd_channel = "genomics"
 
+    ### Uninstall ggd recipe
+    uninstall_args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    try:
+        uninstall.uninstall((),uninstall_args)
+    except:
+        pass
+
     ### Install ggd recipe
     install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = conda_root())
     try:
@@ -389,7 +396,14 @@ def test_remove_from_condaroot():
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
     ggd_channel = "genomics"
 
-    ## Install hg19-gaps-ucsc-v1 into current environment
+    ### Uninstall ggd recipe
+    uninstall_args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    try:
+        uninstall.uninstall((),uninstall_args)
+    except:
+        pass
+
+    ## Install hg19-pfam-domains-ucsc-v1 into current environment
     sp.check_call(["ggd", "install", ggd_recipe])
 
     ## Create temp envi
