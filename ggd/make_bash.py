@@ -129,7 +129,7 @@ def make_bash(parser, args):
     for f in args.final_file:
         assert f.strip() != "", ("Please provide real files for the final files created by this recipe")
         assert [x for x in args.file_type if x.lower() in f], ("{F} does not coincide with any of the file types you provided. Please change the final files to reflect the proper file types.".format(F=f))
-        assert name in f, ("Please change the base name of the final files to include the recipe name")
+        assert name in f, ("Please change the base name of the final files to include the recipe name: '{name}'".format(name=name))
 
         
 
