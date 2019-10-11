@@ -597,6 +597,148 @@ def get_conda_package_list(prefix, regex=None):
     return(package_dict)
 
 
+def get_file_md5sum(file_path):
+    """Method to get the the md5sum of a file 
+
+    get_file_md5sum
+    ===============
+    Method to get the md5sum of the contents of a file for use in checksum. 
+
+    To reduce potential problems with in-memory storage of a file, the file is read in 4096 bytes 
+     at a time and the checksum is updated each iterate of 4096 byte reads. 
+
+    Parameters:
+    -----------
+    1) file_path: The full file path, including the file name, of the file to get the checksum for
+
+    Returns:
+    ++++++++
+    1) The hexidecimal md5sum encoding for the contents of the file
+
+    """
+    import hashlib
+
+    md5sum = hashlib.md5()
+    with open(file_path, "rb") as f:
+        ## Iterate over a chunk size of 4096 bytes to reduce in-memory problems
+        for chunk in iter(lambda: f.read(4096), b""):
+            md5sum.update(chunk)
+
+    return(md5sum.hexdigest())
+
+
+def get_checksum_dict_from_txt(txt_file_path):
+    """Method used to get the checksum file from a ggd recipe  
+
+    get_checksum_dict_from_txt
+    ===================
+    This method is used to obtain a ggd recipe's checksum file from the recipes checksum_file.txt.
+
+    Parameters:
+    ----------
+    1) txt_file_path: The file path to the recipe's checksums file
+    
+    Return:
+    +++++++
+    1) The checksum file as a dictionary. Key = filename, value = md5sum for the file 
+    """
+
+    cs_dict = {}
+    with open(txt_file_path, "r") as cs:
+        for line in cs:
+            line_list = str(line).strip().split("\t")
+            ## Skip emtpy lines
+            if len(line_list) < 2:
+                continue
+            cs_dict[line_list[0]] = line_list[1]
+
+    return(cs_dict)
+
+
+def get_checksum_dict_from_tar(fbz2):
+    """Method used to get the checksum file from a ggd package that has been built and is in a tar.bz2 file format
+
+    get_checksum_dict_from_tar
+    ===================
+    This method is used to obtain a ggd recipe's checksum file from an already built ggd package.
+
+    Parameters:
+    ----------
+    1) fbz2: The file path to the pre-built bz2 ggd package
+    
+    Return:
+    +++++++
+    1) The checksum file as a dictionary. Key = filename, value = md5sum for the file 
+    """
+    import tarfile
+
+    info = None
+    with tarfile.open(fbz2, mode="r|bz2") as tf:
+        for info in tf: ## For/else 
+            if info.name in ("info/recipe/checksums_file.txt"):
+                break
+        else:
+            print("Error: Incorrect tar.bz format.", file=sys.stderr)
+            exit(1)
+        
+        checksum_file = tf.extractfile(info)
+        cs_dict = {}
+        for line in str(checksum_file.read().decode("utf8")).strip().split("\n"):
+            line_list = str(line).strip().split("\t")
+            ## Skip emtpy lines
+            if len(line_list) < 2:
+                continue
+            cs_dict[line_list[0]] = line_list[1]
+
+    return(cs_dict)
+
+
+def data_file_checksum(installed_dir_path, checksum_dict):
+    """Method to check a recipe's data file md5sum checksums against the installed data file md5sums checksum 
+
+    data_file_checksum
+    ===================
+    Method to compare the md5sum checksum for installed data files from a data package against the 
+     md5sum checksum values in the recipe data. An ERROR will be printed if checksum fails, as well as 
+     the method will return False.
+
+    Parameters:
+    -----------
+    1) installed_dir_path: The directory path to the installed data files
+    2) checksum_dict: A dictionary with md5sum checksum values for each file for the data package stored in the recipe
+
+    Returns:
+    +++++++
+    1) True if checksum passes, False if otherwise
+    """
+    import glob
+
+    ## Get a list of the installed data files
+    installed_files = glob.glob(os.path.join(installed_dir_path,"*"))
+
+    ## Check that there are the same number of installed data files as files with orignial checksums
+    if len(installed_files) != len(checksum_dict):
+        print("\n\n!!ERROR!!: The number of installed files does not match the number of checksum files\n")
+        return(False)
+
+    ## Check each installed data file against the recipe's checksum
+    for ifile in installed_files:
+        ifile_name = os.path.basename(ifile.rstrip("/"))
+
+        ## Check that the file exists in the checksum
+        if ifile_name not in checksum_dict.keys():
+            print("\n\n!!ERROR!!: The installed file {f} is not one of the checksum files\n".format(f= ifile_name))
+            return(False)
+
+        ## Check md5sum
+        ifile_md5sum = get_file_md5sum(ifile) 
+        if ifile_md5sum != checksum_dict[ifile_name]:
+            print("\n\n!!ERROR!!: The {f} file wasn't installed properly\n".format(f=ifile_name))
+            return(False)
+
+    return(True)
+
+
 def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=False,prefix=None):
     """Method to bypass the sat solver used by conda when a cached recipe is being installed
 
