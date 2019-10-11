@@ -669,7 +669,8 @@ def test_make_bash_internet_free():
 
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC')
+                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
+                        coordinate_based="0-based-inclusive", file_type= ["BED"],final_file=["hg19-test-gaps-ucsc-v1.bed.gz", "hg19-test-gaps-ucsc-v1.bed.gz.tbi"])
 
     assert make_bash.make_bash((),args) 
 
@@ -682,6 +683,10 @@ def test_make_bash_internet_free():
     new_postlink_file = os.path.join("./", ggd_package, "post-link.sh") 
     assert os.path.exists(new_postlink_file)
     assert os.path.isfile(new_postlink_file)
+    new_checksums_file = os.path.join("./", ggd_package, "checksums_file.txt")
+    assert os.path.exists(new_checksums_file)
+    assert os.path.isfile(new_checksums_file)
+
 
     ## Test meta.yaml
     try:
@@ -700,8 +705,11 @@ def test_make_bash_internet_free():
             assert yamldict["about"]["identifiers"]["species"] == "Homo_sapiens"
             assert yamldict["about"]["keywords"] == ['gaps','region']
             assert yamldict["about"]["summary"] == "Assembly gaps from UCSC"
+            assert yamldict["about"]["tags"]["genomic-coordinate-base"] == "0-based-inclusive"
             assert yamldict["about"]["tags"]["data-version"] == "27-Apr-2009"
             assert yamldict["about"]["tags"]["data-provider"] == "UCSC"
+            assert yamldict["about"]["tags"]["file-type"] == ["bed"] ## Should be converted to lower case
+            assert yamldict["about"]["tags"]["final-files"] == ["hg19-test-gaps-ucsc-v1.bed.gz",  "hg19-test-gaps-ucsc-v1.bed.gz.tbi"]
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
     except IOError as e:
@@ -772,6 +780,7 @@ def test_make_bash_internet_free():
     os.remove(new_recipe_file)
     os.remove(new_metayaml_file)
     os.remove(new_postlink_file)
+    os.remove(new_checksums_file)
     os.rmdir(ggd_package)
 
 
@@ -829,7 +838,10 @@ def test_uninstall_internet_free():
     conda_root = utils.conda_root()
 
     ### Check that the files are not in the conda root
+    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = jdict["packages"][ggd_recipe]["version"]
+    path = os.path.join(conda_root,"share","ggd",species,build,ggd_recipe,version)
     check_list = sp.check_output(["find", conda_root, "-name", ggd_recipe+"-"+str(version)+"*"]).decode("utf8").strip().split("\n")
     for f in check_list:
         if conda_root in f:
@@ -837,10 +849,6 @@ def test_uninstall_internet_free():
                 assert ggd_recipe+"-"+str(version) not in path
 
     #### Check data files were removed
-    species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
-    build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
-    version = jdict["packages"][ggd_recipe]["version"]
-    path = os.path.join(conda_root,"share","ggd",species,build,ggd_recipe,version)
     assert glob.glob(path) == []
     try:
         os.listdir(path)
