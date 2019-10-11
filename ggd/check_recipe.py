@@ -493,9 +493,9 @@ def check_files(install_path, species, build, recipe_name,
 
     print("modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
 
-    tbis = [x for x in files if x.endswith(".tbi")] # all tbi files
+    tbis = [x for x in files if x.endswith((".tbi", ".csi"))] # all tbi files
 
-    nons = [x for x in files if not x.endswith(".tbi")] # all non tbi files
+    nons = [x for x in files if not x.endswith((".tbi", ".csi"))] # all non tbi files
 
     tbxs = [x[:-4] for x in tbis if x[:-4] in nons] # names of files tabixed 
 
