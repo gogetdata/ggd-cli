@@ -1,17 +1,16 @@
 from __future__ import print_function
 import os
+import re
 import shutil
 import yaml
 import sys
 import subprocess as sp
 from .utils import get_species 
 from .utils import get_ggd_channels
-from .utils import get_conda_env 
-from collections import OrderedDict
-from .utils import check_output, conda_root
 
 SPECIES_LIST = [x.encode('ascii') for x in get_species()]
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
+GENOMIC_COORDINATE_LIST = ["0-based-inclusive", "0-based-exclusive", "1-based-inclusive", "1-based-exclusive", "NA"]
 
 
 def add_make_bash(p):
@@ -31,18 +30,32 @@ def add_make_bash(p):
     c2.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
                     required=True)
     c2.add_argument("--authors", help="authors of the recipe", default=os.environ.get("USER", ""))
-    c2.add_argument("-pv", "--package_version", help="The version of the ggd package. (First time package = 1, updated package > 1)",
+    c2.add_argument("-pv", "--package-version", help="The version of the ggd package. (First time package = 1, updated package > 1)",
                     required=True)
-    c2.add_argument("-dv", "--data_version", help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)", 
+    c2.add_argument("-dv", "--data-version", help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)", 
                     required=True)
-    c2.add_argument("-dp", "--data_provider", required=True, help="The data provider where the data was accessed. (Example: UCSC, Ensembl, gnomAD, etc.)")
+    c2.add_argument("-dp", "--data-provider", required=True, help="The data provider where the data was accessed. (Example: UCSC, Ensembl, gnomAD, etc.)")
     c2.add_argument("--summary", help="A detailed comment describing the recipe",
                 default="", required=True)
-    c2.add_argument("-k", "--keyword", help="a keyword to associate with the recipe." +
-                    " may be specified more that once.", action="append", default=[],
+    c2.add_argument("-k", "--keyword", help="A keyword to associate with the recipe." +
+                    " May be specified more that once." +
+                    " Please add enough keywords to better describe and distinguish the recipe", 
+                    action="append", default=[],
                     required=True)
-    c2.add_argument("-n", "--name", help="The name of recipe", required=True)
-    c.add_argument("script", help="bash script that contains the commands that build the recipe")
+    c2.add_argument("-ft", "--file-type", action="append", default=[], required=True, help="The type of data file the ggd recipe will store. (e.g. bed, bam, vcf, fasta, etc.)" +
+                    " May be specified more than once. Please specify all data types")
+    c2.add_argument("-ff","--final-file", action="append", default=[], required=True, help="The name of the final file created." +
+                    " May be specified more than once. PLease specify all data files that will persist once data curation is over." +
+                    " (e.g. hg19-gaps-ucsc-v1.bed.gz, hg19-gaps-ucsc-v1.bed.gz.tbi)." +
+                    " [NOTE: file names will be renamed to the recipe name with extentions persisting." +
+                    " Within your scripts, please name your files after the recipe name.]")
+    c2.add_argument("-cb", "--coordinate-based", required=True, choices= GENOMIC_COORDINATE_LIST,
+                    help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordianances start at genomic coordinate 0 or 1," +
+                    " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exlcusive (everthing up to but not including the end coordinate)" + 
+                    " Files that do not have coordiante basing, like fasta files, specify NA for not applicable." +
+                    " For more information see https://gogetdata.github.io/contribute-recipe.html#zero-or-1-based.") 
+    c2.add_argument("-n", "--name", help="The name of recipe (e.g. cpg-islands, pfam-domains, gaps, etc.)", required=True)
+    c2.add_argument("script", help="bash script that contains the commands to obtain and process the data")
 
     c.set_defaults(func=make_bash)
 
@@ -91,6 +104,33 @@ def make_bash(parser, args):
         flist = f.strip().split(".")
         flist[0] = name
         extra_files.append(".".join(flist))
+
+    # Check tags
+    ## Check coordinates
+    assert args.coordinate_based in GENOMIC_COORDINATE_LIST, ("{c} is not an acceptable genomic coordinate base".format(c=args.coordinate_based))  
+   # ("Please provide a genomic coordinate base from the follow list: {}".format(", ".join(GENOMIC_COORDINATE_LIST)))
+
+    ## Check data version
+    assert args.data_version,  ("Please provide the version of the data this recipe curates")
+    assert args.data_version.strip != "", ("Please provide the version of the data this recipe curates")
+
+    ## data provider check above
+
+    ## Check file type
+    assert len(args.file_type) >= 1, ("Please provide the file types for the files created by this recipe")
+    for ftype in args.file_type:
+        assert ftype.strip() != "", ("Please provide a real file type")
+
+    ## Check final files
+    assert len(args.final_file) >= 1, ("Please provide the final files for this recipe")
+    ### Check that all file types are in the final files
+    missing_filetypes = [x.lower() for x in args.file_type if not re.search(x.lower(), " ".join( args.final_file))]
+    assert not missing_filetypes, ("The following file types were not present in the final files provided: {ft}".format(ft = ", ".join(missing_filetypes)))
+    for f in args.final_file:
+        assert f.strip() != "", ("Please provide real files for the final files created by this recipe")
+        assert [x for x in args.file_type if x.lower() in f], ("{F} does not coincide with any of the file types you provided. Please change the final files to reflect the proper file types.".format(F=f))
+        assert name in f, ("Please change the base name of the final files to include the recipe name")
+
         
 
     if args.platform == "noarch":
@@ -98,36 +138,55 @@ def make_bash(parser, args):
                       "noarch": "generic",
                       "binary_relocation": False,
                       "detect_binary_files_with_prefix": False,
-                      "number": 0}}
+                      "number": 0
+                        }
+                }
     else:
         yml1 = {"build": {
                       "binary_relocation": False,
                       "detect_binary_files_with_prefix": False,
-                      "number": 0}}
+                      "number": 0
+                        }
+                }
     yml2 = {"extra": {
                     "authors": args.authors,
                     "extra-files": extra_files,
-                }}
-    yml3 = {"package": {"name": name, "version": args.package_version}}
-    yml4 = {"requirements": {"build": deps[:],
-                    "run": deps[:]}}
-    yml5 = { "source": {"path": "."}}
-
+                    }
+            }
+    yml3 = {"package": {
+                    "name": name, 
+                    "version": args.package_version
+                       }
+            }
+    yml4 = {"requirements": {
+                    "build": deps[:],
+                    "run": deps[:]
+                        }
+            }
+    yml5 = { "source": {
+                    "path": "."
+                        }
+            }
     yml6 = {"about": {
                     "identifiers": {
-                    "species": args.species,
-                    "genome-build": args.genome_build
-                },
+                        "species": args.species,
+                        "genome-build": args.genome_build
+                        },
                     "keywords": args.keyword,
                     "summary": args.summary,
                     "tags": {
-                        "data-version": args.data_version,
-                        "data-provider": args.data_provider,
+                        "genomic-coordinate-base": args.coordinate_based.strip(),
+                        "data-version": args.data_version.strip(),
+                        "data-provider": args.data_provider.strip(),
+                        "file-type": list(map(lambda s: str(s).lower(), args.file_type)), 
+                        "final-files": args.final_file,
                         "ggd-channel": args.channel
                     },
-                }}
+                }
+            }
 
 
+    ## Write output with specific key order
     with open(os.path.join(name, "meta.yaml"), "a") as fh:
         fh.write(yaml.dump(yml1, default_flow_style=False))
         fh.write(yaml.dump(yml2, default_flow_style=False))
@@ -231,6 +290,9 @@ echo 'Recipe successfully built!'
     with open(os.path.join(name, "recipe.sh"), "w") as fh:
         fh.write("#!/bin/sh\nset -eo pipefail -o nounset\n")
         fh.write(open(args.script).read())
+
+    ## Create empty checksum file
+    open(os.path.join(name, "checksums_file.txt"), "a").close()
 
     print("\n\t-> Wrote output to %s/" % name)
     print("\n\t-> To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\t\t$ ggd check-recipe %s/"  % name)
