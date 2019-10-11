@@ -1192,7 +1192,7 @@ def test_check_recipe_bz2_file():
     assert os.path.isfile(bz2_file)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
 
     check_recipe.check_recipe((),args) == True
 
@@ -1214,7 +1214,7 @@ def test_check_recipe_bz2_file():
     assert os.path.exists(bz2_file2)
     assert os.path.isfile(bz2_file2)
    
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file2, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file2, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
     assert check_recipe.check_recipe((),args) == True 
 
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
@@ -1236,7 +1236,7 @@ def test_check_recipe_bz2_file():
     ## Reset
     test__build_normal_run(add_checksum=False)
     bz2_file = pytest.global_tarball_testing_file
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, dont_add_md5sum_for_checksum=True)
     check_recipe.check_recipe((),args) == True
     
     uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
@@ -1285,7 +1285,7 @@ def test_check_recipe_recipe_path():
 
 
     ## SKIP md5sum process. -> This will trigger a checksum of the files, which will fail because there is none and the recipe will be uninstalled
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=True)
    
     assert check_recipe.check_recipe((),args) == True 
 
@@ -1299,7 +1299,7 @@ def test_check_recipe_recipe_path():
 
 
     ## Add md5sum. No errors should happend, and the package should not be uninstalled because the dont_uninstall flag is set to True
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
    
     assert check_recipe.check_recipe((),args) == True 
 
@@ -1341,7 +1341,7 @@ def test_check_recipe_uninstall_local():
    assert os.path.exists(recipe_path)
 
    ## Set args
-   args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, add_md5sum_for_checksum=True)
+   args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False)
 
    assert check_recipe.check_recipe((),args) == True 
   
@@ -1498,7 +1498,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["one_file_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1669,7 +1669,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["two_files_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1835,7 +1835,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["two_files_noindex_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1904,10 +1904,11 @@ def test_check_recipe_package_env_vars():
                 data-provider: UCSC
                 file-type: 
                 - txt
+                - genome
                 final-files: 
-                - three_files_v1.txt.gz
                 - three_files_v1.1.txt.gz
                 - three_files_v1.2.txt.gz
+                - three_files_v1.genome
                 ggd-channel: genomics
         
         recipe.sh: |
@@ -2001,7 +2002,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["three_files_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()

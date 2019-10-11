@@ -33,7 +33,7 @@ def add_check_recipe(p):
     c = p.add_parser('check-recipe', help="Build, install, check, and test a ggd data recipe", description="Convert a ggd recipe created from `ggd make-recipe` into a data package. Test both ggd data recipe and data package")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) Set the stdout log level to debug")
     c.add_argument("-du", "--dont_uninstall", action="store_true", help="(Optional) By default the newly installed local ggd data package is uninstalled after the check has finished. To bypass this uninstall step (to keep the local package installed) set this flag \"--dont_uninstall\"")
-    c.add_argument("--add-md5sum-for-checksum", action="store_false", required=False, help=argparse.SUPPRESS)
+    c.add_argument("--dont-add-md5sum-for-checksum", action="store_true", required=False, help=argparse.SUPPRESS)
     c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2)")
 
     c.set_defaults(func=check_recipe)
@@ -290,7 +290,7 @@ def check_recipe(parser, args):
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
         bz2 = args.recipe_path
-        args.add_md5sum_for_checksum = False ## If bz2, checksum should have already been calculated. 
+        args.dont_add_md5sum_for_checksum = True ## If bz2, checksum should have already been calculated. 
     else:
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
         if args.debug:
@@ -320,7 +320,7 @@ def check_recipe(parser, args):
         check_final_files(install_path,recipe)
     
         ## Add mdfsum
-        if args.add_md5sum_for_checksum:
+        if args.dont_add_md5sum_for_checksum == False:
             add_to_checksum_md5sums(install_path, recipe, op.join(args.recipe_path,"checksums_file.txt"))      
 
             print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
