@@ -1,4 +1,5 @@
 from __future__ import print_function
+import argparse
 import sys
 import os
 import os.path as op
@@ -32,6 +33,7 @@ def add_check_recipe(p):
     c = p.add_parser('check-recipe', help="Build, install, check, and test a ggd data recipe", description="Convert a ggd recipe created from `ggd make-recipe` into a data package. Test both ggd data recipe and data package")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) Set the stdout log level to debug")
     c.add_argument("-du", "--dont_uninstall", action="store_true", help="(Optional) By default the newly installed local ggd data package is uninstalled after the check has finished. To bypass this uninstall step (to keep the local package installed) set this flag \"--dont_uninstall\"")
+    c.add_argument("--add-md5sum-for-checksum", default=True, required=False, help=argparse.SUPPRESS)
     c.add_argument("recipe_path", help="path to recipe directory (can also be path to the .bz2)")
 
     c.set_defaults(func=check_recipe)
@@ -53,7 +55,9 @@ def list_files(dir):
     rfiles = []
     subdirs = [x[0] for x in os.walk(dir)]
     for subdir in subdirs:
-        files = next(os.walk(subdir))[2]
+        #files = next(os.walk(subdir))[2]
+        files_list = next(os.walk(subdir))
+        files = files_list[2]
         if (len(files) > 0):
             for file in files:
                 rfiles.append(op.join(subdir, file))
@@ -238,7 +242,23 @@ def get_recipe_from_bz2(fbz2):
 
 
 def _check_build(species, build):
-    #print("\nWarning: _check_build is deprecated\n")
+    """Method to check the genome-build is one available and correct in GGD. 
+
+    _check_build
+    ============
+    Checks the supplied genome build with the available genome builds in GGD.
+
+    Parameters:
+    -----------
+    1) species: The supplied species for the recipe being built
+    2) build: The genome build for the recipe being built
+
+    Returns:
+    ++++++++
+    1) True if gnome build is correct, raises an error otherwise 
+
+    """
+
     if check_for_internet_connection():
         gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
         try:
@@ -270,6 +290,7 @@ def check_recipe(parser, args):
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
         bz2 = args.recipe_path
+        args.add_md5sum_for_checksum = False ## If bz2, checksum should have already been calculated. 
     else:
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
         if args.debug:
@@ -277,11 +298,11 @@ def check_recipe(parser, args):
         else:
             bz2 = _build(args.recipe_path, recipe)
 
-    species, build, version = check_yaml(recipe)
+    species, build, version, recipe_name = check_yaml(recipe)
 
     _check_build(species, build)
 
-    install_path = op.join(conda_root(), "share", "ggd", species, build)
+    install_path = op.join(conda_root(), "share", "ggd", species, build, recipe_name, version)
 
     before = list_files(install_path)
 
@@ -295,7 +316,28 @@ def check_recipe(parser, args):
         check_files(install_path, species, build, recipe['package']['name'],
                     recipe['extra'].get('extra-files', []), before, bz2)
 
-        print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+        ## Check final installed data files
+        check_final_files(install_path,recipe)
+    
+        ## Add mdfsum
+        if args.add_md5sum_for_checksum:
+            add_to_checksum_md5sums(install_path, recipe, op.join(args.recipe_path,"checksums_file.txt"))      
+
+            print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+
+        ## If skipping md5sum addition, check md5sum for each file
+        else:
+            ## Check that the checksum in the .bz2 file has a filled checksum file 
+            from .utils import get_checksum_dict_from_tar, data_file_checksum
+            checksum_dict = get_checksum_dict_from_tar(bz2)
+            if not data_file_checksum(install_path, checksum_dict):
+                print("\nForcing uninstall")
+                args.dont_uninstall = False
+                print("\n\t!!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!!\n")
+
+            else:
+                print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+
 
     else: ## if already installed 
         print("\nPackage already installed on your system")
@@ -322,6 +364,78 @@ def check_recipe(parser, args):
         recipe_dict = get_recipe_from_bz2(bz2)
         name = recipe_dict["package"]["name"]
         print("\n\n {} will remain installed on your system as a local data package.".format(name))
+
+    return(True)
+
+
+def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_path):
+    """Method to add/update md5sums for each final file in a recipe for checksum 
+
+    add_to_checksum_md5sums
+    =======================
+    Method to update the checksum_file.txt file for the current recipe. This method will
+     add an entry in the checksum file for each processed/final file in the recipe.
+
+    Parameters:
+    -----------
+    1) installed_dir_path: The directory path to the installed data files, excluding the version number
+    2) yaml_file: The meta.yaml file for the recipe
+    3) recipe_checksum_file_path: The file path to the checksum recipe to update
+
+    Returns:
+    ++++++++
+    1) Nothing is returned. The checksum file is updated with each data file and it's md5sum.
+        Each data file will be placed on its own line with a tab seperating the file's md5sum.
+    """
+    import glob
+    from .utils import get_file_md5sum 
+
+    with open(recipe_checksum_file_path, "w") as cs_file:
+        installed_files = glob.glob(op.join(installed_dir_path,"*"))
+
+        ## Check the number of files are the same between the yaml file and the acutal data files
+        final_files = yaml_file["about"]["tags"]["final-files"] 
+        assert len(final_files) == len(installed_files), ("The number of installed files does not match the number of final files listed in the recipe." +
+            " Number of installed files = {i}, Number of final files in recipe = {f}".format(i= len(installed_files), f= len(final_files)))
+
+        for ifile in installed_files:
+            cs_file.write(op.basename(ifile)+"\t"+get_file_md5sum(ifile)+"\n")
+
+    return(True)
+
+
+def check_final_files(installed_dir_path,yaml_file):
+    """Method to check the installed files match the files listed in the yaml file
+
+    check_final_files
+    =================
+    Method to check that the final installed files from the data recipe are the same files listed in the meta.yaml file
+
+    Parameters:
+    -----------
+    1) installed_dir_path: The directory path to the installed files
+    2) yaml_file: The meta.yaml file for the recipe
+
+    Returns:
+    ++++++++
+    1) True if all passes fail, otherwise an assertion error is raised
+    """
+    import glob
+
+    installed_files = glob.glob(op.join(installed_dir_path,"*"))
+
+    final_files = yaml_file["about"]["tags"]["final-files"] 
+
+    ## Check that there are the same number of files as files installed. 
+    assert len(final_files) == len(installed_files), ("The number of installed files does not match the number of final files listed in the recipe." +
+        " Number of installed files = {i}, Number of final files in recipe = {f}".format(i= len(installed_files), f= len(final_files)))
+
+    ## Test the file exists 
+    for ffile in final_files:
+        ffile_path = op.join(installed_dir_path,ffile)
+        assert ffile_path in installed_files, ("The {ff} file designated in the recipe is not one of the installed files".format(ff=ffile))
+        assert os.path.exists(ffile_path), ("The {ff} file designated in the recipes does not exists as an installed file".format(ff=ffile))
+        assert os.path.isfile(ffile_path), ("The {ff} file designated in the recipes is not a file in the installed path".format(ff=ffile))
 
     return(True)
 
@@ -439,6 +553,7 @@ def check_files(install_path, species, build, recipe_name,
 def check_yaml(recipe):
     """Method to check if the correct information is contained within the ggd recipe's meta.yaml file """
 
+    ## Check yaml keys 
     assert 'package' in recipe and "version" in recipe['package'], ("must specify 'package:' section with ggd version and package name")
     assert 'extra' in recipe, ("must specify 'extra:' section with author and extra-files")
     assert 'about' in recipe and 'summary' in recipe['about'], ("must specify an 'about/summary' section")
@@ -446,14 +561,23 @@ def check_yaml(recipe):
     assert 'genome-build' in recipe['about']['identifiers'], ("must specify 'about:' section with genome-build")
     assert 'species' in recipe['about']['identifiers'], ("must specify 'about:' section with species")
     assert 'tags' in recipe['about'], ("must specify 'about:' section with tags")
-    assert 'data-version' in recipe['about']['tags'], ("must specify the specific data version of the data in the 'about:tags' section")
-    assert 'ggd-channel' in recipe['about']['tags'], ("must specify the specific ggd channel for the recipe in the 'about:tags' section")
     assert 'keywords' in recipe['about'] and \
         isinstance(recipe['about']['keywords'], list), ("must specify 'about:' section with keywords")
 
-    species, build, version = recipe['about']['identifiers']['species'], recipe['about']['identifiers']['genome-build'], recipe['package']['version']
+    ##Check tags
+    assert "genomic-coordinate-base" in recipe["about"]["tags"], ("must specify a genomic coordinate base for the files created by this recipe")
+    assert "data-version" in recipe["about"]["tags"], ("must specify the data version for the data files created by this recipe")
+    assert "data-provider" in recipe["about"]["tags"], ("must specify the data provider for the files created by this recipe")
+    assert "file-type" in recipe["about"]["tags"], ("must specify the file types for the files created by this recipe")
+    assert "final-files" in recipe["about"]["tags"], ("must specify the final files created by this recipe")
+    assert 'ggd-channel' in recipe['about']['tags'], ("must specify the specific ggd channel for the recipe in the 'about:tags' section")
+
+    species, build, version, name  = recipe['about']['identifiers']['species'], \
+                                     recipe['about']['identifiers']['genome-build'], \
+                                     recipe['package']['version'], \
+                                     recipe['package']['name']
     version = version.replace(" ", "")
     version = version.replace(" ", "'")
 
     _check_build(species, build)
-    return species, build, version
+    return species, build, version, name
