@@ -732,6 +732,8 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
         ## Check md5sum
         ifile_md5sum = get_file_md5sum(ifile) 
+        print(ifile_md5sum)
+        print(checksum_dict[ifile_name])
         if ifile_md5sum != checksum_dict[ifile_name]:
             print("\n\n!!ERROR!!: The {f} file wasn't installed properly\n".format(f=ifile_name))
             return(False)
