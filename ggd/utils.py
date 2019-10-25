@@ -718,7 +718,9 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
     ## Check that there are the same number of installed data files as files with orignial checksums
     if len(installed_files) != len(checksum_dict):
-        print("\n\n!!ERROR!!: The number of installed files does not match the number of checksum files\n")
+        print("\n\n!!ERROR!!: The number of installed files does not match the number of checksum files")
+        print("Installed files (n = {n}): {f}".format(n = len(installed_files), f = ", ".join([os.path.basename(x) for x in installed_files])))
+        print("Checksum files (n = {n}): {f}".format(n = len(checksum_dict), f = ", ".join(checksum_dict.keys())))
         return(False)
 
     ## Check each installed data file against the recipe's checksum
@@ -732,10 +734,10 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
         ## Check md5sum
         ifile_md5sum = get_file_md5sum(ifile) 
-        print(ifile_md5sum)
-        print(checksum_dict[ifile_name])
+        print("installed file:", os.path.basename(ifile),"checksum:",ifile_md5sum)
+        print("checksum  file:", ifile_name, "checksum:", checksum_dict[ifile_name], "\n")
         if ifile_md5sum != checksum_dict[ifile_name]:
-            print("\n\n!!ERROR!!: The {f} file wasn't installed properly\n".format(f=ifile_name))
+            print("\n\n!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly\n".format(f=ifile_name))
             return(False)
 
     return(True)

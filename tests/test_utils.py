@@ -1139,13 +1139,14 @@ def test_data_file_checksum():
     bed_checksum3_path = bed_checksum3.recipe_dirs["bed_checksum3"]
 
     checksum_dict3 = utils.get_checksum_dict_from_txt(os.path.join(bed_checksum3_path,"checksums_file.txt"))
+    print(checksum_dict3)
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict3)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The {f} file wasn't installed properly".format(f = "cpg.bed.gz") in output) or \
-           ("!!ERROR!!: The {f} file wasn't installed properly".format(f = "cpg.bed.gz.tbi") in output)
+    assert ("!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz") in output) or \
+           ("!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz.tbi") in output)
 
 
     ## Test differint names within checksum_file and installed files
@@ -1167,8 +1168,7 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict4)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or \
-           ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
+    assert ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
 
 
 def test_bypass_satsolver_on_install():
