@@ -670,7 +670,7 @@ def test_make_bash_internet_free():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["BED"],final_file=["hg19-test-gaps-ucsc-v1.bed.gz", "hg19-test-gaps-ucsc-v1.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
 
     assert make_bash.make_bash((),args) 
 
@@ -708,8 +708,8 @@ def test_make_bash_internet_free():
             assert yamldict["about"]["tags"]["genomic-coordinate-base"] == "0-based-inclusive"
             assert yamldict["about"]["tags"]["data-version"] == "27-Apr-2009"
             assert yamldict["about"]["tags"]["data-provider"] == "UCSC"
-            assert yamldict["about"]["tags"]["file-type"] == ["bed"] ## Should be converted to lower case
-            assert yamldict["about"]["tags"]["final-files"] == ["hg19-test-gaps-ucsc-v1.bed.gz",  "hg19-test-gaps-ucsc-v1.bed.gz.tbi"]
+            assert yamldict["about"]["tags"]["file-type"] == []
+            assert yamldict["about"]["tags"]["final-files"] == []
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
     except IOError as e:
