@@ -290,13 +290,18 @@ def check_recipe(parser, args):
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
         bz2 = args.recipe_path
-        args.dont_add_md5sum_for_checksum = True ## If bz2, checksum should have already been calculated. 
+        args.dont_add_md5sum_for_checksum = True ## If bz2, final files should have already beed added and checksum should have already been calculated. 
     else:
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
         if args.debug:
             bz2 = _build(args.recipe_path, recipe,debug=True)
         else:
             bz2 = _build(args.recipe_path, recipe)
+
+    ## If skipping md5sum and final file creation, check the yaml file
+    if args.dont_add_md5sum_for_checksum:
+        assert len(recipe["about"]["tags"].get("final-files",[])) > 0, ("final-files are missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set")  
+        assert len(recipe["about"]["tags"].get('file-type', [])) > 0, ("file-type is missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set")  
 
     species, build, version, recipe_name = check_yaml(recipe)
 
@@ -315,36 +320,48 @@ def check_recipe(parser, args):
     if new_installed:
         check_files(install_path, species, build, recipe['package']['name'],
                     recipe['extra'].get('extra-files', []), before, bz2)
-
-        ## Check final installed data files
-        check_final_files(install_path,recipe)
     
-        ## Add mdfsum
+        ## Add final files and md5sum
         if args.dont_add_md5sum_for_checksum == False:
+            recipe = add_final_files(install_path, recipe, args.recipe_path)
             add_to_checksum_md5sums(install_path, recipe, op.join(args.recipe_path,"checksums_file.txt"))      
 
             print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+            print("\n\t**********************************\n\t* Recipe ready for Pull Requests *\n\t**********************************\n")
 
         ## If skipping md5sum addition, check md5sum for each file
         else:
+            ## Check final installed data files
+            try:
+                check_final_files(install_path,recipe)
+            except AssertionError as e:
+                print("\n!!ERROR!!", str(e)) 
+                print("\n\t!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!\n")
+                print("\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\t! Recipe NOT ready for Pull Requests !\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                remove_package_after_install(bz2,recipe_name,111)
+
             ## Check that the checksum in the .bz2 file has a filled checksum file 
             from .utils import get_checksum_dict_from_tar, data_file_checksum
             checksum_dict = get_checksum_dict_from_tar(bz2)
             if not data_file_checksum(install_path, checksum_dict):
-                print("\nForcing uninstall")
-                args.dont_uninstall = False
-                print("\n\t!!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                print("\n\t!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!\n")
+                print("\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\t! Recipe NOT ready for Pull Requests !\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
+                remove_package_after_install(bz2,recipe_name,222)
 
             else:
                 print("\n\t****************************\n\t* Successful recipe check! *\n\t****************************\n")
+                print("\n\t**********************************\n\t* Recipe ready for Pull Requests *\n\t**********************************\n")
 
 
     else: ## if already installed 
         print("\nPackage already installed on your system")
         print("\nIf the \"-du\" flag (dont_uninstall) is NOT set this package will be uninstalled") 
         print("\nTo recheck this recipe")
-        print(" 1) Uninstall the reicpe with: \n\t$ ggd check-recipe {} \tNOTE: Make sure the \"-du\" flag is NOT set".format(args.recipe_path))
-        print(" 2) Run check recipes again once the local package is uninstalled (From step 1): \n\t $ggd check-recipe {} \tNOTE: With or without the \"-du\" flag.".format(args.recipe_path))
+        if args.dont_uninstall == True:
+            print(" 1) Uninstall the reicpe with: \n\t$ ggd check-recipe {} \tNOTE: Make sure the \"-du\" flag is NOT set".format(args.recipe_path))
+            print(" 2) Run check recipes again once the local package is uninstalled (From step 1): \n\t $ggd check-recipe {} \tNOTE: With or without the \"-du\" flag.".format(args.recipe_path))
+        else: 
+            print(" 1) Run check recipes again once the local package is uninstalled: \n\t $ggd check-recipe {} \tNOTE: With or without the \"-du\" flag.".format(args.recipe_path))
 
 
     if args.dont_uninstall == False:
@@ -387,6 +404,7 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
     1) Nothing is returned. The checksum file is updated with each data file and it's md5sum.
         Each data file will be placed on its own line with a tab seperating the file's md5sum.
     """
+    print("Updating md5sums for final data files\n")
     import glob
     from .utils import get_file_md5sum 
 
@@ -402,6 +420,71 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
             cs_file.write(op.basename(ifile)+"\t"+get_file_md5sum(ifile)+"\n")
 
     return(True)
+
+
+def add_final_files(installed_dir_path,yaml_dict,recipe_path):
+    """Method to add the final data files to the meta.yaml file of a recipe
+
+    add_final_files
+    ===============
+    Method to iterate through and add each of the final data files from the processed data package to 
+     the meta.yaml file of the checked recipe. (This should be called after the "check_files" function
+     has passed.) 
+    The file types will be added as well. If they are common genomic file types, otherwise the 
+     file extension will be used.
+    The meta.yaml file will be re-written with the new file types and final files. 
+    New meta.yaml fields = 
+        - final-files
+        - file-type
+
+    Parameters:
+    -----------
+    1) installed_dir_path: The directory path to the installed data files
+    2) yaml_dict: A dictionary of the meta.yaml file for the recipe
+    3) recipe_path: The directory path to the recipe being checked 
+
+    Returns: 
+    ++++++++
+    The yaml dictionary of the new yaml file
+    """
+    print("Updating list of final data files\n")
+    import glob
+    
+    file_types = set(["fasta","fa","fastq","fq","sam","bam","cram","vcf","bcf","bed","bigwig","bw",
+                        "gff","gtf","gff3","psl","hal","maf","wig","2bit","nib","sff","srf","txt",
+                        "json","xml","yaml","yml","mzml","cvs","tsv","bim","fam","ped","genome"])
+
+    installed_files = glob.glob(op.join(installed_dir_path,"*"))
+
+    yaml_dict["about"]["tags"]["final-files"] = []
+    final_file_types = set()
+
+    ## Add final data files to yaml dict
+    for ffile_path in installed_files:
+        ffile = os.path.basename(ffile_path)
+        yaml_dict["about"]["tags"]["final-files"].append(ffile)   
+        ftype = [x for x in file_types if x in ffile.lower().split(".")]
+        if ftype:
+            final_file_types.update(ftype)
+        else:
+            final_file_types.update([".".join(ffile.split(".")[1:])])
+
+    ## Create a file-type key in the yaml 
+    yaml_dict["about"]["tags"]["file-type"] = sorted(list(final_file_types))
+
+    ## Sort final files
+    yaml_dict["about"]["tags"]["final-files"] = sorted(yaml_dict["about"]["tags"]["final-files"])
+            
+    ## Rewrite yaml file with new tags and new final files
+    with open(os.path.join(recipe_path, "meta.yaml"), "w") as newFile:
+        for key in sorted(yaml_dict.keys()):
+            if key != "about": ## Skip about key for now
+                newFile.write(yaml.dump({key:yaml_dict[key]}, default_flow_style=False))
+        ## Add in the "about" key 
+        newFile.write(yaml.dump({"about":yaml_dict["about"]}, default_flow_style=False))
+
+    ## Return the new version of the meta.yaml as a dict
+    return(yaml.safe_load(open(os.path.join(recipe_path,"meta.yaml"))))
 
 
 def check_final_files(installed_dir_path,yaml_file):
@@ -420,6 +503,7 @@ def check_final_files(installed_dir_path,yaml_file):
     ++++++++
     1) True if all passes fail, otherwise an assertion error is raised
     """
+    print("Checking the final data files\n")
     import glob
 
     installed_files = glob.glob(op.join(installed_dir_path,"*"))
@@ -568,8 +652,6 @@ def check_yaml(recipe):
     assert "genomic-coordinate-base" in recipe["about"]["tags"], ("must specify a genomic coordinate base for the files created by this recipe")
     assert "data-version" in recipe["about"]["tags"], ("must specify the data version for the data files created by this recipe")
     assert "data-provider" in recipe["about"]["tags"], ("must specify the data provider for the files created by this recipe")
-    assert "file-type" in recipe["about"]["tags"], ("must specify the file types for the files created by this recipe")
-    assert "final-files" in recipe["about"]["tags"], ("must specify the final files created by this recipe")
     assert 'ggd-channel' in recipe['about']['tags'], ("must specify the specific ggd channel for the recipe in the 'about:tags' section")
 
     species, build, version, name  = recipe['about']['identifiers']['species'], \

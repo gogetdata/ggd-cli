@@ -638,12 +638,29 @@ def test__build_ggd_requirments_removed_on_bad_build():
 pytest.global_tarball_testing_file = ""
 pytest.global_ggd_recipe_path = ""
 
-def test__build_normal_run(add_checksum=False):
+def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False):
     """
     test the _build function properly builds a ggd recipe into a ggd pocakge using conda build
     """
     pytest_enable_socket()
-
+    
+    if final_files:
+        if bad_files:
+            ft = """final-files:
+                    - trial-bad-hg38-gaps-v1.bed.gz
+                    - trial-bad-hg38-gaps-v1.bed.gz.tbi """
+            ff = """file-type: 
+                    - bed """
+        else:
+            ft = """final-files:
+                    - trial-hg38-gaps-v1.bed.gz
+                    - trial-hg38-gaps-v1.bed.gz.tbi """
+            ff = """file-type: 
+                    - bed """
+        
+    else:
+        ft = "file-type: []"
+        ff = "final-files: []"
 
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019
     recipe = CreateRecipe(
@@ -684,11 +701,8 @@ def test__build_normal_run(add_checksum=False):
                 genomic-coordinate-base: 0-based-inclusive
                 data-version: 11-Mar-2019
                 data-provider: UCSC
-                file-type: 
-                - bed
-                final-files: 
-                - trial-hg38-gaps-v1.bed.gz
-                - trial-hg38-gaps-v1.bed.gz.tbi
+                %s
+                %s
                 ggd-channel: genomics
         
         recipe.sh: |
@@ -783,7 +797,7 @@ def test__build_normal_run(add_checksum=False):
 
         checksums_file.txt: |
             
-    """, from_string=True)
+    """ %(ft, ff), from_string=True)
 
     recipe.write_recipes()
 
@@ -799,13 +813,14 @@ def test__build_normal_run(add_checksum=False):
     assert os.path.isfile(tarball_file_path)
     assert "noarch" in tarball_file_path
 
-    ## Add checksum if requested (Not for test of build, but for use in other tests like full check_recipe test from bz2 file)
+    ## Add checksum and final files if requested (Not for test of build, but for use in other tests like full check_recipe test from bz2 file)
     if add_checksum:
         recipe_name = "trial-hg38-gaps-v1"
         assert check_recipe._install(tarball_file_path, recipe_name) == True
         recipe_yaml = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml"))) 
         species, build, version, recipe_name = check_recipe.check_yaml(recipe_yaml)
         install_path = os.path.join(utils.conda_root(), "share", "ggd", species, build, recipe_name, version)
+        recipe_yaml = check_recipe.add_final_files(install_path, recipe_yaml, recipe_dir_path)
         check_recipe.add_to_checksum_md5sums(install_path, recipe_yaml, os.path.join(recipe_dir_path,"checksums_file.txt"))
         tarball_file_path = check_recipe._build(recipe_dir_path,recipe_yaml)
         pytest.global_tarball_testing_file = tarball_file_path
@@ -1181,8 +1196,8 @@ def test_check_recipe_bz2_file():
 
     uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
 
-    # Test bz2 files without checksum values
-    ### checksum will Error, uninstall the recipe and finish normally 
+    # Test bz2 files without final-files or file-types
+    ### check_recipe will throw and Assertion error, because the md5sum and final files addition step will be bypassed 
     ## Buid the bz2 file
     test__build_normal_run()
 
@@ -1194,7 +1209,58 @@ def test_check_recipe_bz2_file():
     ## Set args
     args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
 
-    check_recipe.check_recipe((),args) == True
+    try:
+        check_recipe.check_recipe((),args) 
+        assert False
+    except AssertionError as e:
+        assert "final-files are missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set" in str(e)
+    except Exception as e:
+        assert False
+
+
+    # Test bz2 files with bad final-files
+    ### final-file check will Error, uninstall the recipe and exit wit 111 
+    ## Buid the bz2 file
+    test__build_normal_run(final_files=True,bad_files=True)
+
+    ## Use the previously created tarball.bz2 file from runing the _build funtion
+    bz2_file = pytest.global_tarball_testing_file
+    assert os.path.exists(bz2_file)
+    assert os.path.isfile(bz2_file)
+
+    ## Set args
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_recipe((),args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("111") ## Check that the exit code is 1
+
+    out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
+    assert "trial-hg38-gaps-v1" not in out
+    out = utils.check_output(["ggd", "show-env"])
+    assert "ggd_trial_hg38_gaps_v1" not in out
+    conda_root = utils.conda_root()
+    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+
+
+    # Test bz2 files without checksum values
+    ### checksum will Error, uninstall the recipe and exit with 222 
+    ## Buid the bz2 file
+    test__build_normal_run(final_files=True)
+
+    ## Use the previously created tarball.bz2 file from runing the _build funtion
+    bz2_file = pytest.global_tarball_testing_file
+    assert os.path.exists(bz2_file)
+    assert os.path.isfile(bz2_file)
+
+    ## Set args
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_recipe((),args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
 
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
     assert "trial-hg38-gaps-v1" not in out
@@ -1234,12 +1300,13 @@ def test_check_recipe_bz2_file():
     assert "Package already installed on your system" in output
 
     ## Reset
-    test__build_normal_run(add_checksum=False)
+    test__build_normal_run(add_checksum=False,final_files=True)
     bz2_file = pytest.global_tarball_testing_file
     args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, dont_add_md5sum_for_checksum=True)
     check_recipe.check_recipe((),args) == True
     
     uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+
 
 def test_check_recipe_recipe_path():
     """
@@ -1282,12 +1349,18 @@ def test_check_recipe_recipe_path():
     ## Use the previously created ggd recipe path
     recipe_path = pytest.global_ggd_recipe_path
     assert os.path.exists(recipe_path)
+    ### check that the checksum file is empty 
+    assert os.path.getsize(os.path.join(recipe_path,"checksums_file.txt")) == 0
 
 
     ## SKIP md5sum process. -> This will trigger a checksum of the files, which will fail because there is none and the recipe will be uninstalled
+    ### exit with 222
     args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=True)
    
-    assert check_recipe.check_recipe((),args) == True 
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_recipe((),args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
 
     ## Check that the recipe was uninstalled
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
@@ -1296,6 +1369,14 @@ def test_check_recipe_recipe_path():
     assert "ggd_trial_hg38_gaps_v1" not in out
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+
+    ## Check that the final files and the file types were added 
+    yaml_dict = yaml.safe_load(open(os.path.join(recipe_path,"meta.yaml")))
+    assert len(yaml_dict["about"]["tags"]["final-files"]) == 2
+    assert len(yaml_dict["about"]["tags"]["file-type"]) == 1
+    assert "trial-hg38-gaps-v1.bed.gz" in yaml_dict["about"]["tags"]["final-files"] 
+    assert "trial-hg38-gaps-v1.bed.gz.tbi" in yaml_dict["about"]["tags"]["final-files"] 
+    assert "bed" in yaml_dict["about"]["tags"]["file-type"] 
 
 
     ## Add md5sum. No errors should happend, and the package should not be uninstalled because the dont_uninstall flag is set to True
@@ -2246,10 +2327,11 @@ def test_check_final_files():
     """
 
     pytest_enable_socket()
+    
 
     recipe = CreateRecipe(
     """
-    trial-hg38-gaps-ucsc-v1:
+    trial2-hg38-gaps-ucsc-v1:
         meta.yaml: |
             build:
               binary_relocation: false
@@ -2260,7 +2342,7 @@ def test_check_final_files():
               authors: mjc 
               extra-files: []
             package:
-              name: trial-hg38-gaps-ucsc-v1
+              name: trial2-hg38-gaps-ucsc-v1
               version: '1' 
             requirements:
               build:
@@ -2288,8 +2370,8 @@ def test_check_final_files():
                 file-type: 
                 - bed
                 final-files: 
-                - trial-hg38-gaps-ucsc-v1.bed.gz
-                - trial-hg38-gaps-ucsc-v1.bed.gz.tbi
+                - trial2-hg38-gaps-ucsc-v1.bed.gz
+                - trial2-hg38-gaps-ucsc-v1.bed.gz.tbi
                 ggd-channel: genomics
         
         recipe.sh: |
@@ -2301,9 +2383,9 @@ def test_check_final_files():
             | gzip -dc \\
             | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
             | gsort /dev/stdin $genome \\
-            | bgzip -c > trail-hg38-gaps-ucsc-v1.bed.gz
+            | bgzip -c > trial-hg38-gaps-ucsc-v1.bed.gz
 
-            tabix trail-hg38-gaps-ucsc-v1.bed.gz 
+            tabix trial-hg38-gaps-ucsc-v1.bed.gz 
         
         post-link.sh: |
             set -eo pipefail -o nounset
@@ -2311,15 +2393,15 @@ def test_check_final_files():
             if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
                 export CONDA_ROOT=$(conda info --root)
                 env_dir=$CONDA_ROOT
-                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial2-hg38-gaps-ucsc-v1/1
             elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
                 export CONDA_ROOT=$(conda info --root)
                 env_dir=$CONDA_ROOT
-                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial2-hg38-gaps-ucsc-v1/1
             else
                 env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
                 export CONDA_ROOT=$env_dir
-                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial2-hg38-gaps-ucsc-v1/1
             fi
 
             PKG_DIR=`find "$CONDA_SOURCE_PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
@@ -2338,14 +2420,14 @@ def test_check_final_files():
             for f in *; do
                 ext="${f#*.}"
                 filename="{f%%.*}"
-                (mv $f "trial-hg38-gaps-ucsc-v1.$ext")
+                (mv $f "trial2-hg38-gaps-ucsc-v1.$ext")
             done
 
             ## Add environment variables 
             #### File
             if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
             then
-                recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                recipe_env_file_name="ggd_trial2-hg38-gaps-ucsc-v1_file"
                 recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
                 file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
 
@@ -2354,14 +2436,14 @@ def test_check_final_files():
                 indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
                 if [[ ! -z "$indexed_file" ]] ## If index file exists
                 then
-                    recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                    recipe_env_file_name="ggd_trial2-hg38-gaps-ucsc-v1_file"
                     recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
                     file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
                 fi  
             fi 
 
             #### Dir
-            recipe_env_dir_name="ggd_trial-hg38-gaps-ucsc-v1_dir"
+            recipe_env_dir_name="ggd_trial2-hg38-gaps-ucsc-v1_dir"
             recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
 
             activate_dir="$env_dir/etc/conda/activate.d"
@@ -2409,23 +2491,29 @@ def test_check_final_files():
     fakerecipe.write_nested_recipes()
 
     ## Test a normal run of _build()
-    recipe_dir_path = recipe.recipe_dirs["trial-hg38-gaps-ucsc-v1"] 
+    recipe_dir_path = recipe.recipe_dirs["trial2-hg38-gaps-ucsc-v1"] 
 
     ## Get yaml file
     yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
-    check_recipe._install(tarball_file_path,"trial-hg38-gaps-ucsc-v1")
+    assert check_recipe._install(tarball_file_path,"trial2-hg38-gaps-ucsc-v1") == True
     assert os.path.isfile(tarball_file_path)
     assert "noarch" in tarball_file_path
 
-    pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
-    assert "trial-hg38-gaps-ucsc-v1" in pkg_out ## Identify that it was installed in the conda env
+    pkg_out = sp.check_output(["conda list trial2-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
+    assert "trial2-hg38-gaps-ucsc-v1" in pkg_out ## Identify that it was installed in the conda env
     
     ## Check for good files
-    install_dir_path = os.path.join(utils.conda_root(),"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1")
+    install_dir_path = os.path.join(utils.conda_root(),"share/ggd/Homo_sapiens/hg38/trial2-hg38-gaps-ucsc-v1/1")
     assert os.path.exists(install_dir_path) == True
     assert check_recipe.check_final_files(install_dir_path, yaml_file) == True
 
+    ## Remove package
+    sp.check_output(["conda", "uninstall", "-y", "trial2-hg38-gaps-ucsc-v1"])
+    try:
+        check_recipe.remove_package_after_install(tarball_file_path,"trial2-hg38-gaps-ucsc-v1",0) ## Will exit
+    except:
+        pass
 
     ## check for bad file
     fake_dir_path = fakerecipe.recipe_dirs["Fake_install_dir/1"]
@@ -2460,6 +2548,212 @@ def test_check_final_files():
     except Exception as e:
         print(str(e))
         assert False
+
+
+def test_add_final_files():
+    """
+    Test the add_final_files method correctly adds the final files and file types to the yaml file
+    """
+
+    pytest_enable_socket()
+
+    recipe = CreateRecipe(
+    """
+    trial3-hg38-gaps-ucsc-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: trial3-hg38-gaps-ucsc-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                genomic-coordinate-base: 0-based-inclusive
+                data-version: 11-Mar-2019
+                data-provider: UCSC
+                file-type: [] 
+                final-files: [] 
+                ggd-channel: genomics
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > trial3-hg38-gaps-ucsc-v1.bed.gz
+
+            tabix trial3-hg38-gaps-ucsc-v1.bed.gz 
+
+            cp trial3-hg38-gaps-ucsc-v1.bed.gz trial3-hg38-gaps-ucsc-v1.test.the.extension.addition
+            cp trial3-hg38-gaps-ucsc-v1.bed.gz trial3-hg38-gaps-ucsc-v1.vcf.gz
+            cp trial3-hg38-gaps-ucsc-v1.bed.gz trial3-hg38-gaps-ucsc-v1.gtf.gz
+            cp trial3-hg38-gaps-ucsc-v1.bed.gz trial3-hg38-gaps-ucsc-v1.ped.gz
+
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial3-hg38-gaps-ucsc-v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial3-hg38-gaps-ucsc-v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial3-hg38-gaps-ucsc-v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_SOURCE_PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "trial3-hg38-gaps-ucsc-v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial3-hg38-gaps-ucsc-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial3-hg38-gaps-ucsc-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial3-hg38-gaps-ucsc-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+
+        checksums_file.txt: |
+
+    """, from_string=True)
+
+    recipe.write_recipes()
+
+    ## Test a normal run of _build()
+    recipe_dir_path = recipe.recipe_dirs["trial3-hg38-gaps-ucsc-v1"] 
+
+    ## Get yaml file
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    #tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
+    #check_recipe._install(tarball_file_path,"trial3-hg38-gaps-ucsc-v1")
+    #assert os.path.isfile(tarball_file_path)
+    #assert "noarch" in tarball_file_path
+
+    ## Check the file-type and final-fiels are empty 
+    assert len(yaml_file["about"]["tags"]["final-files"]) == 0 
+    assert len(yaml_file["about"]["tags"]["file-type"]) == 0 
+
+    ## install files
+    cwd = os.getcwd()
+    os.chdir(recipe_dir_path)
+    sp.check_output(["bash","recipe.sh"])
+    os.chdir(cwd)
+    os.mkdir(os.path.join(recipe_dir_path,"installed_files"))
+    for f in glob.glob(os.path.join(recipe_dir_path,"*")):
+        if "bed" in f or "addition" in f or ".gz" in f:
+            shutil.move(f, os.path.join(recipe_dir_path,"installed_files",os.path.basename(f)))
+
+    ## Check installed files were moved
+    assert len(glob.glob(os.path.join(recipe_dir_path,"installed_files", "*"))) == 6
+    assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.bed.gz")) 
+    assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.bed.gz.tbi")) 
+    assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.test.the.extension.addition")) 
+    assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.vcf.gz")) 
+    assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.gtf.gz")) 
+    assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.ped.gz")) 
+
+    ## test check_recipes add files files:
+    yaml_file = check_recipe.add_final_files(os.path.join(recipe_dir_path,"installed_files"),yaml_file,recipe_dir_path)
+    assert len(yaml_file["about"]["tags"]["final-files"]) == 6 
+    assert len(yaml_file["about"]["tags"]["file-type"]) == 5 
+
+    assert "trial3-hg38-gaps-ucsc-v1.bed.gz" in yaml_file["about"]["tags"]["final-files"] 
+    assert "trial3-hg38-gaps-ucsc-v1.bed.gz.tbi" in yaml_file["about"]["tags"]["final-files"] 
+    assert "trial3-hg38-gaps-ucsc-v1.test.the.extension.addition" in yaml_file["about"]["tags"]["final-files"] 
+    assert "trial3-hg38-gaps-ucsc-v1.vcf.gz" in yaml_file["about"]["tags"]["final-files"]
+    assert "trial3-hg38-gaps-ucsc-v1.gtf.gz" in yaml_file["about"]["tags"]["final-files"]
+    assert "trial3-hg38-gaps-ucsc-v1.ped.gz" in yaml_file["about"]["tags"]["final-files"]
+    assert "bed" in yaml_file["about"]["tags"]["file-type"] 
+    assert "test.the.extension.addition" in yaml_file["about"]["tags"]["file-type"] 
+    assert "vcf" in yaml_file["about"]["tags"]["file-type"] 
+    assert "gtf" in yaml_file["about"]["tags"]["file-type"] 
+    assert "ped" in yaml_file["about"]["tags"]["file-type"] 
+
+    ## Check the final files
+    assert check_recipe.check_final_files(os.path.join(recipe_dir_path,"installed_files"), yaml_file) == True
+
+    ##NOTE: Some of these files are not valid, but are used for testing
 
 
 def test_get_modified_files():
@@ -3459,34 +3753,6 @@ def test_check_yaml():
         assert False
     except AssertionError as e:
         if "must specify the data provider for the files created by this recipe" in str(e):
-            pass
-        else:
-            assert False
-    except Exception as e:
-        print(str(e))
-        assert False
-
-    yaml_file = deepcopy(yaml_file_copy) 
-    del yaml_file["about"]["tags"]["file-type"]
-    try:
-        check_recipe.check_yaml(yaml_file)
-        assert False
-    except AssertionError as e:
-        if "must specify the file types for the files created by this recipe" in str(e):
-            pass
-        else:
-            assert False
-    except Exception as e:
-        print(str(e))
-        assert False
-
-    yaml_file = deepcopy(yaml_file_copy) 
-    del yaml_file["about"]["tags"]["final-files"]
-    try:
-        check_recipe.check_yaml(yaml_file)
-        assert False
-    except AssertionError as e:
-        if "must specify the final files created by this recipe" in str(e):
             pass
         else:
             assert False
