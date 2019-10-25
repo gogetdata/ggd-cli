@@ -11,12 +11,13 @@ import requests
 import traceback
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
-from .utils import get_species
+from .utils import get_species, get_builds
 from .utils import get_ggd_channels
 from .utils import get_channeldata_url
 from .utils import conda_root
 
-SPECIES_LIST = get_species(update_files=False)
+SPECIES_LIST = sorted(get_species(update_files=False))
+GENOME_BUILDS = sorted(get_builds("*"))
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 
 #-------------------------------------------------------------------------------------------------------------
@@ -25,7 +26,7 @@ CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 def add_search(p):
     c = p.add_parser("search", help="Search for a ggd data data package", description="Search for available ggd packages")
     c.add_argument("-t", "--term", nargs="+", required=True, help="**Required** The term(s) to search for. Multiple terms can be used. Example: '-t reference genome'")
-    c.add_argument("-g", "--genome_build", help="(Optional) The genome build of the desired recipe")
+    c.add_argument("-g", "--genome_build", choices=GENOME_BUILDS, help="(Optional) The genome build of the desired recipe")
     c.add_argument("-s", "--species", help="(Optional) The species for the desired recipe", choices=SPECIES_LIST)
     c.add_argument("-k", "--keyword", nargs="+", help="(Optional) Keyword(s) the are used to describe the recipe. Multiple keywords can be used. Example: '-k ref reference genome'")
     c.add_argument("-m", "--match_score", default="50", help="(Optional) A score between 0 and 100 to use percent match between the search term(s) and the ggd-recipes")

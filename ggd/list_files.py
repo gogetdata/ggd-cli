@@ -17,7 +17,8 @@ from .utils import check_for_internet_connection
 from .utils import get_channel_data
 from .search import load_json_from_url, search_packages, load_json
 
-SPECIES_LIST = get_species()
+SPECIES_LIST = sorted(get_species())
+GENOME_BUILDS = sorted(get_builds("*"))
 
 #-------------------------------------------------------------------------------------------------------------
 ## Argument Parser 
@@ -26,7 +27,7 @@ def add_list_files(p):
     c = p.add_parser('get-files', help="Get the data files for a specific installed ggd data package", description="Get a list of file(s) for a specific installed ggd package")
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), help="The ggd channel of the recipe to find. (Default = genomics)")
     c.add_argument("-s", "--species", help="(Optional) species recipe is for. Use '*' for any species", choices=SPECIES_LIST)
-    c.add_argument("-g", "--genome-build", help="(Optional) genome build the recipe is for. Use '*' for any genome build.")
+    c.add_argument("-g", "--genome-build", choices=GENOME_BUILDS, help="(Optional) genome build the recipe is for. Use '*' for any genome build.")
     c.add_argument("-v", "--version", help="(Optional) pattern to match the version of the file desired. Use '*' for any version")
     c.add_argument("-p", "--pattern", help="(Optional) pattern to match the name of the file desired. To list all files for a ggd package, do not use the -p option")
     c.add_argument("--prefix", default=None, help="(Optional) The name or the full directory path to an conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)") 
