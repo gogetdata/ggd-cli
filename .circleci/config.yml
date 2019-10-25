@@ -29,7 +29,9 @@ variables:
   install_osx_md5sum: &install_osx_md5sum
     run: 
       name: Install md5sum ## Homebrew on CircleCI: (https://circleci.com/docs/2.0/testing-ios/#installing-custom-packages_
-      command: brew install md5sha1sum  ## brew package from md5sum: (http://microbrew.org/tools/md5sha1sum/) (https://formulae.brew.sh/formula/md5sha1sum)
+      command: |
+        brew update-reset
+        brew install md5sha1sum  ## brew package from md5sum: (http://microbrew.org/tools/md5sha1sum/) (https://formulae.brew.sh/formula/md5sha1sum)
 
 
 jobs:
