@@ -5,10 +5,11 @@ import shutil
 import yaml
 import sys
 import subprocess as sp
-from .utils import get_species 
+from .utils import get_species, get_builds 
 from .utils import get_ggd_channels
 
-SPECIES_LIST = [x.encode('ascii') for x in get_species()]
+SPECIES_LIST = sorted(get_species())
+GENOME_BUILDS = sorted(get_builds("*"))
 CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
 GENOMIC_COORDINATE_LIST = ["0-based-inclusive", "0-based-exclusive", "1-based-inclusive", "1-based-exclusive", "NA"]
 
@@ -21,15 +22,15 @@ def add_make_bash(p):
                     help="any software dependencies (in bioconda, conda-forge) or data-dependency (in ggd)" +
                     ". May be as many times as needed.")
     c.add_argument("-e", "--extra-file", default=[], action="append",
-                    help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair. May be used more than once")
+                    help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair or *.fa and *.fai pair. May be used more than once")
     c.add_argument("-p", "--platform", default="noarch", help="Whether to use noarch as the platfrom or the system platform. If set to 'none' the system platform will be used. (Default = noarch. Noarch means no architecture and is platform agnostic.)",
                     choices=["noarch", "none"])
     c2 = c.add_argument_group("required arguments")
-    c2.add_argument("-s", "--species", help="species recipe is for", choices=[x.decode('ascii') for x in SPECIES_LIST],
+    c2.add_argument("-s", "--species", help="The species recipe is for", choices=SPECIES_LIST,
                     required=True)
-    c2.add_argument("-g", "--genome-build", help="genome-build the recipe is for",
+    c2.add_argument("-g", "--genome-build", choices=GENOME_BUILDS, help="The genome build the recipe is for",
                     required=True)
-    c2.add_argument("--authors", help="authors of the recipe", default=os.environ.get("USER", ""))
+    c2.add_argument("--authors", help="The author(s) of the data recipe being created, (This recipe)", default=os.environ.get("USER", ""))
     c2.add_argument("-pv", "--package-version", help="The version of the ggd package. (First time package = 1, updated package > 1)",
                     required=True)
     c2.add_argument("-dv", "--data-version", help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)", 
@@ -42,19 +43,12 @@ def add_make_bash(p):
                     " Please add enough keywords to better describe and distinguish the recipe", 
                     action="append", default=[],
                     required=True)
-    c2.add_argument("-ft", "--file-type", action="append", default=[], required=True, help="The type of data file the ggd recipe will store. (e.g. bed, bam, vcf, fasta, etc.)" +
-                    " May be specified more than once. Please specify all data types")
-    c2.add_argument("-ff","--final-file", action="append", default=[], required=True, help="The name of the final file created." +
-                    " May be specified more than once. PLease specify all data files that will persist once data curation is over." +
-                    " (e.g. hg19-gaps-ucsc-v1.bed.gz, hg19-gaps-ucsc-v1.bed.gz.tbi)." +
-                    " [NOTE: file names will be renamed to the recipe name with extentions persisting." +
-                    " Within your scripts, please name your files after the recipe name.]")
     c2.add_argument("-cb", "--coordinate-based", required=True, choices= GENOMIC_COORDINATE_LIST,
                     help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordianances start at genomic coordinate 0 or 1," +
                     " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exlcusive (everthing up to but not including the end coordinate)" + 
-                    " Files that do not have coordiante basing, like fasta files, specify NA for not applicable." +
-                    " For more information see https://gogetdata.github.io/contribute-recipe.html#zero-or-1-based.") 
-    c2.add_argument("-n", "--name", help="The name of recipe (e.g. cpg-islands, pfam-domains, gaps, etc.)", required=True)
+                    " Files that do not have coordiante basing, like fasta files, specify NA for not applicable.")
+    c2.add_argument("-n", "--name", help="The sub-name of the recipe being created. (e.g. cpg-islands, pfam-domains, gaps, etc.)" +
+                     " This will not be the final name of the recipe, but will describe what data the recipe gets", required=True)
     c2.add_argument("script", help="bash script that contains the commands to obtain and process the data")
 
     c.set_defaults(func=make_bash)
@@ -105,7 +99,6 @@ def make_bash(parser, args):
         flist[0] = name
         extra_files.append(".".join(flist))
 
-    # Check tags
     ## Check coordinates
     assert args.coordinate_based in GENOMIC_COORDINATE_LIST, ("{c} is not an acceptable genomic coordinate base".format(c=args.coordinate_based))  
    # ("Please provide a genomic coordinate base from the follow list: {}".format(", ".join(GENOMIC_COORDINATE_LIST)))
@@ -114,24 +107,6 @@ def make_bash(parser, args):
     assert args.data_version,  ("Please provide the version of the data this recipe curates")
     assert args.data_version.strip != "", ("Please provide the version of the data this recipe curates")
 
-    ## data provider check above
-
-    ## Check file type
-    assert len(args.file_type) >= 1, ("Please provide the file types for the files created by this recipe")
-    for ftype in args.file_type:
-        assert ftype.strip() != "", ("Please provide a real file type")
-
-    ## Check final files
-    assert len(args.final_file) >= 1, ("Please provide the final files for this recipe")
-    ### Check that all file types are in the final files
-    missing_filetypes = [x.lower() for x in args.file_type if not re.search(x.lower(), " ".join( args.final_file))]
-    assert not missing_filetypes, ("The following file types were not present in the final files provided: {ft}".format(ft = ", ".join(missing_filetypes)))
-    for f in args.final_file:
-        assert f.strip() != "", ("Please provide real files for the final files created by this recipe")
-        assert [x for x in args.file_type if x.lower() in f], ("{F} does not coincide with any of the file types you provided. Please change the final files to reflect the proper file types.".format(F=f))
-        assert name in f, ("Please change the base name of the final files to include the recipe name: '{name}'".format(name=name))
-
-        
 
     if args.platform == "noarch":
         yml1 = {"build": {
@@ -178,8 +153,8 @@ def make_bash(parser, args):
                         "genomic-coordinate-base": args.coordinate_based.strip(),
                         "data-version": args.data_version.strip(),
                         "data-provider": args.data_provider.strip(),
-                        "file-type": list(map(lambda s: str(s).lower(), args.file_type)), 
-                        "final-files": args.final_file,
+                        "file-type": [], 
+                        "final-files": [],
                         "ggd-channel": args.channel
                     },
                 }

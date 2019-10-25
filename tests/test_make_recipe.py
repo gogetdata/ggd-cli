@@ -77,9 +77,10 @@ def test_make_bash_test_bad_summary():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "Please provide a thorough summary of the data package" in str(e)
@@ -93,9 +94,10 @@ def test_make_bash_test_bad_summary():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary=' ',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "Please provide a thorough summary of the data package" in str(e)
@@ -117,9 +119,10 @@ def test_make_bash_test_bad_name():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing name
         assert "The recipe name is required" in str(e)
@@ -133,9 +136,10 @@ def test_make_bash_test_bad_name():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name=' ', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing name
         assert "The recipe name is required" in str(e)
@@ -155,9 +159,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test.gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\".\" wildcard is not allowed in the recipe name" in str(e)
@@ -171,9 +176,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test?gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"?\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -187,9 +193,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test*gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"*\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -203,9 +210,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test[gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"[\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -219,9 +227,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test]gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"]\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -236,9 +245,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test{gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"{\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -253,9 +263,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test}gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"}\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -270,9 +281,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test!gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"!\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -287,9 +299,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test+gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"+\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -303,9 +316,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test^gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"^\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -319,9 +333,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test$gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"$\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -335,9 +350,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test(gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\"(\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -351,9 +367,10 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test)gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         ## Correctly raises an assetion error due to the missing summary
         assert "\")\" wildcard is not allowed in the recipe name. Please rename the recipe." in str(e)
@@ -374,7 +391,7 @@ def test_make_bash_test_bad_genome_build():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg09', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
 
     try:
         temp_stderr = StringIO()
@@ -390,7 +407,7 @@ def test_make_bash_test_bad_genome_build():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hgmm10', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         temp_stderr = StringIO()
         with redirect_stderr(temp_stderr):
@@ -411,7 +428,7 @@ def test_make_bash_test_bad_recipe():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='bad-recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= ["bed"],final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         make_bash.make_bash((), args)
@@ -453,10 +470,11 @@ def test_make_bash_missing_tags():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="2-based-exclusive", file_type= ["bed"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="2-based-exclusive", file_type= [],final_file=[])
 
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         assert "2-based-exclusive is not an acceptable genomic coordinate base" in str(e)
         pass 
@@ -468,10 +486,10 @@ def test_make_bash_missing_tags():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bed"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         assert "Please provide the version of the data this recipe curates" in str(e)
         pass 
@@ -483,131 +501,13 @@ def test_make_bash_missing_tags():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-exclusive", file_type= ["bed"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
 
     try:
         assert make_bash.make_bash((),args)  
+        assert False
     except AssertionError as e:
         assert "The data provider is required" in str(e)
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## File type is missing 
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=[], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "Please provide the file types for the files created by this recipe" in str(e) 
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## File type is empty string 
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS', 
-                        coordinate_based="0-based-inclusive", file_type=[""], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "Please provide a real file type" in str(e) 
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## No final files provided
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bed"], final_file=[])
-
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "Please provide the final files for this recipe" in str(e) 
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-
-    ## Empty final files list
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bed"], final_file=[""])
-
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "The following file types were not present in the final files provided: bed" in str(e)
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## Final files do not coincide with file type 
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bad_file_type"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "The following file types were not present in the final files provided: bad_file_type" in str(e)
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## Final files do not coincide with file type 
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bad_file_type"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "The following file types were not present in the final files provided: bad_file_type" in str(e)
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## Final files do not coincide with one of the multiple file types 
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bed","vcf"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "The following file types were not present in the final files provided: vcf" in str(e)
-        pass 
-    except Exception as e:
-        print(e)
-        assert False
-
-    ## Final files do not include the recipe name 
-    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
-                        dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
-                        name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type=["bed"], final_file=["gaps.bed.gz","gaps.bed.gz.tbi"])
-
-    try:
-        assert make_bash.make_bash((),args)  
-    except AssertionError as e:
-        assert "Please change the base name of the final files to include the recipe name" in str(e)
         pass 
     except Exception as e:
         print(e)
@@ -646,7 +546,7 @@ def test_make_bash():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["BED"],final_file=["hg19-test-gaps-ucsc-v1.bed.gz", "hg19-test-gaps-ucsc-v1.bed.gz.tbi"])
+                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
 
     assert make_bash.make_bash((),args) 
 
@@ -683,8 +583,8 @@ def test_make_bash():
             assert yamldict["about"]["tags"]["genomic-coordinate-base"] == "0-based-inclusive"
             assert yamldict["about"]["tags"]["data-version"] == "27-Apr-2009"
             assert yamldict["about"]["tags"]["data-provider"] == "UCSC"
-            assert yamldict["about"]["tags"]["file-type"] == ["bed"] ## Should be converted to lower case
-            assert yamldict["about"]["tags"]["final-files"] == ["hg19-test-gaps-ucsc-v1.bed.gz", "hg19-test-gaps-ucsc-v1.bed.gz.tbi"]
+            assert yamldict["about"]["tags"]["file-type"] == []
+            assert yamldict["about"]["tags"]["final-files"] == []
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
     except IOError as e:
@@ -793,7 +693,7 @@ def test_make_bash_all_params():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=['vt','samtools','bedtools'], extra_file=['not.a.real.extra.file'], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps2', platform='none', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="1-based-inclusive", file_type= ["Bed"], final_file=["hg19-test-gaps2-ucsc-v1.bed.gz", "hg19-test-gaps2-ucsc-v1.bed.gz.tbi"])
+                        coordinate_based="1-based-inclusive", file_type= [],final_file=[])
 
     assert make_bash.make_bash((),args) 
 
@@ -829,8 +729,8 @@ def test_make_bash_all_params():
             assert yamldict["about"]["summary"] == "Assembly gaps from UCSC"
             assert yamldict["about"]["tags"]["genomic-coordinate-base"] == "1-based-inclusive"
             assert yamldict["about"]["tags"]["data-version"] == "27-Apr-2009"
-            assert yamldict["about"]["tags"]["file-type"] == ["bed"] ## Should be converted to lower case
-            assert yamldict["about"]["tags"]["final-files"] == ["hg19-test-gaps2-ucsc-v1.bed.gz", "hg19-test-gaps2-ucsc-v1.bed.gz.tbi"] 
+            assert yamldict["about"]["tags"]["file-type"] == [] ## Should be converted to lower case
+            assert yamldict["about"]["tags"]["final-files"] == [] 
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
 
