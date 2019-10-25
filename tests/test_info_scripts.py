@@ -1,4 +1,3 @@
-from __future__ import print_function
 import os
 import sys
 import subprocess as sp
@@ -19,8 +18,10 @@ from ggd import show_env
 from ggd import list_files
 from ggd import list_pkg_info
 from ggd import list_installed_pkgs
+from ggd import predict_path
 from ggd import utils
 from ggd import install
+from ggd import uninstall
 from ggd.utils import get_conda_package_list 
 
 if sys.version_info[0] == 3:
@@ -31,10 +32,13 @@ elif sys.version_info[0] == 2:
 #---------------------------------------------------------------------------------------------------------
 ## enable socket
 #---------------------------------------------------------------------------------------------------------
-from pytest_socket import enable_socket
+from pytest_socket import disable_socket, enable_socket
 
 def pytest_enable_socket():
     enable_socket()
+
+def pytest_disable_socket():
+    disable_socket()
 
 #---------------------------------------------------------------------------------------------------------
 ## Test Label
@@ -1400,6 +1404,150 @@ def test_list_installed_packages():
     except Exception:
         pass
     assert os.path.exists(p) == False
+
+
+
+### predict-path
+
+def test_get_ggd_metadata():
+    """ 
+    Test that the get_ggd_metadata properly works 
+    """
+
+    pytest_enable_socket()
+
+    metadata = predict_path.get_ggd_metadata("genomics")
+    assert len(metadata["packages"]) > 0
+
+    ## Test without internet connection
+    pytest_disable_socket()
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        predict_path.get_ggd_metadata("genomics")
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("A internet connection is required to use this function. Please try again when you have secured an internet connection") 
+
+    pytest_enable_socket()
+
+
+def test_predict_path():
+    """
+    Test the main method of predict-path
+    """
+    pytest_enable_socket()
+
+    ## Testing with grch37-autosomal-dominant-genes-berg-v1 data package
+    
+    ## Test bad package name
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='bad_package_name-grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        predict_path.predict_path((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("The {pn} data package is not one of the packages in the ggd-{c} channel".format(pn="bad_package_name-grch37-autosomal-dominant-genes-berg-v1", c="genomics"))
+
+
+    ## Test a missing final-files (ggd-dev)
+    #args = Namespace(channel='dev', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+
+    #with pytest.raises(SystemExit) as pytest_wrapped_e:
+    #    predict_path.predict_path((), args)
+    #assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    #assert pytest_wrapped_e.match("The {p} data package does not have the final data files listed. This packages needs to be updated. To update, contact the GoGetData team at https://github.com/gogetdata/ggd-recipes".format(p="grch37-autosomal-dominant-genes-blekhman-v1"))
+    ## Unstable test, can't keep a single recipe without a final-files tag
+
+
+    ## Test bad file name
+    args = Namespace(channel='genomics', command='predict-path', file_name='autodom-genes-berg', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        predict_path.predict_path((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("The autodom-genes-berg file is not one of the files listed for this package. The files installed by this package are")
+
+
+    ## Test closest file name
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(utils.conda_root(),"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz") in str(output)
+    
+
+    ## Test closest file name
+    args = Namespace(channel='genomics', command='predict-path', file_name='berg-v1.compliment', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(utils.conda_root(),"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.compliment.bed.gz") in str(output)
+
+
+    ## Test full name file name
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(utils.conda_root(),"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") in str(output)
+    
+
+    ## Test prdiction in different environmnet
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "predict-path")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "predict-path"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "predict-path"])
+
+    ## Test full name file name
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") in str(output)
+
+    ## Remove temp env created in test_get_environment_variables()
+    sp.check_output(["conda", "env", "remove", "--name", "predict-path"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
+    ## Test the predict path is the same path as an installed file
+    install_args = Namespace(channel='genomics', command='install', debug=False, name="grch37-autosomal-dominant-genes-berg-v1", version='-1', prefix=None)
+    assert install.install((), install_args) == True 
+
+    list_files
+    args = Namespace(channel='genomics', command='list-files', genome_build=None, name="grch37-autosomal-dominant-genes-berg-v1", pattern="grch37-autosomal-dominant-genes-berg-v1.bed.gz", prefix=None, species=None, version=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_files.list_files((),args)
+    output = str(temp_stdout.getvalue().strip()) 
+    assert os.path.exists(str(output))
+
+    args2 = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args2)
+    output2 = temp_stdout.getvalue().strip() 
+
+    assert str(output2) == str(output)
+
+    args = Namespace(channel='genomics', command='uninstall', name="grch37-autosomal-dominant-genes-berg-v1")
+    uninstall.uninstall((),args)
 
 
 #--------------------------------------------------------

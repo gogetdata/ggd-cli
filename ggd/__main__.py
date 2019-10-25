@@ -10,6 +10,7 @@ from . install import add_install
 from . uninstall import add_uninstall
 from . list_pkg_info import add_pkg_info
 from . list_installed_pkgs import add_list_installed_packages
+from . predict_path import add_predict_path
 
 def main(args=None):
     if args is None:
@@ -23,6 +24,8 @@ def main(args=None):
     sub.required = True
 
     add_search(sub)
+
+    add_predict_path(sub)
 
     add_install(sub)
 
@@ -39,6 +42,8 @@ def main(args=None):
     add_make_bash(sub)
 
     add_check_recipe(sub)
+    
+
 
     args = parser.parse_args(args)
     args.func(parser, args)
