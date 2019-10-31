@@ -1,12 +1,8 @@
 from __future__ import print_function
+
 import os
-import re
-import shutil
-import yaml
-import sys
-import subprocess as sp
-from .utils import get_species, get_builds 
-from .utils import get_ggd_channels
+
+from .utils import get_builds, get_ggd_channels, get_species
 
 SPECIES_LIST = sorted(get_species())
 GENOME_BUILDS = sorted(get_builds("*"))
@@ -26,9 +22,9 @@ def add_make_bash(p):
     c.add_argument("-p", "--platform", default="noarch", help="Whether to use noarch as the platfrom or the system platform. If set to 'none' the system platform will be used. (Default = noarch. Noarch means no architecture and is platform agnostic.)",
                     choices=["noarch", "none"])
     c2 = c.add_argument_group("required arguments")
-    c2.add_argument("-s", "--species", help="The species recipe is for", choices=SPECIES_LIST,
+    c2.add_argument("-s", "--species", help="The species recipe is for", choices=[str(x) for x in SPECIES_LIST],
                     required=True)
-    c2.add_argument("-g", "--genome-build", choices=GENOME_BUILDS, help="The genome build the recipe is for",
+    c2.add_argument("-g", "--genome-build", choices=[str(x) for x in GENOME_BUILDS], help="The genome build the recipe is for",
                     required=True)
     c2.add_argument("--authors", help="The author(s) of the data recipe being created, (This recipe)", default=os.environ.get("USER", ""))
     c2.add_argument("-pv", "--package-version", help="The version of the ggd package. (First time package = 1, updated package > 1)",
@@ -43,7 +39,7 @@ def add_make_bash(p):
                     " Please add enough keywords to better describe and distinguish the recipe", 
                     action="append", default=[],
                     required=True)
-    c2.add_argument("-cb", "--coordinate-based", required=True, choices= GENOMIC_COORDINATE_LIST,
+    c2.add_argument("-cb", "--coordinate-base", required=True, choices= GENOMIC_COORDINATE_LIST,
                     help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordianances start at genomic coordinate 0 or 1," +
                     " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exlcusive (everthing up to but not including the end coordinate)" + 
                     " Files that do not have coordiante basing, like fasta files, specify NA for not applicable.")
@@ -56,6 +52,10 @@ def add_make_bash(p):
 
 def make_bash(parser, args):
 
+    import shutil
+    import sys
+    import yaml
+
     name = args.name.replace(args.species, "").replace(args.genome_build, "").strip("- ").strip()
     data_provider = args.data_provider.replace(args.species, "").replace(args.genome_build, "").strip("- ").strip().lower()
     name = "{0}-{1}-{2}-v{3}".format(args.genome_build, name, data_provider, args.package_version).lower()
@@ -63,6 +63,9 @@ def make_bash(parser, args):
     assert name.strip() != "{0}--{1}-v{2}".format(args.genome_build,data_provider,args.package_version), ("The recipe name is required") ## test for missing name 
     assert name.strip() != "{0}-{1}--v{2}".format(args.genome_build,args.name.lower(),args.package_version), ("The data provider is required") ## test for missing name 
     assert args.summary.strip() != "", ("Please provide a thorough summary of the data package")
+    print(name)
+    print("{0}-{1}-{2}-v{3}".format(args.genome_build.lower(), args.name.lower(), data_provider.lower(), args.package_version.lower()))
+    assert name == "{0}-{1}-{2}-v{3}".format(args.genome_build.lower(), args.name.lower(), data_provider.lower(), args.package_version.lower()), ("The recipe name is not formated correctly")
 
     wildcards = ["?", "*", "[", "]", "{", "}", "!", "\\", "(", ")", ".", "+", "^", "$", "|"]
     for x in wildcards:
@@ -75,7 +78,7 @@ def make_bash(parser, args):
         os.makedirs(name)
     
     from .check_recipe import _check_build
-    print("checking", args.genome_build)
+    print(":ggd:make-recipe: checking", args.genome_build)
     _check_build(args.species, args.genome_build)
 
     try:
@@ -269,7 +272,7 @@ echo 'Recipe successfully built!'
     ## Create empty checksum file
     open(os.path.join(name, "checksums_file.txt"), "a").close()
 
-    print("\n\t-> Wrote output to %s/" % name)
-    print("\n\t-> To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\t\t$ ggd check-recipe %s/"  % name)
+    print("\n:ggd:make-recipe: Wrote output to %s/" % name)
+    print("\n:ggd:make-recipe: To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\t$ ggd check-recipe %s/"  % name)
 
     return(True)

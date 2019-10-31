@@ -61,7 +61,7 @@ def redirect_stdout(target):
 
 
 #-----------------------------------------------------------------------------------------------------------------------
-# Unit Test for ggd show-env, ggd get-files, ggd pkg-info, and ggd list
+# Unit Test for ggd show-env, ggd get-files, ggd pkg-info, ggd list, and predict-path
 #-----------------------------------------------------------------------------------------------------------------------
 
 
@@ -322,7 +322,7 @@ def test_remove_env_variable_different_prefix():
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
     assert install.install((), install_args) == True
 
     dir_main_env_var = "ggd_hg19_pfam_domains_ucsc_v1_dir"
@@ -600,7 +600,7 @@ def test_list_files_with_prefix():
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
     assert install.install((), install_args) == True
 
 
@@ -655,65 +655,6 @@ def test_list_files_with_prefix():
 
 
 ### pkg-info
-
-def test_list_all_versions():
-    """
-    Test that the list all versions handles different situations correctly 
-    """
-    pytest_enable_socket()
-    
-    ### Test that all vresion of a hg19-gaps in the ggd-dev channel are properly listed
-
-    ggd_package = "hg19-gaps"
-    ggd_channel = "dev"
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        list_pkg_info.list_all_versions(ggd_package, ggd_channel)
-    output = temp_stdout.getvalue().strip() 
-    collect = False 
-    header_list = []
-    for line in output.strip().split("\n"):
-        if "Name" in line and "Version" in line and "Build" in line and "Channel" in line:
-            header_list = re.sub(r"\s+", "\t", line.strip()).split("\t") 
-            collect = True 
-        if collect:
-            if ggd_package in line:
-                line_list = re.sub(r"\s+", "\t", line.strip()).split("\t")
-                assert ggd_package == line_list[header_list.index("Name") - 1]
-                assert "ggd-"+ggd_channel == line_list[header_list.index("Channel") -1 ]
-                assert "1" == line_list[header_list.index("Version") - 1]
-                assert "0" == line_list[header_list.index("Build") - 1] or "2" == line_list[header_list.index("Build") - 1] or "3" == line_list[header_list.index("Build") - 1]
-
-    assert list_pkg_info.list_all_versions(ggd_package, ggd_channel) == True
-
-
-    ### Test that a bad channel name is correctly handled 
-
-    ggd_package = "hg19-gaps"
-    ggd_channel = "BAD_CHANNEL"
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        list_pkg_info.list_all_versions(ggd_package, ggd_channel)
-    output = temp_stdout.getvalue().strip() 
-    assert "No version information for "+ggd_package+" in the ggd-"+ggd_channel+" channel" in output
-
-    assert list_pkg_info.list_all_versions(ggd_package, ggd_channel) == False
-
-
-    ### Test that a bad package name is correctly handled 
-
-    ggd_package = "Bad_package"
-    ggd_channel = "dev"
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        list_pkg_info.list_all_versions(ggd_package, ggd_channel)
-    output = temp_stdout.getvalue().strip() 
-    assert "No version information for "+ggd_package+" in the ggd-"+ggd_channel+" channel" in output
-
-    assert list_pkg_info.list_all_versions(ggd_package, ggd_channel) == False
 
 
 def test_check_if_ggd_recipe():
@@ -827,18 +768,17 @@ def test_get_meta_yaml_info():
             list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
         output = temp_stdout.getvalue().strip() 
         lines = output.strip().split("\n")
-        assert lines[0] == "GGD-Recipe: fake-recipe"
-        assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-        assert lines[2] == "Summary: A fake recipe for testing"
-        assert lines[3] == "Pkg Version: 1"
-        assert lines[4] == "Pkg Build: 1"
-        assert lines[5] == "Species: Homo_sapiens"
-        assert lines[6] == "Genome Build: hg19"
-        assert lines[7] == "Keywords: gaps, region"
-        assert lines[8] == "Data Version: Today"
+        assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe"
+        assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics"
+        assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
+        assert lines[8] == "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing"
+        assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
+        assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
+        assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region"
+        assert lines[16] == "\t\x1b[1mData Version:\x1b[0m Today"
         conda_root = utils.conda_root()
-        assert lines[9] == "Pkg File Path: {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root)
-        assert lines[10] == "Pkg Files:" 
+        assert lines[18] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root)
+        assert lines[20] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m "
         f.close()
 
         f = open(meta_yaml_file, "r")
@@ -863,7 +803,7 @@ def test_get_meta_yaml_info():
         f.close()
 
 
-    ## Test get_meta_yaml_info function correctly returns output for a recipe without a cached key and without a dataversion key 
+    ## Test get_meta_yaml_info function correctly returns output for a recipe tags
 
     recipe = CreateRecipe(
 
@@ -900,7 +840,18 @@ def test_get_meta_yaml_info():
                   - region
                   summary: A fake recipe for testing 
                   tags:
+                    cached:
+                    - uploaded_to_aws
+                    data-provider: ME
+                    data-version: Today
+                    file-type:
+                    - something
+                    final-files:
+                    - fake2.something.gz
+                    - fake2.something.gz.tbi
+                    genomic-coordinate-base: 0-based-inclusive
                     ggd-channel: fake2 
+
 
         """, from_string=True)
 
@@ -918,17 +869,24 @@ def test_get_meta_yaml_info():
             list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
         output = temp_stdout.getvalue().strip() 
         lines = output.strip().split("\n")
-        assert lines[0] == "GGD-Recipe: fake-recipe2"
-        assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-        assert lines[2] == "Summary: A fake recipe for testing"
-        assert lines[3] == "Pkg Version: 1"
-        assert lines[4] == "Pkg Build: 1"
-        assert lines[5] == "Species: Homo_sapiens"
-        assert lines[6] == "Genome Build: hg19"
-        assert lines[7] == "Keywords: gaps, region"
+        assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe2"
+        assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-fake2" 
+        assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
+        assert lines[8] == "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing"
+        assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
+        assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
+        assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region"
+        assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
+        assert lines[18] == "\t\x1b[1mData Provider:\x1b[0m ME"
+        assert lines[20] == "\t\x1b[1mData Version:\x1b[0m Today" 
+        assert lines[22] == "\t\x1b[1mFile type(s):\x1b[0m something"
+        assert lines[24] == "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive"
+        assert lines[26] == "\t\x1b[1mIncluded Data Files:\x1b[0m "
+        assert lines[27] == "\t\tfake2.something.gz" 
+        assert lines[28] == "\t\tfake2.something.gz.tbi"
         conda_root = utils.conda_root()
-        assert lines[8] == "Pkg File Path: {}/share/ggd/Homo_sapiens/hg19/fake-recipe2/1".format(conda_root)
-        assert lines[9] == "Pkg Files:" 
+        assert lines[30] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe2/1".format(conda_root) 
+        assert lines[32] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m "
         f.close()
 
         f = open(meta_yaml_file, "r")
@@ -952,100 +910,6 @@ def test_get_meta_yaml_info():
     finally:
         f.close()
     
-
-    ## Test get_meta_yaml_info function correctly returns output for a recipe with a cached key and a dataversion key 
-
-    recipe = CreateRecipe(
-
-        """
-        fake-recipe3:
-            meta.yaml: |
-                build:
-                  binary_relocation: false
-                  detect_binary_files_with_prefix: false
-                  noarch: generic
-                  number: 1
-                extra:
-                  authors: me
-                package:
-                  name: fake-recipe3
-                  version: '1'
-                requirements:
-                  build:
-                  - gsort
-                  - htslib
-                  - zlib
-                  run:
-                  - gsort
-                  - htslib
-                  - zlib
-                source:
-                  path: .
-                about:
-                  identifiers:
-                    genome-build: hg19
-                    species: Homo_sapiens
-                  keywords:
-                  - gaps
-                  - region
-                  summary: A fake recipe for testing 
-                  tags:
-                    cached:
-                    - uploaded_to_aws
-                    data-version: Today
-                    ggd-channel: Newchannel 
-
-        """, from_string=True)
-
-    recipe.write_recipes()
-
-    ggd_package = "fake-recipe3"
-    ggd_channel = "Newchannel"
-    meta_yaml_file = os.path.join(recipe.recipe_dirs[ggd_package],"meta.yaml")
-
-    try:
-        f = open(meta_yaml_file, "r")
-
-        temp_stdout = StringIO()
-        with redirect_stdout(temp_stdout):
-            list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
-        output = temp_stdout.getvalue().strip() 
-        lines = output.strip().split("\n")
-        assert lines[0] == "GGD-Recipe: fake-recipe3"
-        assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-        assert lines[2] == "Summary: A fake recipe for testing"
-        assert lines[3] == "Pkg Version: 1"
-        assert lines[4] == "Pkg Build: 1"
-        assert lines[5] == "Species: Homo_sapiens"
-        assert lines[6] == "Genome Build: hg19"
-        assert lines[7] == "Keywords: gaps, region"
-        assert lines[8] == "Data Version: Today"
-        assert lines[9] == "Cached: uploaded_to_aws"
-        conda_root = utils.conda_root()
-        assert lines[10] == "Pkg File Path: {}/share/ggd/Homo_sapiens/hg19/fake-recipe3/1".format(conda_root)
-        assert lines[11] == "Pkg Files:" 
-        f.close()
-
-        f = open(meta_yaml_file, "r")
-        assert list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel) == True
-        f.close()
-    except IOError as e:
-        print("IO Error")
-        print(e)
-        f.close()
-        assert False
-    except AssertionError as e:
-        print("Assertion Error")
-        print(e)
-        f.close()
-        raise AssertionError(e)
-    except Exception as e:
-        print(e)
-        f.close()
-        raise AssertionError(e)
-    finally:
-        f.close()
-
 
 def test_print_recipe():
     """
@@ -1099,7 +963,6 @@ def test_print_recipe():
         raise AssertionError(e)
     finally:
         f.close()
-
     
 
 def test_info_main():
@@ -1111,7 +974,7 @@ def test_info_main():
     ## Normal run
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
     assert list_pkg_info.info((),args) == True
 
     temp_stdout = StringIO()
@@ -1119,37 +982,26 @@ def test_info_main():
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
     lines = output.strip().split("\n")
-    assert lines[0] == "GGD-Recipe: {}".format(ggd_package)
-    assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-    assert lines[5] == "Species: Homo_sapiens"
-    assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region, bed-file"
-    assert lines[9] == "Cached: uploaded_to_aws"
+    assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m hg19-gaps-ucsc-v1" 
+    assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics"
+    assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
+    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format"
+    assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
+    assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
+    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file"
+    assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
+    assert lines[18] == "\t\x1b[1mData Version:\x1b[0m 27-Apr-2009"
+    conda_root = utils.conda_root()
+    assert lines[20] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) 
+    assert lines[22] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m " 
+    assert lines[23] == "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz.tbi".format(conda_root)
+    assert lines[24] == "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz".format(conda_root) 
 
-
-    ## Normal run with all version dispalyed 
-    ggd_package = "hg19-gaps-ucsc-v1"
-    ggd_channel = "genomics"
-    args = Namespace(all_versions=True, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
-    assert list_pkg_info.info((),args) == True
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        list_pkg_info.info((),args)
-    output = temp_stdout.getvalue().strip() 
-    lines = output.strip().split("\n")
-    assert lines[0] == "GGD-Recipe: {}".format(ggd_package)
-    assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-    assert lines[5] == "Species: Homo_sapiens"
-    assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region, bed-file"
-    assert lines[9] == "Cached: uploaded_to_aws"
-    assert "-> Listing all ggd-recipe version for the {} recipe in the ggd-{} channel".format(ggd_package,ggd_channel) in output
 
     ## Normal run with print recipes 
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
     assert list_pkg_info.info((),args) == True
 
     temp_stdout = StringIO()
@@ -1157,52 +1009,41 @@ def test_info_main():
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
     lines = output.strip().split("\n")
-    assert lines[0] == "GGD-Recipe: {}".format(ggd_package)
-    assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-    assert lines[5] == "Species: Homo_sapiens"
-    assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region, bed-file"
-    assert lines[9] == "Cached: uploaded_to_aws"
+    assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m {}".format(ggd_package) 
+    assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-{}".format(ggd_channel)
+    assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
+    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format"
+    assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
+    assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
+    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file"
+    assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
     assert "{} recipe file:\n***********************".format(ggd_package) in output 
 
 
     ## Bad recipe run
     ggd_package = "Bad-recipe"
     ggd_channel = "genomics"
-    args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
     assert list_pkg_info.info((),args) == False
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
-    assert "-> The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
-
-
-    ## Bad recipe run with all versions
-    ggd_package = "Bad-recipe"
-    ggd_channel = "genomics"
-    args = Namespace(all_versions=True, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
-    assert list_pkg_info.info((),args) == False
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        list_pkg_info.info((),args)
-    output = temp_stdout.getvalue().strip() 
-    assert "-> The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
+    assert ":ggd:pkg-info: The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
 
 
     ## Bad recipe run with print recipe
     ggd_package = "Bad-recipe"
     ggd_channel = "genomics"
-    args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
     assert list_pkg_info.info((),args) == False
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
-    assert "-> The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
+    assert ":ggd:pkg-info: The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
 
 
 ### list (List installed packages)
@@ -1265,7 +1106,7 @@ def test_get_environment_variables():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package2 = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package2, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env)
     assert install.install((), install_args) == True 
 
     env_vars = list_installed_pkgs.get_environment_variables(temp_env)
@@ -1447,16 +1288,6 @@ def test_predict_path():
     assert pytest_wrapped_e.match("The {pn} data package is not one of the packages in the ggd-{c} channel".format(pn="bad_package_name-grch37-autosomal-dominant-genes-berg-v1", c="genomics"))
 
 
-    ## Test a missing final-files (ggd-dev)
-    #args = Namespace(channel='dev', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
-
-    #with pytest.raises(SystemExit) as pytest_wrapped_e:
-    #    predict_path.predict_path((), args)
-    #assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    #assert pytest_wrapped_e.match("The {p} data package does not have the final data files listed. This packages needs to be updated. To update, contact the GoGetData team at https://github.com/gogetdata/ggd-recipes".format(p="grch37-autosomal-dominant-genes-blekhman-v1"))
-    ## Unstable test, can't keep a single recipe without a final-files tag
-
-
     ## Test bad file name
     args = Namespace(channel='genomics', command='predict-path', file_name='autodom-genes-berg', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
 
@@ -1527,7 +1358,7 @@ def test_predict_path():
 
 
     ## Test the predict path is the same path as an installed file
-    install_args = Namespace(channel='genomics', command='install', debug=False, name="grch37-autosomal-dominant-genes-berg-v1", version='-1', prefix=None)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=["grch37-autosomal-dominant-genes-berg-v1"], file=[], prefix=None)
     assert install.install((), install_args) == True 
 
     list_files

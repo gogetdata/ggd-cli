@@ -301,7 +301,7 @@ def test_list_file_with_prefix_internet_free():
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
     assert install.install((), install_args) == True 
     
 
@@ -344,43 +344,6 @@ def test_list_file_with_prefix_internet_free():
     except Exception:
         pass
     assert os.path.exists(temp_env) == False
-
-
-def test_list_all_versions_internet_free():
-    """
-    Test the list_all_versions function for pkg-info in a internet free context
-        (pkg-info)
-    """
-
-    ## Check show-env in an internet free context
-    pytest_disable_socket()
-    ### Check that there is no interent 
-    assert utils.check_for_internet_connection() == False
-    
-    ## Test that all vresion of a hg19-gaps in the ggd-dev channel are properly listed
-
-    ggd_package = "hg19-gaps"
-    ggd_channel = "dev"
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        list_pkg_info.list_all_versions(ggd_package, ggd_channel)
-    output = temp_stdout.getvalue().strip() 
-    collect = False 
-    header_list = [] 
-    for line in output.strip().split("\n"):
-        if "Name" in line and "Version" in line and "Build" in line and "Channel" in line:
-            header_list = re.sub(r"\s+", "\t", line.strip()).split("\t") 
-            collect = True 
-        if collect:
-            if ggd_package in line:
-                line_list = re.sub(r"\s+", "\t", line.strip()).split("\t")
-                assert ggd_package == line_list[header_list.index("Name") - 1] 
-                assert "ggd-"+ggd_channel == line_list[header_list.index("Channel") -1 ] 
-                assert "1" == line_list[header_list.index("Version") - 1] 
-                assert "0" == line_list[header_list.index("Build") - 1] or "2" == line_list[header_list.index("Build") - 1] or "3" == line_list[header_list.index("Build") - 1]
-
-    assert list_pkg_info.list_all_versions(ggd_package, ggd_channel) == True 
 
 
 def test_check_if_ggd_recipe_internet_free():
@@ -465,18 +428,17 @@ def test_get_meta_yaml_info_internet_free():
             list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
         output = temp_stdout.getvalue().strip()
         lines = output.strip().split("\n")
-        assert lines[0] == "GGD-Recipe: fake-recipe"
-        assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-        assert lines[2] == "Summary: A fake recipe for testing"
-        assert lines[3] == "Pkg Version: 1"
-        assert lines[4] == "Pkg Build: 1"
-        assert lines[5] == "Species: Homo_sapiens"
-        assert lines[6] == "Genome Build: hg19"
-        assert lines[7] == "Keywords: gaps, region"
-        assert lines[8] == "Data Version: Today"
+        assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe"
+        assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics"
+        assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
+        assert lines[8] == "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing"
+        assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
+        assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
+        assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region"
+        assert lines[16] == "\t\x1b[1mData Version:\x1b[0m Today"
         conda_root = utils.conda_root()
-        assert lines[9] == "Pkg File Path: {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root)
-        assert lines[10] == "Pkg Files:"
+        assert lines[18] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root)
+        assert lines[20] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m "
         f.close()
 
         f = open(meta_yaml_file, "r")
@@ -625,12 +587,14 @@ def test_info_main_internet_free():
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip()
     lines = output.strip().split("\n")
-    assert lines[0] == "GGD-Recipe: {}".format(ggd_package)
-    assert lines[1] == "GGD-Channel: {}-{}".format("ggd",ggd_channel)
-    assert lines[5] == "Species: Homo_sapiens"
-    assert lines[6] == "Genome Build: hg19"
-    assert lines[7] == "Keywords: gaps, region, bed-file"
-    assert lines[9] == "Cached: uploaded_to_aws"
+    assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m {}".format(ggd_package) 
+    assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-{}".format(ggd_channel)
+    assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
+    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format"
+    assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
+    assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
+    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file"
+    assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
 
 
 def test_make_bash_internet_free():

@@ -2,21 +2,20 @@
 ## Import Statements
 #-------------------------------------------------------------------------------------------------------------
 from __future__ import print_function
-import sys
-import os
-import argparse
+
 import json
+import os
 import re
-from .utils import conda_root, prefix_in_conda, update_installed_pkg_metadata, get_conda_package_list 
+import sys
 
 GGD_INFO = "share/ggd_info"
 METADATA = "channeldata.json"
-
 
 #-------------------------------------------------------------------------------------------------------------
 ## Argument Parser 
 #-------------------------------------------------------------------------------------------------------------
 def add_list_installed_packages(p):
+    import argparse
     c = p.add_parser('list', help="List the ggd data package(s) that are currently installed in a specific conda environment", description="Get a list of ggd data packages installed in the current or specified conda prefix/environment.")
     c.add_argument("-p", "--pattern",  help="(Optional) pattern to match the name of the ggd data package.")
     c.add_argument("--prefix", default=None, help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)") 
@@ -149,7 +148,7 @@ def list_installed_packages(parser, args):
      from conda info, filter results based on user specified pattern, and provide the information to the display function.
     """
 
-    from .utils import get_conda_prefix_path
+    from .utils import conda_root, get_conda_prefix_path, get_conda_package_list, prefix_in_conda, update_installed_pkg_metadata  
 
     ## Check prefix
     CONDA_ROOT = get_conda_prefix_path(args.prefix) if args.prefix != None and prefix_in_conda(args.prefix) else conda_root()
@@ -177,12 +176,10 @@ def list_installed_packages(parser, args):
         matches = list(map(str,[re.search(".*"+args.pattern.lower()+".*",x).group() for x in metadata["packages"].keys() if re.search(args.pattern.lower(),x) != None]))
         if len(matches) < 1:
             #print("\n-> '{p}' did not match any installed data packages".format(p=args.pattern))
-            sys.exit("\n-> '{p}' did not match any installed data packages".format(p=args.pattern))
+            sys.exit("\n:ggd:list: '{p}' did not match any installed data packages".format(p=args.pattern))
             #sys.exit(0)
         else:
             final_package_list = matches
 
     ## Provide the results to stdout
     list_pkg_info(final_package_list, metadata["packages"], env_vars, ggd_packages, CONDA_ROOT, prefix_set = False if args.prefix == None else True )
-
-

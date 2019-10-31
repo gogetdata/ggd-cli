@@ -1,10 +1,10 @@
 from __future__ import print_function
-import sys
+
 import os
 import re
-from argparse import Namespace
-from .utils import check_output, get_conda_env
-import subprocess as sp
+
+from .utils import get_conda_env
+
 
 def add_show_env(p):
     c = p.add_parser('show-env', help="Show ggd data package environment variables available for the current conda environment", description="Display the environment variables for data packages installed in the current conda environment")
@@ -20,6 +20,7 @@ def show_env(parser, args):
      in the current conda environemnt. It will print out the active and inactive environment variables 
      and indicate how to actiave inactive environment variables.
     """
+    import sys
 
     pattern = args.pattern if args.pattern else ".*"
     conda_env,conda_path = get_conda_env()
@@ -83,7 +84,7 @@ def remove_env_variable(env_var,prefix=None):
     target_prefix = conda_root() if prefix == None else prefix 
 
     env_var = env_var.replace("-","_")
-    print("\n\t-> Removing the %s environment variable" %env_var)
+    print("\n:ggd:env: Removing the %s environment variable" %env_var)
     conda_env, conda_path = get_conda_env(target_prefix)
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
     deactive_env_file = os.path.join(conda_path, "etc", "conda", "deactivate.d", "env_vars.sh")
@@ -112,6 +113,10 @@ def activate_enviroment_variables():
     ==============================
     This method is used to activate the environments in the current active environment 
     """
+    import subprocess as sp
+    from argparse import Namespace
+    from .utils import check_output
+
 
     conda_env, conda_path = get_conda_env()
     active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
@@ -145,6 +150,3 @@ def test_vars(env_vars):
         else:
             inactive_vars.append(env_var)
     return active_vars,inactive_vars 
-
-
-

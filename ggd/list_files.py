@@ -2,20 +2,11 @@
 ## Import Statements
 #-------------------------------------------------------------------------------------------------------------
 from __future__ import print_function
-import sys
+
 import os
-import glob
-import argparse
-from .utils import conda_root
-from .utils import get_species 
-from .utils import get_builds
-from .utils import validate_build
-from .utils import get_ggd_channels
-from .utils import get_channeldata_url
-from .utils import prefix_in_conda
-from .utils import check_for_internet_connection
-from .utils import get_channel_data
-from .search import load_json_from_url, search_packages, load_json
+import sys
+
+from .utils import get_builds, get_ggd_channels, get_species
 
 SPECIES_LIST = sorted(get_species())
 GENOME_BUILDS = sorted(get_builds("*"))
@@ -24,10 +15,11 @@ GENOME_BUILDS = sorted(get_builds("*"))
 ## Argument Parser 
 #-------------------------------------------------------------------------------------------------------------
 def add_list_files(p):
+    import argparse
     c = p.add_parser('get-files', help="Get the data files for a specific installed ggd data package", description="Get a list of file(s) for a specific installed ggd package")
     c.add_argument("-c", "--channel", default="genomics", choices=get_ggd_channels(), help="The ggd channel of the recipe to find. (Default = genomics)")
-    c.add_argument("-s", "--species", help="(Optional) species recipe is for. Use '*' for any species", choices=SPECIES_LIST)
-    c.add_argument("-g", "--genome-build", choices=GENOME_BUILDS, help="(Optional) genome build the recipe is for. Use '*' for any genome build.")
+    c.add_argument("-s", "--species", help="(Optional) species recipe is for. Use '*' for any species", choices=[str(x) for x in SPECIES_LIST])
+    c.add_argument("-g", "--genome-build", choices=[str(x) for x in GENOME_BUILDS], help="(Optional) genome build the recipe is for. Use '*' for any genome build.")
     c.add_argument("-v", "--version", help="(Optional) pattern to match the version of the file desired. Use '*' for any version")
     c.add_argument("-p", "--pattern", help="(Optional) pattern to match the name of the file desired. To list all files for a ggd package, do not use the -p option")
     c.add_argument("--prefix", default=None, help="(Optional) The name or the full directory path to an conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)") 
@@ -62,6 +54,8 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
 
     """
 
+    from .search import load_json, load_json_from_url, search_packages
+    from .utils import check_for_internet_connection, get_channel_data, get_channeldata_url
 
     json_dict = {'channeldata_version': 1, 'packages': {}}
     if check_for_internet_connection(3): 
@@ -76,7 +70,7 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
 
     package_list = []
     if len(json_dict["packages"].keys()) > 0:
-        package_list = [x[0] for x in search_packages(json_dict, ggd_recipe)]
+        package_list = search_packages(json_dict, [ggd_recipe])
 
     if ggd_recipe in package_list:
         species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
@@ -84,15 +78,16 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
         version = json_dict["packages"][ggd_recipe]["version"] 
         return(species,build,version)
     else:
-        print("\n\t-> %s is not in the ggd-%s channel" %(ggd_recipe, ggd_channel))
-        print("\t-> Similar recipes include: \n\t\t- {recipe}".format(recipe="\n\t\t- ".join(package_list[0:5])))
+        print("\n:ggd:get-files: %s is not in the ggd-%s channel" %(ggd_recipe, ggd_channel))
+        print("\n:ggd:get-files:\t Similar recipes include: \n\t- {recipe}".format(recipe="\n\t- ".join(package_list[0:5])))
         sys.exit(2)
 
 
 def list_files(parser, args): 
     """Main method. Method used to list files for an installed ggd-recipe"""
         
-    from .utils import get_conda_prefix_path
+    import glob
+    from .utils import conda_root, get_conda_prefix_path, prefix_in_conda, validate_build
 
     CONDA_ROOT = get_conda_prefix_path(args.prefix) if args.prefix != None and prefix_in_conda(args.prefix) else conda_root()
 
@@ -110,5 +105,5 @@ def list_files(parser, args):
     if (files):
         print ("\n".join(files))
     else:
-        print("\n\t-> No matching files found for %s" %args.name, file=sys.stderr)
+        print("\n:ggd:get-files: No matching files found for %s" %args.name, file=sys.stderr)
         sys.exit(1)
