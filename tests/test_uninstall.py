@@ -233,7 +233,7 @@ def test_check_for_installation():
     jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.check_for_installation(ggd_recipe,jdict)
+        uninstall.check_for_installation([ggd_recipe],jdict)
     output = temp_stdout.getvalue().strip() 
     assert "{} is not in the ggd recipe storage".format(ggd_recipe) in output
 
@@ -243,7 +243,7 @@ def test_check_for_installation():
     jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.check_for_installation(ggd_recipe,jdict)
+        uninstall.check_for_installation([ggd_recipe],jdict)
     output = temp_stdout.getvalue().strip() 
     assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
 
@@ -276,7 +276,7 @@ def test_check_for_installation_different_prefix():
         pass
 
     ### Install ggd recipe
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = conda_root())
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix = conda_root())
     try:
         install.install((), install_args) 
     except:
@@ -312,13 +312,13 @@ def test_check_for_installation_different_prefix():
     
     ## Test prefix 
     ### Install ggd recipe using conda into temp_env
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe],file=[], prefix = temp_env)
     assert install.install((), install_args) == True 
 
     ## Test that the files are removed
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.check_for_installation(ggd_recipe,jdict,prefix=temp_env)
+        uninstall.check_for_installation([ggd_recipe],jdict,prefix=temp_env)
     output = temp_stdout.getvalue().strip() 
     assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
 
@@ -359,7 +359,7 @@ def test_check_for_installation_different_prefix():
     ## Test the current environment (conda_root)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.check_for_installation(ggd_recipe,jdict,prefix=utils.conda_root())
+        uninstall.check_for_installation([ggd_recipe],jdict,prefix=utils.conda_root())
     output = temp_stdout.getvalue().strip() 
     assert "Removing {} version {} file(s) from ggd recipe storage".format(ggd_recipe,jdict["packages"][ggd_recipe]["version"]) in output
 
@@ -419,7 +419,7 @@ def test_remove_from_condaroot():
     
     ## Test prefix 
     ### Install ggd recipe using conda into temp_env
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_recipe, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix = temp_env)
     assert install.install((), install_args) == True 
 
     ## jdict and info
