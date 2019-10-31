@@ -378,7 +378,7 @@ def test_update_installed_pkg_metadata():
     ### add_package != None and remove_old == True should never happen. This would result in only 1 package in the metadata
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        utils.update_installed_pkg_metadata(add_package="hg19-gaps-ucsc-v1",remove_old=True)
+        utils.update_installed_pkg_metadata(add_packages=["hg19-gaps-ucsc-v1"],remove_old=True)
     output = temp_stdout.getvalue().strip() 
     assert ("Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata" in output)
     assert ("The ggd info metadata will be re-built and all ggd packages will be added" in output)
@@ -398,7 +398,7 @@ def test_update_installed_pkg_metadata():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package2 = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=ggd_package2, version='-1', prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env)
     assert install.install((), install_args) == True 
 
     ggd_info_dir2 = os.path.join(temp_env,"share","ggd_info")
@@ -1030,7 +1030,6 @@ def test_get_checksum_dict_from_tar():
     recipe_dir_path = recipe.recipe_dirs["trial-recipe-v1"] 
     yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
-    print(tarball_file_path)
 
     assert os.path.isfile(tarball_file_path)
     assert "noarch" in tarball_file_path
@@ -1182,7 +1181,7 @@ def test_bypass_satsolver_on_install():
     ggd_channel = "ggd-genomics"
 
     try:
-        utils.bypass_satsolver_on_install(ggd_package,conda_channel = ggd_channel)
+        utils.bypass_satsolver_on_install([ggd_package],conda_channel = ggd_channel)
         assert False
     except:
         pass
@@ -1193,11 +1192,20 @@ def test_bypass_satsolver_on_install():
     ggd_channel = "ggd-not-a-ggd-channel"
 
     try:
-        utils.bypass_satsolver_on_install(ggd_package,conda_channel = ggd_channel)
+        utils.bypass_satsolver_on_install([ggd_package],conda_channel = ggd_channel)
         assert False
     except:
         pass
 
+    ## Test a bad install, non list recipe input
+    ggd_package = "hg19-gaps-ucsc-v1"
+    ggd_channel = "ggd-not-a-ggd-channel"
+
+    try:
+        utils.bypass_satsolver_on_install(ggd_package,conda_channel = ggd_channel)
+        assert False
+    except:
+        pass
 
     ## Test a good install
     ggd_package = "hg19-gaps-ucsc-v1"
@@ -1205,7 +1213,7 @@ def test_bypass_satsolver_on_install():
     ### Unininstall
     uninstall_hg19_gaps_ucsc_v1()
 
-    assert utils.bypass_satsolver_on_install(ggd_package,conda_channel = ggd_channel) == True
+    assert utils.bypass_satsolver_on_install([ggd_package],conda_channel = ggd_channel) == True
 
 
 
