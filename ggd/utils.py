@@ -1,15 +1,14 @@
 from __future__ import print_function
-import os
-import sys
-import glob
-from git import Repo
-import subprocess as sp
-import requests
-import locale
-import json
-import shutil
-import re
 
+import json
+import locale
+import os
+import re
+import shutil
+import subprocess as sp
+import sys
+
+import requests
 
 LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/ggd-info/"))
 GENOME_METADATA_DIR = os.path.join(LOCAL_REPO_DIR,"genome_metadata")
@@ -269,7 +268,7 @@ def update_genome_metadata_files():
     return(True)
 
 
-def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=True,exclude_pkg=None,add_package=None):
+def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=True,exclude_pkg=None,add_packages=[]):
     """Method to update the local metadata file in a conda environment that contains information about the installed ggd packages
 
     update_installed_pkg_metadata
@@ -302,14 +301,11 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=
     4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
     5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
     """
-    
-
-
     ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
-    if add_package != None and remove_old == True:
-        add_package = None
-        print("\n\t-> Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata.")
-        print("\n\t    The ggd info metadata will be re-built and all ggd packages will be added.")
+    if add_packages and remove_old == True:
+        add_packages = None
+        print("\n:ggd:update-metadata: Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata.")
+        print("\n:ggd:update-metadata:\t The ggd info metadata will be re-built and all ggd packages will be added.")
 
     ## Check prefix
     if prefix == None:
@@ -336,14 +332,19 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=
     if not os.path.isdir(os.path.join(ggd_info_dir,"noarch")):
         os.makedirs(os.path.join(ggd_info_dir,"noarch"))
 
-    ## Remove a duplicate package being added 
-    if add_package != None and remove_old == False: 
-        current = [re.search(add_pacakge+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(add_package,x) != None]
-        if current:
-            os.remove(os.path.join(ggd_info_dir,"noarch",current[0]))
+    if add_packages and remove_old == False: 
+        for add_package in add_packages: ## Iterate over each of the installed data packages and check for duplicates
+            current = [re.search(add_package+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(add_package,x) != None]
+            if current:
+                os.remove(os.path.join(ggd_info_dir,"noarch",current[0]))
 
     ## Get a list of pkgs installed in a conda environemnt (Using conda list)
-    pkg_list = get_conda_package_list(prefix,add_package) if add_package != None else get_conda_package_list(prefix)  
+    pkg_list = {}
+    if add_packages:
+        for add_package in add_packages:
+            pkg_list.update(get_conda_package_list(prefix,add_package)) 
+    else:
+        pkg_list.update(get_conda_package_list(prefix))  
 
     ## Get the dir to the pkgs dir
     pkg_dir = os.path.join(prefix,"pkgs")
@@ -383,11 +384,11 @@ def validate_build(build, species):
         builds_list = get_builds(species)
         if not builds_list or build not in builds_list:
             if species != "*":
-                print("Unknown build '%s' for species '%s'" % (build, species), file=sys.stderr)
+                print(":ggd:validate-build: Unknown build '%s' for species '%s'" % (build, species), file=sys.stderr)
             else:
-                print("Unknown build '%s'" % (build), file=sys.stderr)
+                print(":ggd:validate-build: Unknown build '%s'" % (build), file=sys.stderr)
             if (builds_list):
-                print("Available builds: '%s'" % ("', '".join(builds_list)), file=sys.stderr)
+                print(":ggd:validate-build: Available builds: '%s'" % ("', '".join(builds_list)), file=sys.stderr)
             return False
     return True
 
@@ -433,7 +434,7 @@ def get_conda_env(prefix=conda_root()):
     prefix_path = get_conda_prefix_path(prefix)
     return(env_var_paths[prefix_path],prefix_path)
 
-    print("Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
+    print(":ggd:conda-env: Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -560,7 +561,22 @@ class CondaEnvironmentNotFound(Exception):
         return(self.message)
 
 
-def get_conda_package_list(prefix, regex=None):
+class ChecksumError(Exception):
+    """
+    Exception Class for failed checksum
+    """
+    def __init__(self, pkg_name):
+        self.message = "Data file content validation failed. The %s data package did not install correctly.\n" %(pkg_name)
+        return_code = 1
+        sys.tracebacklimit = 0
+        print("\n")
+        super(ChecksumError, self).__init__(self.message)
+
+    def __str__(self):
+        return(self.message)
+
+
+def get_conda_package_list(prefix, regex=None,include_local=False):
     """
     This method is used to get the list of packages in a specifc conda environmnet (prefix). Rather then running 
      `conda list` itself, it uses the conda module to grab the information 
@@ -570,6 +586,7 @@ def get_conda_package_list(prefix, regex=None):
     -----------
     1) prefix: The directory path to a conda environment in which you would like to extract the ggd data packages that have been installed
     2) regex: A pattern to match to (default = None)
+    3) include_local: True or False, whether to include the local channel. (Default = False)
 
     Returns:
     +++++++
@@ -583,7 +600,10 @@ def get_conda_package_list(prefix, regex=None):
     from conda.cli.main_list import get_packages
 
     ## Get a list of availble ggd channels
-    ggd_channels = ["ggd-"+x for x in get_ggd_channels()]
+    ggd_channels = ["ggd-"+x for x in get_ggd_channels()] 
+    
+    if include_local:
+        ggd_channels = ggd_channels + ["local"]
     
     ## Get a prefix data object with installed package information
     installed_packages = sorted(PrefixData(prefix).reload().iter_records(), key=lambda x: x.name)
@@ -591,7 +611,7 @@ def get_conda_package_list(prefix, regex=None):
     ## Create a dictionary with ggd packages
     package_dict = {}
     for precs in get_packages(installed_packages, regex):
-        if str(precs.schannel) in ggd_channels: ## Filter based off packages from the ggd channels only
+        if str(precs.schannel) in ggd_channels:  ## Filter based off packages from the ggd channels only (or local file system for check-recipe)
             package_dict[precs.name] = {"name":precs.name,"version":precs.version,"build":precs.build,"channel":precs.schannel}
 
     return(package_dict)
@@ -678,7 +698,7 @@ def get_checksum_dict_from_tar(fbz2):
             if info.name in ("info/recipe/checksums_file.txt"):
                 break
         else:
-            print("Error: Incorrect tar.bz format.", file=sys.stderr)
+            print(":ggd:checksum: !!Error!!: Incorrect tar.bz format.", file=sys.stderr)
             exit(1)
         
         checksum_file = tf.extractfile(info)
@@ -718,9 +738,9 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
     ## Check that there are the same number of installed data files as files with orignial checksums
     if len(installed_files) != len(checksum_dict):
-        print("\n\n!!ERROR!!: The number of installed files does not match the number of checksum files")
-        print("Installed files (n = {n}): {f}".format(n = len(installed_files), f = ", ".join([os.path.basename(x) for x in installed_files])))
-        print("Checksum files (n = {n}): {f}".format(n = len(checksum_dict), f = ", ".join(checksum_dict.keys())))
+        print("\n\n:ggd:checksum: !!ERROR!!: The number of installed files does not match the number of checksum files")
+        print(":ggd:checksum: Installed files checksum  (n = {n}): {f}".format(n = len(installed_files), f = ", ".join([os.path.basename(x) for x in installed_files])))
+        print(":ggd:checksum: Metadata checksum record  (n = {n}): {f}".format(n = len(checksum_dict), f = ", ".join(checksum_dict.keys())))
         return(False)
 
     ## Check each installed data file against the recipe's checksum
@@ -729,21 +749,21 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
         ## Check that the file exists in the checksum
         if ifile_name not in checksum_dict.keys():
-            print("\n\n!!ERROR!!: The installed file {f} is not one of the checksum files\n".format(f= ifile_name))
+            print("\n\n:ggd:checksum: !!ERROR!!: The installed file {f} is not one of the checksum files\n".format(f= ifile_name))
             return(False)
 
         ## Check md5sum
         ifile_md5sum = get_file_md5sum(ifile) 
-        print("installed file:", os.path.basename(ifile),"checksum:",ifile_md5sum)
-        print("checksum  file:", ifile_name, "checksum:", checksum_dict[ifile_name], "\n")
+        print(":ggd:checksum: installed  file checksum:", os.path.basename(ifile),"checksum:",ifile_md5sum)
+        print(":ggd:checksum: metadata checksum record:", ifile_name, "checksum:", checksum_dict[ifile_name], "\n")
         if ifile_md5sum != checksum_dict[ifile_name]:
-            print("\n\n!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly\n".format(f=ifile_name))
+            print("\n\n:ggd:checksum: !!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly\n".format(f=ifile_name))
             return(False)
 
     return(True)
 
 
-def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=False,prefix=None):
+def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=False,prefix=None):
     """Method to bypass the sat solver used by conda when a cached recipe is being installed
 
     bypass_satsolver_on_install
@@ -757,7 +777,8 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
 
     Parameters:
     -----------
-    1) pkg_name: The name of the ggd package to install. (Example: hg19-gaps)
+    #1) pkg_name: The name of the ggd package to install. (Example: hg19-gaps)
+    1) pkg_names: A list of the names of the ggd packages to install. (Example: [hg19-gaps])
     2) conda_channel: The ggd conda channel that package is being installed from. (Example: ggd-genomics)
     """
 
@@ -788,12 +809,13 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
     import sys 
 
-    print("\n\t-> Installing %s from the %s conda channel\n" %(pkg_name, conda_channel))
+    print("\n:ggd:utils:bypass: Installing %s from the %s conda channel\n" %(", ".join(pkg_names), conda_channel))
 
     #-------------------------------------------------------------------------
     # Nested functions 
     #-------------------------------------------------------------------------
-    def bypass_sat(package_name,ssc_object): ## Package_name will be used as a key
+    #def bypass_sat(package_name,ssc_object): ## Package_name will be used as a key
+    def bypass_sat(package_names,ssc_object): ## Package_name will be used as a key
         """Method used to extract information during sat solving, but to bypass the sat solving step
 
         bypass_sat
@@ -804,7 +826,8 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
 
         Parameters:
         -----------
-        1) package_name: The name of the package to extract. (This is the package that will be installed)
+        #1) package_name: The name of the package to extract. (This is the package that will be installed)
+        1) package_names: A list of package names of the packages to extract. (This is the package that will be installed)
         2) ssc_object: A processed conda SolverStateContainer object. 
 
         Returns:
@@ -817,16 +840,17 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
         specs_map_set = set(itervalues(ssc_object.specs_map))
 
         ## Get the specs from ssc filtered by the package name
-        final_environment_specs = IndexedSet(concatv(itervalues(odict([(package_name,ssc_object.specs_map[package_name])])), ssc_object.track_features_specs, ssc_object.pinned_specs))
+        new_odict = odict([(p_name, ssc_object.specs_map[p_name]) for p_name in package_names])
+        final_environment_specs = IndexedSet(concatv(itervalues(new_odict), ssc_object.track_features_specs, ssc_object.pinned_specs))
 
         ## Run the resolve process and get info for desired package
         ssc_object.solution_precs = ssc_object.r.solve(tuple(final_environment_specs))
 
-        ## Filter ssc.solution_precs
         wanted_indices = []
         for i, info in enumerate(ssc_object.solution_precs):
-            if package_name in ssc_object.solution_precs[i].namekey:
-                wanted_indices.append(i)
+            for p_name in package_names:
+                if p_name in ssc_object.solution_precs[i].namekey:
+                    wanted_indices.append(i)
 
         filtered_ssc_solution_precs = [ssc_object.solution_precs[x] for x in wanted_indices]
         ssc_object.solution_precs = filtered_ssc_solution_precs
@@ -847,7 +871,8 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     target_prefix = context.target_prefix if prefix == None else prefix
 
     # Setup solver object
-    solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
+    #solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
+    solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, pkg_names)
 
     ## Create a solver state container 
     ### Make sure to Freeze those packages already installed in the current env in order to bypass update checking.  
@@ -862,15 +887,16 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     ## Set specs map to an empty map. (No need to check other specs)
     add_spec = []
     for p_name, spec  in iteritems(ssc.specs_map):
-        if str(p_name) == pkg_name:
-            add_spec.append((pkg_name, MatchSpec(pkg_name)))
+        for pkg_name in pkg_names:
+            if str(p_name) in pkg_name:
+                add_spec.append((pkg_name, MatchSpec(pkg_name)))
 
     ssc.specs_map = odict(add_spec)
 
     ## Process the data in the solver state container 
     with Spinner("Processing data", not context.verbosity and not context.quiet, context.json):
         ssc = solve._add_specs(ssc)
-        ssc = bypass_sat(pkg_name, ssc)
+        ssc = bypass_sat(pkg_names, ssc)
         ssc = solve._post_sat_handling(ssc)
 
     ## create an IndexedSet from ssc.solution_precs
@@ -889,7 +915,7 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
     unlink_link_transaction = UnlinkLinkTransaction(stp)
 
     #create Namespace
-    args = Namespace(channel=None, cmd="install", deps_modifier=context.deps_modifier, json=False, packages=[pkg_name])
+    args = Namespace(channel=None, cmd="install", deps_modifier=context.deps_modifier, json=False, packages=pkg_names)
 
     ## Set logger level
     if debug:
@@ -906,6 +932,3 @@ def bypass_satsolver_on_install(pkg_name, conda_channel="ggd-genomics",debug=Fal
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-
-
-
