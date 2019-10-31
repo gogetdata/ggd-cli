@@ -33,7 +33,7 @@ def install_hg19_gaps_ucsc_v1():
         genome_build =  jdict["packages"][name]["identifiers"]["genome-build"] == "hg19"
         version = jdict["packages"][name]["version"]
         ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
-        uninstall.check_for_installation(name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        uninstall.check_for_installation([name],ggd_jdict) ## .uninstall method to remove extra ggd files
         ## Exit
         sys.exit(1)  
 
@@ -59,7 +59,7 @@ def uninstall_hg19_gaps_ucsc_v1():
         genome_build =  jdict["packages"][name]["identifiers"]["genome-build"] == "hg19"
         version = jdict["packages"][name]["version"]
         ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
-        uninstall.check_for_installation(name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        uninstall.check_for_installation([name],ggd_jdict) ## .uninstall method to remove extra ggd files
         ## Exit
         sys.exit(1)  
     #assert sp.check_call(["ggd", "uninstall", name]) == 0
