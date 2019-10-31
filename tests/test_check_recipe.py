@@ -1035,7 +1035,7 @@ def test__install_normal_run():
                         u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
                         u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
-    uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+    uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
 
     ## Rerun the _build 
     test__build_normal_run()
@@ -1194,7 +1194,7 @@ def test_check_recipe_bz2_file():
                         u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
                         u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
-    uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+    uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
 
     # Test bz2 files without final-files or file-types
     ### check_recipe will throw and Assertion error, because the md5sum and final files addition step will be bypassed 
@@ -1305,7 +1305,7 @@ def test_check_recipe_bz2_file():
     args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, dont_add_md5sum_for_checksum=True)
     check_recipe.check_recipe((),args) == True
     
-    uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+    uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
 
 
 def test_check_recipe_recipe_path():
@@ -1330,7 +1330,7 @@ def test_check_recipe_recipe_path():
                         u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
 
-    uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+    uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
     ## Check that the recipe is not installed 
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
     assert "trial-hg38-gaps-v1" not in out
@@ -1414,7 +1414,7 @@ def test_check_recipe_uninstall_local():
                        u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
 
-   uninstall.check_for_installation("trial-hg38-gaps-v1", jdict)
+   uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
 
 
    ## Uces the previously created ggd recipe path

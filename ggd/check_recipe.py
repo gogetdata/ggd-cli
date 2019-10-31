@@ -1,18 +1,15 @@
 from __future__ import print_function
-import argparse
-import sys
+
 import os
 import os.path as op
-import tarfile
 import re
-import traceback
 import subprocess as sp
-import yaml 
-import locale
-from fnmatch import fnmatch
-from .utils import get_required_conda_version, check_output, conda_root, check_for_internet_connection, get_species
+import sys
+
+import yaml
+
 from .uninstall import check_for_installation
-from .install import check_ggd_recipe
+from .utils import check_output, conda_root
 
 #---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -29,6 +26,7 @@ else:
 
 def add_check_recipe(p):
     """Argument method used to add check-recipes as a module arugment/function """
+    import argparse
 
     c = p.add_parser('check-recipe', help="Build, install, check, and test a ggd data recipe", description="Convert a ggd recipe created from `ggd make-recipe` into a data package. Test both ggd data recipe and data package")
     c.add_argument("-d", "--debug", action="store_true", help="(Optional) Set the stdout log level to debug")
@@ -98,6 +96,7 @@ def _build(path, recipe,debug=False):
     ++++++++
     1) The absolute path to the bz2 file, the new ggd data package file, created by conda build
     """
+    from .install import check_ggd_recipe
 
     sp.check_call(['conda','build','purge'], stderr=sys.stderr, stdout = sys.stdout)
     try:
@@ -108,7 +107,7 @@ def _build(path, recipe,debug=False):
 
     except Exception as e:
         ## Check all requirenments for ggd dependencies
-        print("Rolling back ggd dependencies")
+        print(":ggd:check-recipe: Rolling back ggd dependencies")
         for d in recipe["requirements"]["build"]:  
             try:
                 ggd_jdict = check_ggd_recipe(d,ggd_channel="genomics") 
@@ -116,10 +115,10 @@ def _build(path, recipe,debug=False):
                 ggd_jdict = None
 
             if ggd_jdict != None:
-                print("Rolling back %s" %d)
+                print(":ggd:check-recipe: Rolling back %s" %d)
                 ## Remove ggd files 
-                check_for_installation(d,ggd_jdict) ## .uninstall method to remove extra ggd files
-        print("\n\t-> Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
+                check_for_installation([d],ggd_jdict) ## .uninstall method to remove extra ggd files
+        print("\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
         ## Exit
         sys.exit(5)   
     
@@ -157,6 +156,8 @@ def _install(bz2,recipe_name,debug=False):
     2) False if the package has already been installed on the system
     3) If the installation fails progam exits. ggd data handeling is initated to remove any new/updated files from the installation process
     """
+    import traceback
+    from .utils import get_required_conda_version
 
     conda_version = get_required_conda_version()
     conda_install = "conda=" + conda_version
@@ -188,7 +189,7 @@ def _install(bz2,recipe_name,debug=False):
 
     except Exception as e:
         print(e)
-        print("\n\t-> %s did not install properly. \n\n\t->Error message:\n" %recipe_name)
+        print("\n:ggd:check-recipe: %s did not install properly. \n\n\t->Error message:\n" %recipe_name)
         print(traceback.format_exc())
 
         ## Remove ggd files 
@@ -199,11 +200,11 @@ def _install(bz2,recipe_name,debug=False):
         name = recipe_dict["package"]["name"]
         ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
         try:
-            check_for_installation(recipe_name,ggd_jdict) ## .uninstall method to remove extra ggd files
+            check_for_installation([recipe_name],ggd_jdict) ## .uninstall method to remove extra ggd files
         except Exception as e:
             print(e)
 
-        print("\n\t-> Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
+        print("\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
         ## Exit
         sys.exit(1)   
 
@@ -226,6 +227,7 @@ def get_recipe_from_bz2(fbz2):
     +++++++
     1) The meta.yaml file as a dictionary 
     """
+    import tarfile
 
     info = None
     with tarfile.open(fbz2, mode="r|bz2") as tf:
@@ -234,7 +236,7 @@ def get_recipe_from_bz2(fbz2):
             if info.name in ("info/recipe/meta.yaml", "info/meta.yaml"):
                 break
         else:
-            print("Error: Incorrect tar.bz format.", file=sys.stderr)
+            print(":ggd:check-recipe: !!ERROR!!: Incorrect tar.bz format.", file=sys.stderr)
             exit(1)
         recipe = tf.extractfile(info)
         recipe = yaml.safe_load(recipe.read().decode())
@@ -258,6 +260,7 @@ def _check_build(species, build):
     1) True if gnome build is correct, raises an error otherwise 
 
     """
+    from .utils import check_for_internet_connection, get_species
 
     if check_for_internet_connection():
         gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(build=build, species=species)
@@ -300,8 +303,8 @@ def check_recipe(parser, args):
 
     ## If skipping md5sum and final file creation, check the yaml file
     if args.dont_add_md5sum_for_checksum:
-        assert len(recipe["about"]["tags"].get("final-files",[])) > 0, ("final-files are missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set")  
-        assert len(recipe["about"]["tags"].get('file-type', [])) > 0, ("file-type is missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set")  
+        assert len(recipe["about"]["tags"].get("final-files",[])) > 0, (":ggd:check-recipe: final-files are missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set")  
+        assert len(recipe["about"]["tags"].get('file-type', [])) > 0, (":ggd:check-recipe: file-type is missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set")  
 
     species, build, version, recipe_name = check_yaml(recipe)
 
@@ -335,7 +338,7 @@ def check_recipe(parser, args):
             try:
                 check_final_files(install_path,recipe)
             except AssertionError as e:
-                print("\n!!ERROR!!", str(e)) 
+                print("\n:ggd:check-recipe: !!ERROR!!", str(e)) 
                 print("\n\t!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!\n")
                 print("\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\t! Recipe NOT ready for Pull Requests !\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
                 remove_package_after_install(bz2,recipe_name,111)
@@ -354,9 +357,9 @@ def check_recipe(parser, args):
 
 
     else: ## if already installed 
-        print("\nPackage already installed on your system")
-        print("\nIf the \"-du\" flag (dont_uninstall) is NOT set this package will be uninstalled") 
-        print("\nTo recheck this recipe")
+        print("\n:ggd:check-recipe: Package already installed on your system")
+        print("\nggd:check-recipe: If the \"-du\" flag (dont_uninstall) is NOT set this package will be uninstalled") 
+        print("\n:ggd:check-recipe: To recheck this recipe")
         if args.dont_uninstall == True:
             print(" 1) Uninstall the reicpe with: \n\t$ ggd check-recipe {} \tNOTE: Make sure the \"-du\" flag is NOT set".format(args.recipe_path))
             print(" 2) Run check recipes again once the local package is uninstalled (From step 1): \n\t $ggd check-recipe {} \tNOTE: With or without the \"-du\" flag.".format(args.recipe_path))
@@ -365,7 +368,7 @@ def check_recipe(parser, args):
 
 
     if args.dont_uninstall == False:
-        print("\n\n The --dont_uninstall flag was not set \n\n Uninstalling the locally built ggd data package")
+        print("\n\n:ggd:check-recipe: The --dont_uninstall flag was not set \n\n Uninstalling the locally built ggd data package")
 
         recipe_dict = get_recipe_from_bz2(bz2)
         species = recipe_dict["about"]["identifiers"]["species"]
@@ -374,13 +377,13 @@ def check_recipe(parser, args):
         name = recipe_dict["package"]["name"]
         ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
         try:
-            check_for_installation(name,ggd_jdict) ## .uninstall method to remove extra ggd files
+            check_for_installation([name],ggd_jdict) ## .uninstall method to remove extra ggd files
         except Exception as e:
             print(e)
     else:
         recipe_dict = get_recipe_from_bz2(bz2)
         name = recipe_dict["package"]["name"]
-        print("\n\n {} will remain installed on your system as a local data package.".format(name))
+        print("\n\n:ggd:check-recipe: {} will remain installed on your system as a local data package.".format(name))
 
     return(True)
 
@@ -404,7 +407,7 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
     1) Nothing is returned. The checksum file is updated with each data file and it's md5sum.
         Each data file will be placed on its own line with a tab seperating the file's md5sum.
     """
-    print("Updating md5sums for final data files\n")
+    print(":ggd:check-recipe: Updating md5sums for final data files\n")
     import glob
     from .utils import get_file_md5sum 
 
@@ -413,7 +416,7 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
 
         ## Check the number of files are the same between the yaml file and the acutal data files
         final_files = yaml_file["about"]["tags"]["final-files"] 
-        assert len(final_files) == len(installed_files), ("The number of installed files does not match the number of final files listed in the recipe." +
+        assert len(final_files) == len(installed_files), (":ggd:check-recipe: The number of installed files does not match the number of final files listed in the recipe." +
             " Number of installed files = {i}, Number of final files in recipe = {f}".format(i= len(installed_files), f= len(final_files)))
 
         for ifile in installed_files:
@@ -447,7 +450,7 @@ def add_final_files(installed_dir_path,yaml_dict,recipe_path):
     ++++++++
     The yaml dictionary of the new yaml file
     """
-    print("Updating list of final data files\n")
+    print("\n:ggd:check-recipe: Updating the list of final data files\n")
     import glob
     
     file_types = set(["fasta","fa","fastq","fq","sam","bam","cram","vcf","bcf","bed","bigwig","bw",
@@ -503,7 +506,7 @@ def check_final_files(installed_dir_path,yaml_file):
     ++++++++
     1) True if all passes fail, otherwise an assertion error is raised
     """
-    print("Checking the final data files\n")
+    print(":ggd:check-recipe: Checking the final data files\n")
     import glob
 
     installed_files = glob.glob(op.join(installed_dir_path,"*"))
@@ -511,15 +514,15 @@ def check_final_files(installed_dir_path,yaml_file):
     final_files = yaml_file["about"]["tags"]["final-files"] 
 
     ## Check that there are the same number of files as files installed. 
-    assert len(final_files) == len(installed_files), ("The number of installed files does not match the number of final files listed in the recipe." +
+    assert len(final_files) == len(installed_files), (":ggd:check-recipe: The number of installed files does not match the number of final files listed in the recipe." +
         " Number of installed files = {i}, Number of final files in recipe = {f}".format(i= len(installed_files), f= len(final_files)))
 
     ## Test the file exists 
     for ffile in final_files:
         ffile_path = op.join(installed_dir_path,ffile)
-        assert ffile_path in installed_files, ("The {ff} file designated in the recipe is not one of the installed files".format(ff=ffile))
-        assert os.path.exists(ffile_path), ("The {ff} file designated in the recipes does not exists as an installed file".format(ff=ffile))
-        assert os.path.isfile(ffile_path), ("The {ff} file designated in the recipes is not a file in the installed path".format(ff=ffile))
+        assert ffile_path in installed_files, (":ggd:check-recipe: The {ff} file designated in the recipe is not one of the installed files".format(ff=ffile))
+        assert os.path.exists(ffile_path), (":ggd:check-recipe: The {ff} file designated in the recipes does not exists as an installed file".format(ff=ffile))
+        assert os.path.isfile(ffile_path), (":ggd:check-recipe: The {ff} file designated in the recipes is not a file in the installed path".format(ff=ffile))
 
     return(True)
 
@@ -545,7 +548,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     2) exit_num: The exit number to exit the program with
     """
 
-    print("\nPost-installation checks have failed. Rolling back installation")
+    print("\n:ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation")
 
     recipe_dict = get_recipe_from_bz2(bz2)
     species = recipe_dict["about"]["identifiers"]["species"]
@@ -554,11 +557,11 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     name = recipe_dict["package"]["name"]
     ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
     try:
-        check_for_installation(recipe_name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        check_for_installation([recipe_name],ggd_jdict) ## .uninstall method to remove extra ggd files
     except Exception as e:
         print(e)
 
-    print("\n\t-> Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
+    print("\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n")
     ## Exit
     sys.exit(exit_num)   
 
@@ -566,6 +569,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
 def check_files(install_path, species, build, recipe_name,
                 extra_files, before_files, bz2):
     """Method to check the presence of correct genomic files """
+    from fnmatch import fnmatch
 
     P = "{species}/{build}:{recipe_name}".format(**locals())
 
@@ -575,7 +579,7 @@ def check_files(install_path, species, build, recipe_name,
         sys.stderr.write("ERROR: no modified files in %s\n" % install_path)
         remove_package_after_install(bz2,recipe_name,2)
 
-    print("modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
+    print(":ggd:check-recipe: modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
 
     tbis = [x for x in files if x.endswith(".tbi")] # all tbi files
 
@@ -602,30 +606,30 @@ def check_files(install_path, species, build, recipe_name,
     _check_build(species, build)
 
     for tbx in tbxs:
-        print("> checking %s" % tbx)
+        print(":ggd:check-recipe: > checking %s" % tbx)
         try:
             sp.check_call(["check-sort-order", "--genome", gf, tbx], stderr=sys.stderr)
         except sp.CalledProcessError as e:
-            sys.stderr.write("ERROR: in: %s(%s) with genome sort order compared to that specified in genome file\n" % (P, tbx))
+            sys.stderr.write(":ggd:check-recipe: !!ERROR!!: in: %s(%s) with genome sort order compared to that specified in genome file\n" % (P, tbx))
             remove_package_after_install(bz2,recipe_name,e.returncode)
 
     missing = []
     not_tabixed = []
     not_faidxed = []
     for n in nons:
-        print("> checking %s" % n)
+        print(":ggd:check-recipe: > checking %s" % n)
         if n.endswith((".bed", ".bed.gz", ".vcf", ".vcf.gz", ".gff",
                        ".gff.gz", ".gtf", ".gtf.gz", ".gff3", ".gff3.gz")):
 
-            not_tabixed.append("ERROR: with: %s(%s) must be sorted, bgzipped AND tabixed.\n" % (P, n))
+            not_tabixed.append(":ggd:check-recipe: !!ERROR!!: with: %s(%s) must be sorted, bgzipped AND tabixed.\n" % (P, n))
         elif n.endswith((".fasta", ".fa", ".fasta.gz", ".fa.gz")):
             if not op.basename(n + ".fai") in fais and not (re.sub("(.+).fa(?:sta)?$",
                                                        "\\1",
                                                        op.basename(n)) + ".fai") in fais:
-                not_faidxed.append("ERROR: with: %s(%s) fasta files must have an associated fai.\n" % (P, n))
+                not_faidxed.append(":ggd:check-recipe: !!ERROR!!: with: %s(%s) fasta files must have an associated fai.\n" % (P, n))
 
         elif op.basename(n) not in extra_files and not any(fnmatch(op.basename(n), e) for e in extra_files):
-                missing.append("ERROR: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n" % (P, n))
+                missing.append(":ggd:check-recipe: !!ERROR!!: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n" % (P, n))
 
     if missing or not_tabixed or not_faidxed:
         print("\n".join(missing + not_tabixed + not_faidxed), file=sys.stderr)
@@ -638,21 +642,21 @@ def check_yaml(recipe):
     """Method to check if the correct information is contained within the ggd recipe's meta.yaml file """
 
     ## Check yaml keys 
-    assert 'package' in recipe and "version" in recipe['package'], ("must specify 'package:' section with ggd version and package name")
-    assert 'extra' in recipe, ("must specify 'extra:' section with author and extra-files")
-    assert 'about' in recipe and 'summary' in recipe['about'], ("must specify an 'about/summary' section")
-    assert 'identifiers' in recipe['about'], ("must specify an 'identifier' section in about")
-    assert 'genome-build' in recipe['about']['identifiers'], ("must specify 'about:' section with genome-build")
-    assert 'species' in recipe['about']['identifiers'], ("must specify 'about:' section with species")
-    assert 'tags' in recipe['about'], ("must specify 'about:' section with tags")
+    assert 'package' in recipe and "version" in recipe['package'], (":ggd:check-recipe: must specify 'package:' section with ggd version and package name")
+    assert 'extra' in recipe, (":ggd:check-recipe: must specify 'extra:' section with author and extra-files")
+    assert 'about' in recipe and 'summary' in recipe['about'], (":ggd:check-recipe: must specify an 'about/summary' section")
+    assert 'identifiers' in recipe['about'], (":ggd:check-recipe: must specify an 'identifier' section in about")
+    assert 'genome-build' in recipe['about']['identifiers'], (":ggd:check-recipe: must specify 'about:' section with genome-build")
+    assert 'species' in recipe['about']['identifiers'], (":ggd:check-recipe: must specify 'about:' section with species")
+    assert 'tags' in recipe['about'], (":ggd:check-recipe: must specify 'about:' section with tags")
     assert 'keywords' in recipe['about'] and \
-        isinstance(recipe['about']['keywords'], list), ("must specify 'about:' section with keywords")
+        isinstance(recipe['about']['keywords'], list), (":ggd:check-recipe: must specify 'about:' section with keywords")
 
     ##Check tags
-    assert "genomic-coordinate-base" in recipe["about"]["tags"], ("must specify a genomic coordinate base for the files created by this recipe")
-    assert "data-version" in recipe["about"]["tags"], ("must specify the data version for the data files created by this recipe")
-    assert "data-provider" in recipe["about"]["tags"], ("must specify the data provider for the files created by this recipe")
-    assert 'ggd-channel' in recipe['about']['tags'], ("must specify the specific ggd channel for the recipe in the 'about:tags' section")
+    assert "genomic-coordinate-base" in recipe["about"]["tags"], (":ggd:check-recipe: must specify a genomic coordinate base for the files created by this recipe")
+    assert "data-version" in recipe["about"]["tags"], (":ggd:check-recipe: must specify the data version for the data files created by this recipe")
+    assert "data-provider" in recipe["about"]["tags"], (":ggd:check-recipe: must specify the data provider for the files created by this recipe")
+    assert 'ggd-channel' in recipe['about']['tags'], (":ggd:check-recipe: must specify the specific ggd channel for the recipe in the 'about:tags' section")
 
     species, build, version, name  = recipe['about']['identifiers']['species'], \
                                      recipe['about']['identifiers']['genome-build'], \
