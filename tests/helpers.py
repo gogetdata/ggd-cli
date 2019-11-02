@@ -193,7 +193,7 @@ class CreateRecipe(object):
                 os.makedirs(rdir)
                 updated_name = base_dir_name + "/" + name if base_dir_name != "" else name 
                 self.recipe_dirs[updated_name] = rdir
-                if "dir" in name:
+                if "dir" in name or "info" in name:
                     nested_recipe(recipe,rdir,updated_name)
                 else:
                     for key, value in recipe.items():
