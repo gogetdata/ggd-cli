@@ -1182,7 +1182,7 @@ def test_check_recipe_bz2_file():
 
     ## Uninstall the already installed recipe
     try:
-        sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
+        sp.check_call(["conda", "uninstall","-y", "trial-hg38-gaps-v1"])
     except Exception as e:
         pass
 
@@ -1317,7 +1317,7 @@ def test_check_recipe_recipe_path():
 
     ## Uninstall the already installed recipe
     try:
-        sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
+        sp.check_call(["conda", "uninstall", "-y", "trial-hg38-gaps-v1"])
     except Exception as e:
         pass
 
@@ -1401,7 +1401,7 @@ def test_check_recipe_uninstall_local():
 
    ## Uninstall the already installed recipe
    try:
-       sp.check_call(["conda", "uninstall", "trial-hg38-gaps-v1"])
+       sp.check_call(["conda", "uninstall", "-y", "trial-hg38-gaps-v1"])
    except Exception as e:
        pass
 

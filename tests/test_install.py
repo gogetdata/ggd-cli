@@ -82,7 +82,7 @@ def remove_pfam():
     if ggd_recipe in str(sp.check_output(["conda", "list"]).decode('utf8')):
         try:
             uninstall.uninstall((),Namespace(channel='genomics', command='uninstall', name=ggd_recipe))
-            sp.check_output(["conda", "uninstall", ggd_recipe]) 
+            sp.check_output(["conda", "uninstall", "-y", ggd_recipe]) 
         except:
             pass
 
@@ -1110,7 +1110,7 @@ def test_install_checksum():
         print(str(e))
         assert False
 
-    sp.check_output(["conda","uninstall","trial-recipe-v1"])
+    sp.check_output(["conda","uninstall", "-y", "trial-recipe-v1"])
 
 
 #    ## Test a good checksum 
