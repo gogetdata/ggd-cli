@@ -474,7 +474,7 @@ def test_install_from_cache():
 
 
     ## Test with multiple in the list
-    ggd_recipes = ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]
+    ggd_recipes = ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1"]
 
     assert install.install_from_cached(ggd_recipes, ggd_channel,jdict) == True   
     for name in ggd_recipes:
@@ -647,7 +647,7 @@ def test_conda_install():
 
 
     ## Test with multiple in the list
-    ggd_recipes = ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]
+    ggd_recipes = ["grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]
 
     assert install.conda_install(ggd_recipes, ggd_channel,jdict) == True   
     for name in ggd_recipes:
@@ -906,24 +906,16 @@ def test_install_checksum():
                 data-version: 11-Mar-2019
                 data-provider: UCSC
                 file-type: 
-                - bed
+                - genome
                 final-files: 
-                - trial-recipe-v1.bed.gz
-                - trial-recipe-v1.bed.gz.tbi
+                - trial-recipe-v1.genome
                 ggd-channel: genomics
         
         recipe.sh: |
             #!/bin/sh
             set -eo pipefail -o nounset
 
-            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
-            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
-            | gzip -dc \\
-            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
-            | gsort /dev/stdin $genome \\
-            | bgzip -c > trial-recipe-v1.bed.gz
-
-            tabix trial-recipe-v1.bed.gz 
+            wget https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
         
         post-link.sh: |
             set -eo pipefail -o nounset
@@ -958,7 +950,7 @@ def test_install_checksum():
             for f in *; do
                 ext="${f#*.}"
                 filename="{f%%.*}"
-                (mv $f "trialrecipe-v1.$ext")
+                (mv $f "trial-recipe-v1.$ext")
             done
 
             ## Add environment variables 
@@ -1003,8 +995,7 @@ def test_install_checksum():
             echo 'Recipe successfully built!'
 
         checksums_file.txt: |
-            trial-recipe-v1.bed.gz\tljs9f02mliosaf023klj
-            trial-recipe-v1.bed.gz.tbi\tjf2390jf230aof12lj3
+            trial-recipe-v1.genome\t2aed13a997b3cc454e16cc0bf67080cd
 
     """, from_string=True)
 
@@ -1015,7 +1006,7 @@ def test_install_checksum():
     ## Create recipe
     recipe_dir_path = recipe.recipe_dirs["trial-recipe-v1"] 
     ## Remove checksum file
-    os.remove(os.path.join(recipe_dir_path,"checksums_file.txt"))
+    #os.remove(os.path.join(recipe_dir_path,"checksums_file.txt"))
     ## build tar.bz2 file and install 
     yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
     tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
@@ -1026,27 +1017,71 @@ def test_install_checksum():
     ## Fake ggd_jdict
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-recipe-v1': 
                     {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', 
-                    u'data-version': u'11-Mar-2019',u'file-type':u'bed',u'final-files':[u'trial-recipe-v1.bed.gz',u'trial-recipe-v1.bed.gz.tbi']}, 
+                    u'data-version': u'11-Mar-2019',u'file-type':u'bed',u'final-files':[u'trial-recipe-v1.genome']}, 
                     u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, 
                     u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-recipe-v1-1-1.tar.bz2', 
                     u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
                     u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
-    ## Test a tar.bz2 without checksum file 
+
+    ## Test good checksum
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         install.install_checksum(["trial-recipe-v1"],ggd_jdict)
     output = temp_stdout.getvalue().strip() 
-    assert ":ggd:install: WARNING: Checksum file not available for the trial-recipe-v1 data package. Data file content validation will be skipped" in output
+    assert ":ggd:install: Checksum for trial-recipe-v1" in output
+    assert ":ggd:checksum: installed  file checksum: trial-recipe-v1.genome checksum: 2aed13a997b3cc454e16cc0bf67080cd" in output
+    assert ":ggd:checksum: metadata checksum record: trial-recipe-v1.genome checksum: 2aed13a997b3cc454e16cc0bf67080cd" in output
+    assert ":ggd:install: ** Successful Checksum **" in output
+
+    ## Create fake recipes
+    fakerecipe = CreateRecipe(
+    """
+
+    trial_recipe_dir1: 
+        info: 
+            recipe:
+                checksums_file.txt: |
+                    trial-recipe-v1.genome\taj09f239a;ojveiaj289j
+
+    trial_recipe_dir2: 
+        info: 
+            recipe:
+                bad_checksums_file.txt: |
+                    not a real checksum file
+            
+
+    """, from_string=True)
+
+    fakerecipe.write_nested_recipes()
+
+    trial_recipe1_path = fakerecipe.recipe_dirs["trial_recipe_dir1"]
+    trial_recipe2_path = fakerecipe.recipe_dirs["trial_recipe_dir2"]
+
+    if os.path.exists(os.path.join(utils.conda_root(),"pkgs","trial-recipe-v1-1-0.tar.bz2")):
+        print("Exists")
+        os.remove(os.path.join(utils.conda_root(),"pkgs","trial-recipe-v1-1-0.tar.bz2"))
+
+    import tarfile
+    tar = tarfile.open(os.path.join(utils.conda_root(),"pkgs","trial-recipe-v1-1-0.tar.bz2"), "w:bz2")
+    tar.add(trial_recipe2_path, arcname=(""))
+    tar.close()
+
+    ## Test a tar.bz2 without checksum file 
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        install.install_checksum(["trial-recipe-v1"],ggd_jdict)
+    output2 = temp_stdout.getvalue().strip() 
+    print("TEST2")
+    print(output2)
+    assert ":ggd:install: WARNING: Checksum file not available for the trial-recipe-v1 data package. Data file content validation will be skipped" in output2
 
 
-    ## Test bad checksum 
-    ## Write checksum file
-    with open(os.path.join(recipe_dir_path,"checksums_file.txt"), "a"):
-        os.utime(os.path.join(recipe_dir_path,"checksums_file.txt"))
-    ## Build tarfile again
-    tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
-    
+    ## Bad checksum 
+    tar = tarfile.open(os.path.join(utils.conda_root(),"pkgs","trial-recipe-v1-1-0.tar.bz2"), "w:bz2")
+    tar.add(trial_recipe1_path, arcname=(""))
+    tar.close()
+
     try:
         install.install_checksum(["trial-recipe-v1"],ggd_jdict)
         assert False
@@ -1078,28 +1113,28 @@ def test_install_checksum():
     sp.check_output(["conda","uninstall","trial-recipe-v1"])
 
 
-    ## Test a good checksum 
-    recipe = "grch37-chromsizes-ggd-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=[recipe], file=[], prefix=None)
-    assert install.install((), args) == True
-
-    ggd_jdict = install.check_ggd_recipe(recipe,"genomics")
-
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        install.install_checksum([recipe],ggd_jdict)
-    output = temp_stdout.getvalue().strip() 
-    assert ":ggd:install: Checksum for grch37-chromsizes-ggd-v1" in output
-    assert ":ggd:checksum: installed  file checksum: grch37-chromsizes-ggd-v1.txt checksum: 9035fb43d5341584a8b11fb70de3fae5" in output
-    assert ":ggd:checksum: metadata checksum record: grch37-chromsizes-ggd-v1.txt checksum: 9035fb43d5341584a8b11fb70de3fae5" in output
-    assert ":ggd:install: ** Successful Checksum **" in output
-
-
-    try:
-        args = Namespace(channel='genomics', command='uninstall', name=recipe)
-        uninstall.uninstall((),args)
-    except:
-        pass
+#    ## Test a good checksum 
+#    recipe = "grch37-chromsizes-ggd-v1"
+#    args = Namespace(channel='genomics', command='install', debug=False, name=[recipe], file=[], prefix=None)
+#    assert install.install((), args) == True
+#
+#    ggd_jdict = install.check_ggd_recipe(recipe,"genomics")
+#
+#    temp_stdout = StringIO()
+#    with redirect_stdout(temp_stdout):
+#        install.install_checksum([recipe],ggd_jdict)
+#    output = temp_stdout.getvalue().strip() 
+#    assert ":ggd:install: Checksum for grch37-chromsizes-ggd-v1" in output
+#    assert ":ggd:checksum: installed  file checksum: grch37-chromsizes-ggd-v1.txt checksum: 9035fb43d5341584a8b11fb70de3fae5" in output
+#    assert ":ggd:checksum: metadata checksum record: grch37-chromsizes-ggd-v1.txt checksum: 9035fb43d5341584a8b11fb70de3fae5" in output
+#    assert ":ggd:install: ** Successful Checksum **" in output
+#
+#
+#    try:
+#        args = Namespace(channel='genomics', command='uninstall', name=recipe)
+#        uninstall.uninstall((),args)
+#    except:
+#        pass
     
 
 def test_copy_pkg_files_to_prefix():
@@ -1362,97 +1397,97 @@ def test_install_main_function_multiple_recipes():
         except:
             pass
 
-
-    ## Test install with multiple files
-    install_file2 = CreateRecipe(
-    """
-    install_path2:
-        install2.txt: |
-            grch37-chromsizes-ggd-v1
-        
-        install3.txt: |
-            hg19-chromsizes-ggd-v1
-    """, from_string=True)
-    install_file2.write_recipes()
-    install_file2_dir_path = install_file2.recipe_dirs["install_path2"]   
-    install_file2_path = os.path.join(install_file2_dir_path,"install2.txt")
-    install_file3_path = os.path.join(install_file2_dir_path,"install3.txt")
-    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[install_file2_path,install_file3_path], prefix=None)
-    ## Try good file
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        install.install((), args)
-    output = temp_stdout.getvalue().strip() 
-    assert ":ggd:install: grch37-chromsizes-ggd-v1 version 1 is not installed on your system" in output
-    assert ":ggd:install: grch37-chromsizes-ggd-v1 has not been installed by conda" in output
-    assert ":ggd:install: The grch37-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
-    assert ":ggd:install: hg19-chromsizes-ggd-v1 version 1 is not installed on your system" in output
-    assert ":ggd:install: hg19-chromsizes-ggd-v1 has not been installed by conda" in output
-    assert ":ggd:install: The hg19-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
-    assert ":ggd:install:   Attempting to install the following cached package(s):\n\tgrch37-chromsizes-ggd-v1\n\thg19-chromsizes-ggd-v1" in output
-    assert ":ggd:utils:bypass: Installing grch37-chromsizes-ggd-v1, hg19-chromsizes-ggd-v1 from the ggd-genomics conda channel" in output
-    assert ":ggd:install: Updating installed package list" in output
-    assert ":ggd:install: Install Complete" in output
-    assert ":ggd:install: Installed file locations" in output
-    assert ":ggd:install: Environment Variables" in output
-
-    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1"]:
-        jdict = install.check_ggd_recipe(name,"genomics")
-        species = jdict["packages"][name]["identifiers"]["species"]
-        build = jdict["packages"][name]["identifiers"]["genome-build"]
-        version = jdict["packages"][name]["version"]
-        file1 = "{}.txt".format(name)
-        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
-        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
-    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
-        try:
-            args = Namespace(channel='genomics', command='uninstall', name=name)
-            uninstall.uninstall((),args)
-        except:
-            pass
-
-
-    ## Test install with mutliple packages with positional arguments and --files
-    recipes = ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1"]
-    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[install_file_path], prefix=None)
-    temp_stdout = StringIO()
-    with redirect_stdout(temp_stdout):
-        install.install((), args)
-    output = temp_stdout.getvalue().strip() 
-    assert ":ggd:install: grch37-chromsizes-ggd-v1 version 1 is not installed on your system" in output
-    assert ":ggd:install: grch37-chromsizes-ggd-v1 has not been installed by conda" in output
-    assert ":ggd:install: The grch37-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
-    assert ":ggd:install: hg19-chromsizes-ggd-v1 version 1 is not installed on your system" in output
-    assert ":ggd:install: hg19-chromsizes-ggd-v1 has not been installed by conda" in output
-    assert ":ggd:install: The hg19-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
-    assert ":ggd:install: grch38-chromsizes-ggd-v1 version 1 is not installed on your system" in output
-    assert ":ggd:install: grch38-chromsizes-ggd-v1 has not been installed by conda" in output
-    assert ":ggd:install: The grch38-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
-    assert ":ggd:install: hg38-chromsizes-ggd-v1 version 1 is not installed on your system" in output
-    assert ":ggd:install: hg38-chromsizes-ggd-v1 has not been installed by conda" in output
-    assert ":ggd:install: The hg38-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
-    assert ":ggd:install:   Attempting to install the following cached package(s):\n\tgrch37-chromsizes-ggd-v1\n\tgrch38-chromsizes-ggd-v1\n\thg19-chromsizes-ggd-v1\n\thg38-chromsizes-ggd-v1" in output
-    assert ":ggd:utils:bypass: Installing grch37-chromsizes-ggd-v1, grch38-chromsizes-ggd-v1, hg19-chromsizes-ggd-v1, hg38-chromsizes-ggd-v1 from the ggd-genomics conda channel" in output
-    assert ":ggd:install: Updating installed package list" in output
-    assert ":ggd:install: Install Complete" in output
-    assert ":ggd:install: Installed file locations" in output
-    assert ":ggd:install: Environment Variables" in output
-
-    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
-        jdict = install.check_ggd_recipe(name,"genomics")
-        species = jdict["packages"][name]["identifiers"]["species"]
-        build = jdict["packages"][name]["identifiers"]["genome-build"]
-        version = jdict["packages"][name]["version"]
-        file1 = "{}.txt".format(name)
-        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
-        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
-
-    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
-        try:
-            args = Namespace(channel='genomics', command='uninstall', name=name)
-            uninstall.uninstall((),args)
-        except:
-            pass
+## Reduce test time
+##    ## Test install with multiple files
+##    install_file2 = CreateRecipe(
+##    """
+##    install_path2:
+##        install2.txt: |
+##            grch37-chromsizes-ggd-v1
+##        
+##        install3.txt: |
+##            hg19-chromsizes-ggd-v1
+##    """, from_string=True)
+##    install_file2.write_recipes()
+##    install_file2_dir_path = install_file2.recipe_dirs["install_path2"]   
+##    install_file2_path = os.path.join(install_file2_dir_path,"install2.txt")
+##    install_file3_path = os.path.join(install_file2_dir_path,"install3.txt")
+##    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[install_file2_path,install_file3_path], prefix=None)
+##    ## Try good file
+##    temp_stdout = StringIO()
+##    with redirect_stdout(temp_stdout):
+##        install.install((), args)
+##    output = temp_stdout.getvalue().strip() 
+##    assert ":ggd:install: grch37-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+##    assert ":ggd:install: grch37-chromsizes-ggd-v1 has not been installed by conda" in output
+##    assert ":ggd:install: The grch37-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
+##    assert ":ggd:install: hg19-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+##    assert ":ggd:install: hg19-chromsizes-ggd-v1 has not been installed by conda" in output
+##    assert ":ggd:install: The hg19-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
+##    assert ":ggd:install:   Attempting to install the following cached package(s):\n\tgrch37-chromsizes-ggd-v1\n\thg19-chromsizes-ggd-v1" in output
+##    assert ":ggd:utils:bypass: Installing grch37-chromsizes-ggd-v1, hg19-chromsizes-ggd-v1 from the ggd-genomics conda channel" in output
+##    assert ":ggd:install: Updating installed package list" in output
+##    assert ":ggd:install: Install Complete" in output
+##    assert ":ggd:install: Installed file locations" in output
+##    assert ":ggd:install: Environment Variables" in output
+##
+##    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1"]:
+##        jdict = install.check_ggd_recipe(name,"genomics")
+##        species = jdict["packages"][name]["identifiers"]["species"]
+##        build = jdict["packages"][name]["identifiers"]["genome-build"]
+##        version = jdict["packages"][name]["version"]
+##        file1 = "{}.txt".format(name)
+##        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+##        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
+##    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
+##        try:
+##            args = Namespace(channel='genomics', command='uninstall', name=name)
+##            uninstall.uninstall((),args)
+##        except:
+##            pass
+##
+##
+##    ## Test install with mutliple packages with positional arguments and --files
+##    recipes = ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1"]
+##    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[install_file_path], prefix=None)
+##    temp_stdout = StringIO()
+##    with redirect_stdout(temp_stdout):
+##        install.install((), args)
+##    output = temp_stdout.getvalue().strip() 
+##    assert ":ggd:install: grch37-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+##    assert ":ggd:install: grch37-chromsizes-ggd-v1 has not been installed by conda" in output
+##    assert ":ggd:install: The grch37-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
+##    assert ":ggd:install: hg19-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+##    assert ":ggd:install: hg19-chromsizes-ggd-v1 has not been installed by conda" in output
+##    assert ":ggd:install: The hg19-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
+##    assert ":ggd:install: grch38-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+##    assert ":ggd:install: grch38-chromsizes-ggd-v1 has not been installed by conda" in output
+##    assert ":ggd:install: The grch38-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
+##    assert ":ggd:install: hg38-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+##    assert ":ggd:install: hg38-chromsizes-ggd-v1 has not been installed by conda" in output
+##    assert ":ggd:install: The hg38-chromsizes-ggd-v1 package is uploaded to an aws S3 bucket. To reduce processing time the package will be downloaded from an aws S3 bucket" in output
+##    assert ":ggd:install:   Attempting to install the following cached package(s):\n\tgrch37-chromsizes-ggd-v1\n\tgrch38-chromsizes-ggd-v1\n\thg19-chromsizes-ggd-v1\n\thg38-chromsizes-ggd-v1" in output
+##    assert ":ggd:utils:bypass: Installing grch37-chromsizes-ggd-v1, grch38-chromsizes-ggd-v1, hg19-chromsizes-ggd-v1, hg38-chromsizes-ggd-v1 from the ggd-genomics conda channel" in output
+##    assert ":ggd:install: Updating installed package list" in output
+##    assert ":ggd:install: Install Complete" in output
+##    assert ":ggd:install: Installed file locations" in output
+##    assert ":ggd:install: Environment Variables" in output
+##
+##    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
+##        jdict = install.check_ggd_recipe(name,"genomics")
+##        species = jdict["packages"][name]["identifiers"]["species"]
+##        build = jdict["packages"][name]["identifiers"]["genome-build"]
+##        version = jdict["packages"][name]["version"]
+##        file1 = "{}.txt".format(name)
+##        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+##        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
+##
+##    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
+##        try:
+##            args = Namespace(channel='genomics', command='uninstall', name=name)
+##            uninstall.uninstall((),args)
+##        except:
+##            pass
 
 
 def test_install_main_function_with_prefix_set():
