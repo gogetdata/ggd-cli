@@ -427,18 +427,17 @@ def test_get_meta_yaml_info_internet_free():
         with redirect_stdout(temp_stdout):
             list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
         output = temp_stdout.getvalue().strip()
-        lines = output.strip().split("\n")
-        assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe"
-        assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics"
-        assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
-        assert lines[8] == "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing"
-        assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
-        assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
-        assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region"
-        assert lines[16] == "\t\x1b[1mData Version:\x1b[0m Today"
+        assert "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe" in output
+        assert"\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics" in output
+        assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+        assert "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing" in output
+        assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+        assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+        assert "\t\x1b[1mKeywords:\x1b[0m gaps, region" in output
+        assert "\t\x1b[1mData Version:\x1b[0m Today" in output
         conda_root = utils.conda_root()
-        assert lines[18] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root)
-        assert lines[20] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m "
+        assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root) in output
+        assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
         f.close()
 
         f = open(meta_yaml_file, "r")

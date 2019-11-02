@@ -767,18 +767,18 @@ def test_get_meta_yaml_info():
         with redirect_stdout(temp_stdout):
             list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
         output = temp_stdout.getvalue().strip() 
-        lines = output.strip().split("\n")
-        assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe"
-        assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics"
-        assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
-        assert lines[8] == "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing"
-        assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
-        assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
-        assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region"
-        assert lines[16] == "\t\x1b[1mData Version:\x1b[0m Today"
+
+        assert "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe" in output
+        assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics" in output
+        assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+        assert "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing" in output
+        assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+        assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+        assert "\t\x1b[1mKeywords:\x1b[0m gaps, region" in output
+        assert "\t\x1b[1mData Version:\x1b[0m Today" in output
         conda_root = utils.conda_root()
-        assert lines[18] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root)
-        assert lines[20] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m "
+        assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe/1".format(conda_root) in output
+        assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
         f.close()
 
         f = open(meta_yaml_file, "r")
@@ -868,25 +868,24 @@ def test_get_meta_yaml_info():
         with redirect_stdout(temp_stdout):
             list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
         output = temp_stdout.getvalue().strip() 
-        lines = output.strip().split("\n")
-        assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe2"
-        assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-fake2" 
-        assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
-        assert lines[8] == "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing"
-        assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
-        assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
-        assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region"
-        assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
-        assert lines[18] == "\t\x1b[1mData Provider:\x1b[0m ME"
-        assert lines[20] == "\t\x1b[1mData Version:\x1b[0m Today" 
-        assert lines[22] == "\t\x1b[1mFile type(s):\x1b[0m something"
-        assert lines[24] == "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive"
-        assert lines[26] == "\t\x1b[1mIncluded Data Files:\x1b[0m "
-        assert lines[27] == "\t\tfake2.something.gz" 
-        assert lines[28] == "\t\tfake2.something.gz.tbi"
+        assert "\t\x1b[1mGGD-Package:\x1b[0m fake-recipe2" in output
+        assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-fake2" in output
+        assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+        assert "\t\x1b[1mSummary:\x1b[0m A fake recipe for testing" in output
+        assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+        assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+        assert "\t\x1b[1mKeywords:\x1b[0m gaps, region" in output
+        assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
+        assert "\t\x1b[1mData Provider:\x1b[0m ME" in output
+        assert "\t\x1b[1mData Version:\x1b[0m Today" in output
+        assert "\t\x1b[1mFile type(s):\x1b[0m something" in output
+        assert "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive" in output
+        assert "\t\x1b[1mIncluded Data Files:\x1b[0m " in output
+        assert "\t\tfake2.something.gz"  in output
+        assert "\t\tfake2.something.gz.tbi" in output
         conda_root = utils.conda_root()
-        assert lines[30] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe2/1".format(conda_root) 
-        assert lines[32] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m "
+        assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/fake-recipe2/1".format(conda_root) in output 
+        assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
         f.close()
 
         f = open(meta_yaml_file, "r")
@@ -981,22 +980,20 @@ def test_info_main():
     with redirect_stdout(temp_stdout):
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
-    lines = output.strip().split("\n")
-    assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m hg19-gaps-ucsc-v1" 
-    assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics"
-    assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
-    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format"
-    assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
-    assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
-    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file"
-    assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
-    assert lines[18] == "\t\x1b[1mData Version:\x1b[0m 27-Apr-2009"
+    assert "\t\x1b[1mGGD-Package:\x1b[0m hg19-gaps-ucsc-v1" in output 
+    assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics" in output
+    assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format" in output
+    assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+    assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+    assert "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file" in output
+    assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
+    assert "\t\x1b[1mData Version:\x1b[0m 27-Apr-2009" in output
     conda_root = utils.conda_root()
-    assert lines[20] == "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) 
-    assert lines[22] == "\t\x1b[1mInstalled Pkg Files:\x1b[0m " 
-    assert lines[23] == "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz.tbi".format(conda_root)
-    assert lines[24] == "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz".format(conda_root) 
-
+    assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) in output 
+    assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
+    assert "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz.tbi".format(conda_root) in output
+    assert "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz".format(conda_root) in output
 
     ## Normal run with print recipes 
     ggd_package = "hg19-gaps-ucsc-v1"
@@ -1008,15 +1005,14 @@ def test_info_main():
     with redirect_stdout(temp_stdout):
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
-    lines = output.strip().split("\n")
-    assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m {}".format(ggd_package) 
-    assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-{}".format(ggd_channel)
-    assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
-    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format"
-    assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
-    assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
-    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file"
-    assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
+    assert "\t\x1b[1mGGD-Package:\x1b[0m {}".format(ggd_package) in output 
+    assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-{}".format(ggd_channel) in output
+    assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format" in output
+    assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+    assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+    assert "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file" in output
+    assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
     assert "{} recipe file:\n***********************".format(ggd_package) in output 
 
 
