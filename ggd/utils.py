@@ -695,7 +695,7 @@ def get_checksum_dict_from_tar(fbz2):
     info = None
     with tarfile.open(fbz2, mode="r|bz2") as tf:
         for info in tf: ## For/else 
-            if info.name in ("info/recipe/checksums_file.txt"):
+            if info.name == ("info/recipe/checksums_file.txt"):
                 break
         else:
             print(":ggd:checksum: !!Error!!: Incorrect tar.bz format.", file=sys.stderr)

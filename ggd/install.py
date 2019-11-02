@@ -400,17 +400,13 @@ def install_checksum(pkg_names,ggd_jdict,prefix=conda_root()):
 
     print("\n:ggd:install: Initiating data file content validation using checksum")
     data_packages = get_conda_package_list(prefix,include_local=True)
-    print(data_packages)
     for pkg_name in pkg_names:
         print("\n:ggd:install: Checksum for {}".format(pkg_name))
 
         ## Get the file paths for the tar file and package
         version = str(data_packages[pkg_name]["version"])
         build = str(data_packages[pkg_name]["build"])
-        if str(data_packages[pkg_name]["channel"]) == "local":
-            tarfile_path = os.path.join(prefix,"conda-bld","noarch","{}-{}-{}.tar.bz2".format(pkg_name,version,build))
-        else:
-            tarfile_path = os.path.join(prefix,"pkgs","{}-{}-{}.tar.bz2".format(pkg_name,version,build))
+        tarfile_path = os.path.join(prefix,"pkgs","{}-{}-{}.tar.bz2".format(pkg_name,version,build))
         ## Check if checksum file exists
         with tarfile.open(tarfile_path,mode="r|bz2") as tar:
             if "info/recipe/checksums_file.txt" not in tar.getnames():
