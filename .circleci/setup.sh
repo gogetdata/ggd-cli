@@ -53,6 +53,12 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
     conda install -y --file requirements.txt 
 
 
+    # TEMP Fix of conda-build slowdown
+    ## conda build > 3.18.5 on MacOSX is too slow. Us 3.18.5 if python 2 of MacOSX
+    if [[ "$tag" == "MacOSX" ]] && [[ "$pythonversion" == "2" ]]; then
+        conda install conda-build=3.18.5
+    fi
+
     # step 5: cleanup
     conda clean -y --all
 
