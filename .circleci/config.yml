@@ -63,7 +63,7 @@ jobs:
             conda --version
             py.test tests/ --durations=0 -v
           no_output_timeout: 9900
-  test-macos-python2:
+  test-macos-python2-part1:
     <<: *macos
     steps:
       - checkout
@@ -76,7 +76,22 @@ jobs:
           name: ggd cli unit tests (macOS)
           command: |
             conda --version
-            py.test tests/ --duration=0 -v
+            py.test tests/test_check_recipe.py tests/test_info_scripts.py --duration=0 -v
+          no_output_timeout: 9900
+  test-macos-python2-part2:
+    <<: *macos
+    steps:
+      - checkout
+      - *setup_p2
+      - *install_ggd_cli
+      - *setup_local_repos
+      - *install_osx_md5sum
+      - run: 
+          shell: /bin/bash
+          name: ggd cli unit tests (macOS)
+          command: |
+            conda --version
+            py.test tests/test_install.py tests/test_internet_free.py tests/test_make_recipe.py tests/test_search.py tests/test_uninstall.py tests/test_utils.py --duration=0 -v
           no_output_timeout: 9900
   test-macos-python3:
     <<: *macos
@@ -101,7 +116,8 @@ workflows:
     jobs:
       - test-linux-python2
       - test-linux-python3
-      - test-macos-python2
+      - test-macos-python2-part1
+      - test-macos-python2-part2
       - test-macos-python3
   ggd-cli-nightly-build:
     triggers:
@@ -114,5 +130,6 @@ workflows:
     jobs:
       - test-linux-python2
       - test-linux-python3
-      - test-macos-python2
+      - test-macos-python2-part1
+      - test-macos-python2-part2
       - test-macos-python3
