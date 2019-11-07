@@ -323,9 +323,23 @@ def search(parser, args):
             installed_set.add(pkg)
 
     ## Print search results
-    if len(match_results) >= int(args.display_number):
+    match_result_num = str(len(match_results))
+    if int(match_result_num) >= int(args.display_number):
         subset_match_results = match_results[0:int(args.display_number)] 
     else:
         subset_match_results = match_results 
 
-    return(print_summary(args.search_term,j_dict,subset_match_results,installed_set,installed_dict))
+    ## Print search results to STDOUT
+    printed = print_summary(args.search_term,j_dict,subset_match_results,installed_set,installed_dict)
+
+    ## Add a comment if a subset of search results are provided  
+    if int(match_result_num) > int(args.display_number):
+        print("\n\n:ggd:search: NOTE  Only showing results for top {d} of {m} matches.".format(d = str(args.display_number), m = match_result_num))
+
+        print(":ggd:search: To display all matches append your search command with '-dn {m}'".format(m = match_result_num))
+        print("\n\t ggd search {t} -dn {m}\n".format(t = " ".join(args.search_term), m = match_result_num))
+
+    ## Return result of print_summary
+    return(printed)
+
+
