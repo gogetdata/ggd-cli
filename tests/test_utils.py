@@ -514,19 +514,6 @@ def test_get_conda_env():
     assert os.path.exists(temp_env) == False
 
 
-def test_active_conda_env():
-    """
-    Test the active_conda_env function properly returns the active environemnt 
-    """
-    pytest_enable_socket()
-
-    ## Test that the base environemnet is returned
-    conda_env = utils.active_conda_env()
-    assert conda_env.strip() == "base"
-
-    ## TODO: Add a test to check a different environment is active
-
-
 def test_get_conda_prefix_path():
     """
     Test that get_conda_prefix_path() returns the correct prefix path 

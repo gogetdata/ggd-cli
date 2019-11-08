@@ -11,13 +11,15 @@ import sys
 import requests
 
 LOCAL_REPO_DIR = os.getenv("GGD_LOCAL", os.path.expanduser("~/.config/ggd-info/"))
-GENOME_METADATA_DIR = os.path.join(LOCAL_REPO_DIR,"genome_metadata")
-CHANNEL_DATA_DIR = os.path.join(LOCAL_REPO_DIR,"channeldata")
+GENOME_METADATA_DIR = os.path.join(LOCAL_REPO_DIR, "genome_metadata")
+CHANNEL_DATA_DIR = os.path.join(LOCAL_REPO_DIR, "channeldata")
 RECIPE_REPO_DIR = os.path.join(LOCAL_REPO_DIR, "ggd-recipes")
-GGD_CLI_REQUIREMENTS = "https://raw.githubusercontent.com/gogetdata/ggd-cli/master/requirements.txt"
+GGD_CLI_REQUIREMENTS = (
+    "https://raw.githubusercontent.com/gogetdata/ggd-cli/master/requirements.txt"
+)
 
 
-def get_species(update_files=True,full_dict=False):
+def get_species(update_files=True, full_dict=False):
     """ Method to get available annotated species in the ggd repo
 
     get_species
@@ -38,14 +40,14 @@ def get_species(update_files=True,full_dict=False):
     """
 
     if update_files and check_for_internet_connection():
-        update_genome_metadata_files()       
+        update_genome_metadata_files()
 
     if full_dict:
-        with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"), "r") as f:
-            return(json.load(f))
+        with open(os.path.join(GENOME_METADATA_DIR, "species_to_build.json"), "r") as f:
+            return json.load(f)
     else:
-        with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"), "r") as f:
-            return(json.load(f).keys())
+        with open(os.path.join(GENOME_METADATA_DIR, "species_to_build.json"), "r") as f:
+            return json.load(f).keys()
 
 
 def get_ggd_channels():
@@ -60,9 +62,8 @@ def get_ggd_channels():
      of local genomic metadata files
     """
 
-    
-    with open(os.path.join(GENOME_METADATA_DIR,"ggd_channels.json"), "r") as f:
-        return(json.load(f)["channels"])
+    with open(os.path.join(GENOME_METADATA_DIR, "ggd_channels.json"), "r") as f:
+        return json.load(f)["channels"]
 
 
 def get_channel_data(ggd_channel):
@@ -84,8 +85,8 @@ def get_channel_data(ggd_channel):
     if check_for_internet_connection():
         update_channel_data_files(ggd_channel)
 
-    channeldata_path = os.path.join(CHANNEL_DATA_DIR,ggd_channel,"channeldata.json")
-    return (channeldata_path)
+    channeldata_path = os.path.join(CHANNEL_DATA_DIR, ggd_channel, "channeldata.json")
+    return channeldata_path
 
 
 def get_channeldata_url(ggd_channel):
@@ -104,12 +105,15 @@ def get_channeldata_url(ggd_channel):
     1) The url for the metadata file
     """
 
-    ## Update local channel data file if internet connection availabe 
+    ## Update local channel data file if internet connection availabe
     if check_for_internet_connection():
         update_channel_data_files(ggd_channel)
 
-    return(os.path.join("https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata", ggd_channel,
-            "channeldata.json"))
+    return os.path.join(
+        "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata",
+        ggd_channel,
+        "channeldata.json",
+    )
 
 
 def get_required_conda_version():
@@ -132,7 +136,7 @@ def get_required_conda_version():
     for line in req.iter_lines():
         if "conda=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split("=")[1]
-    return(conda_version)
+    return conda_version
 
 
 def check_output(args, **kwargs):
@@ -153,7 +157,7 @@ def _to_str(s, enc=locale.getpreferredencoding()):
     if isinstance(s, bytes):
         return s.decode(enc)
     return s
-            
+
 
 def get_builds(species):
     """
@@ -164,17 +168,21 @@ def get_builds(species):
     """
 
     if species == "*":
-        with open(os.path.join(GENOME_METADATA_DIR,"build_to_species.json"), "r") as f:
-            return(json.load(f).keys())
+        with open(os.path.join(GENOME_METADATA_DIR, "build_to_species.json"), "r") as f:
+            return json.load(f).keys()
     else:
         ## Check if species is real
-        with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"), "r") as f:
+        with open(os.path.join(GENOME_METADATA_DIR, "species_to_build.json"), "r") as f:
             jdict = json.load(f)
             if species not in jdict.keys():
-                sys.exit("'{s}' is not an available species in ggd. Please contact the ggd team to have it added".format(s=species))
+                sys.exit(
+                    "'{s}' is not an available species in ggd. Please contact the ggd team to have it added".format(
+                        s=species
+                    )
+                )
             else:
-                return(jdict[species])
-        
+                return jdict[species]
+
 
 def check_for_internet_connection(t=5):
     """
@@ -183,15 +191,15 @@ def check_for_internet_connection(t=5):
 
     from pytest_socket import SocketBlockedError
 
-    url='http://www.google.com/'
-    timeout=t
+    url = "http://www.google.com/"
+    timeout = t
     try:
         _ = requests.get(url, timeout=timeout)
         return True
     except requests.ConnectionError:
-        pass 
-    except SocketBlockedError as e: 
-        ## A pytest_socket SocketBlockedError. (This is raised when the network connection is disabled using pytest-socket plugin. 
+        pass
+    except SocketBlockedError:
+        ## A pytest_socket SocketBlockedError. (This is raised when the network connection is disabled using pytest-socket plugin.
         ## (For testing purposes)
         pass
 
@@ -209,29 +217,33 @@ def update_channel_data_files(channel):
     -----------
     1) channel: The channel to download for the channeldata
     """
-    
-    if channel in get_ggd_channels(): 
+
+    if channel in get_ggd_channels():
 
         if not os.path.isdir(LOCAL_REPO_DIR):
             os.makedirs(LOCAL_REPO_DIR)
         if not os.path.isdir(CHANNEL_DATA_DIR):
             os.makedirs(CHANNEL_DATA_DIR)
 
-        channel_dir = os.path.join(CHANNEL_DATA_DIR,channel)
+        channel_dir = os.path.join(CHANNEL_DATA_DIR, channel)
         if not os.path.isdir(channel_dir):
             os.makedirs(channel_dir)
-        
+
         ## Dowload json file
-        channeldata_url = os.path.join("https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata/",channel,"channeldata.json")
+        channeldata_url = os.path.join(
+            "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata/",
+            channel,
+            "channeldata.json",
+        )
 
         channeldata_json = requests.get(channeldata_url).json()
         with open(os.path.join(channel_dir, "channeldata.json"), "w") as c:
-            json.dump(channeldata_json,c)
+            json.dump(channeldata_json, c)
 
-    else: 
+    else:
         sys.exit("The '{c}' channel is not a ggd conda channel".format(c=channel))
- 
-    return(True)
+
+    return True
 
 
 def update_genome_metadata_files():
@@ -249,26 +261,32 @@ def update_genome_metadata_files():
         os.makedirs(GENOME_METADATA_DIR)
 
     ## Download the json files
-    build_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/build_to_species.json" 
-    species_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/species_to_build.json" 
-    ggd_channels_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/ggd_channels.json" 
-    
+    build_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/build_to_species.json"
+    species_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/species_to_build.json"
+    ggd_channels_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/ggd_channels.json"
+
     buildjson = requests.get(build_url).json()
-    with open(os.path.join(GENOME_METADATA_DIR,"build_to_species.json"),"w") as b:
-        json.dump(buildjson,b)
+    with open(os.path.join(GENOME_METADATA_DIR, "build_to_species.json"), "w") as b:
+        json.dump(buildjson, b)
 
     speciesjson = requests.get(species_url).json()
-    with open(os.path.join(GENOME_METADATA_DIR,"species_to_build.json"),"w") as s:
-        json.dump(speciesjson,s)
+    with open(os.path.join(GENOME_METADATA_DIR, "species_to_build.json"), "w") as s:
+        json.dump(speciesjson, s)
 
     channeljson = requests.get(ggd_channels_url).json()
-    with open(os.path.join(GENOME_METADATA_DIR,"ggd_channels.json"),"w") as s:
-        json.dump(channeljson,s)
+    with open(os.path.join(GENOME_METADATA_DIR, "ggd_channels.json"), "w") as s:
+        json.dump(channeljson, s)
 
-    return(True)
+    return True
 
 
-def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=True,exclude_pkg=None,add_packages=[]):
+def update_installed_pkg_metadata(
+    prefix=None,
+    channel="ggd-genomics",
+    remove_old=True,
+    exclude_pkg=None,
+    add_packages=[],
+):
     """Method to update the local metadata file in a conda environment that contains information about the installed ggd packages
 
     update_installed_pkg_metadata
@@ -304,17 +322,21 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=
     ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
     if add_packages and remove_old == True:
         add_packages = None
-        print("\n:ggd:update-metadata: Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata.")
-        print("\n:ggd:update-metadata:\t The ggd info metadata will be re-built and all ggd packages will be added.")
+        print(
+            "\n:ggd:update-metadata: Warning: You indicated to add a single package to ggd info metadata but also indicated to re-build the metadata. This would result in the single indicated package being the only package in the metadata."
+        )
+        print(
+            "\n:ggd:update-metadata:\t The ggd info metadata will be re-built and all ggd packages will be added."
+        )
 
     ## Check prefix
     if prefix == None:
         prefix = conda_root()
-    else: 
+    else:
         prefix_in_conda(prefix)
 
     ## Get the ggd info metadata dir
-    ggd_info_dir = os.path.join(prefix,"share","ggd_info")
+    ggd_info_dir = os.path.join(prefix, "share", "ggd_info")
 
     ## Remove old ggd_info dir and re-create it
     if remove_old:
@@ -324,36 +346,55 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=
     ## Make metadata dir if it doesn't exist
     if not os.path.isdir(ggd_info_dir):
         os.makedirs(ggd_info_dir)
-        os.makedirs(os.path.join(ggd_info_dir,"noarch"))
-        with open(os.path.join(ggd_info_dir,"channeldata.json"),"w") as f:
+        os.makedirs(os.path.join(ggd_info_dir, "noarch"))
+        with open(os.path.join(ggd_info_dir, "channeldata.json"), "w") as f:
             f.write("{}")
 
     ## Create the "noarch" dir
-    if not os.path.isdir(os.path.join(ggd_info_dir,"noarch")):
-        os.makedirs(os.path.join(ggd_info_dir,"noarch"))
+    if not os.path.isdir(os.path.join(ggd_info_dir, "noarch")):
+        os.makedirs(os.path.join(ggd_info_dir, "noarch"))
 
-    if add_packages and remove_old == False: 
-        for add_package in add_packages: ## Iterate over each of the installed data packages and check for duplicates
-            current = [re.search(add_package+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(add_package,x) != None]
+    if add_packages and remove_old == False:
+        for (
+            add_package
+        ) in (
+            add_packages
+        ):  ## Iterate over each of the installed data packages and check for duplicates
+            current = [
+                re.search(add_package + ".+", x).group()
+                for x in os.listdir(os.path.join(ggd_info_dir, "noarch"))
+                if re.search(add_package, x) != None
+            ]
             if current:
-                os.remove(os.path.join(ggd_info_dir,"noarch",current[0]))
+                os.remove(os.path.join(ggd_info_dir, "noarch", current[0]))
 
     ## Get a list of pkgs installed in a conda environemnt (Using conda list)
     pkg_list = {}
     if add_packages:
         for add_package in add_packages:
-            pkg_list.update(get_conda_package_list(prefix,add_package)) 
+            pkg_list.update(get_conda_package_list(prefix, add_package))
     else:
-        pkg_list.update(get_conda_package_list(prefix))  
+        pkg_list.update(get_conda_package_list(prefix))
 
     ## Get the dir to the pkgs dir
-    pkg_dir = os.path.join(prefix,"pkgs")
+    pkg_dir = os.path.join(prefix, "pkgs")
 
-    ## Remove package from list if specified and for some reason is in the conda package list 
+    ## Remove package from list if specified and for some reason is in the conda package list
     if exclude_pkg != None and remove_old == True:
         if exclude_pkg in pkg_list.keys():
-            try: 
-                assert not os.path.exists(os.path.join(pkg_dir,"{}-{}-{}.tab.bz2".format(exclude_pkg,pkg_list[exclude_pkg]["version"],pkg_list[exclude_pkg]["build"]))), ("\n\t-> ERROR: The package to exclude `{p}` is still installed on your system.".format(p=exclude_pkg))
+            try:
+                assert not os.path.exists(
+                    os.path.join(
+                        pkg_dir,
+                        "{}-{}-{}.tab.bz2".format(
+                            exclude_pkg,
+                            pkg_list[exclude_pkg]["version"],
+                            pkg_list[exclude_pkg]["build"],
+                        ),
+                    )
+                ), "\n\t-> ERROR: The package to exclude `{p}` is still installed on your system.".format(
+                    p=exclude_pkg
+                )
             except AssertionError as e:
                 print(str(e))
                 sys.exit(1)
@@ -363,17 +404,21 @@ def update_installed_pkg_metadata(prefix=None,channel="ggd-genomics",remove_old=
     for pkg_name in pkg_list.keys():
         version = pkg_list[pkg_name]["version"]
         build = pkg_list[pkg_name]["build"]
-        tarfile_path = os.path.join(pkg_dir,"{}-{}-{}.tar.bz2".format(pkg_name,version,build))
-        
+        tarfile_path = os.path.join(
+            pkg_dir, "{}-{}-{}.tar.bz2".format(pkg_name, version, build)
+        )
+
         try:
-            shutil.copy2(tarfile_path, os.path.join(ggd_info_dir,"noarch"))
+            shutil.copy2(tarfile_path, os.path.join(ggd_info_dir, "noarch"))
         except OSError as e:
             sys.exit(e)
 
-    ## index the .tar.bz2 files in the ggd info metadata dir 
-    out = sp.check_call(['conda', 'index', ggd_info_dir, '-n',  channel],stdout=sp.PIPE,stderr=sp.PIPE)
+    ## index the .tar.bz2 files in the ggd info metadata dir
+    out = sp.check_call(
+        ["conda", "index", ggd_info_dir, "-n", channel], stdout=sp.PIPE, stderr=sp.PIPE
+    )
 
-    return(True)
+    return True
 
 
 def validate_build(build, species):
@@ -384,11 +429,21 @@ def validate_build(build, species):
         builds_list = get_builds(species)
         if not builds_list or build not in builds_list:
             if species != "*":
-                print(":ggd:validate-build: Unknown build '%s' for species '%s'" % (build, species), file=sys.stderr)
+                print(
+                    ":ggd:validate-build: Unknown build '%s' for species '%s'"
+                    % (build, species),
+                    file=sys.stderr,
+                )
             else:
-                print(":ggd:validate-build: Unknown build '%s'" % (build), file=sys.stderr)
-            if (builds_list):
-                print(":ggd:validate-build: Available builds: '%s'" % ("', '".join(builds_list)), file=sys.stderr)
+                print(
+                    ":ggd:validate-build: Unknown build '%s'" % (build), file=sys.stderr
+                )
+            if builds_list:
+                print(
+                    ":ggd:validate-build: Available builds: '%s'"
+                    % ("', '".join(builds_list)),
+                    file=sys.stderr,
+                )
             return False
     return True
 
@@ -403,8 +458,9 @@ def conda_root():
     """
 
     from conda.base.context import context
+
     croot = context.root_prefix
-    return(croot)
+    return croot
 
 
 def get_conda_env(prefix=conda_root()):
@@ -426,33 +482,19 @@ def get_conda_env(prefix=conda_root()):
 
     prefix = prefix.rstrip("/")
 
-    env_var_paths = dict() ## Key = env_path, value = env_name
+    env_var_paths = dict()  ## Key = env_path, value = env_name
     for env_path in list_all_known_prefixes():
         name = os.path.basename(env_path.rstrip("/"))
         env_var_paths[env_path.rstrip("/")] = name
 
     prefix_path = get_conda_prefix_path(prefix)
-    return(env_var_paths[prefix_path],prefix_path)
+    return (env_var_paths[prefix_path], prefix_path)
 
-    print(":ggd:conda-env: Error in checking conda environment. Verify that conda is working and try again.", file=sys.stderr)
+    print(
+        ":ggd:conda-env: Error in checking conda environment. Verify that conda is working and try again.",
+        file=sys.stderr,
+    )
     sys.exit(1)
-
-
-def active_conda_env():
-    """Method used to get the active conda environmnet
-
-    active_conda_env
-    ================
-    This method is used to get the active conda environment. A string representing the active environment 
-    is retunred. 
-    """
-
-    environment_list = sp.check_output(['conda', 'info', '--env']).decode("utf8").strip().split("\n")
-    active_environment = "base"
-    for environment in environment_list:
-        if "*" in environment_list:
-            active_environment = env.split(" ")[0]
-    return(active_environment)
 
 
 def get_conda_prefix_path(prefix):
@@ -475,8 +517,8 @@ def get_conda_prefix_path(prefix):
     ## Get environment list
     from conda.core.envs_manager import list_all_known_prefixes
 
-    env_var_names = dict() ## Key = env_name, value = env_path
-    env_var_paths = dict() ## Key - env_path, value = env_name
+    env_var_names = dict()  ## Key = env_name, value = env_path
+    env_var_paths = dict()  ## Key - env_path, value = env_name
     for env_path in list_all_known_prefixes():
         name = os.path.basename(env_path.rstrip("/"))
         env_var_names[name] = env_path.rstrip("/")
@@ -493,7 +535,7 @@ def get_conda_prefix_path(prefix):
     if prefix in env_var_names.keys():
         prefix_path = env_var_names[prefix]
 
-    return(prefix_path)
+    return prefix_path
 
 
 def prefix_in_conda(prefix):
@@ -516,8 +558,8 @@ def prefix_in_conda(prefix):
     ## Get environment list
     from conda.core.envs_manager import list_all_known_prefixes
 
-    env_var_names = dict() ## Key = env_name, value = env_path
-    env_var_paths = dict() ## Key - env_path, value = env_name
+    env_var_names = dict()  ## Key = env_name, value = env_path
+    env_var_paths = dict()  ## Key - env_path, value = env_name
     for env_path in list_all_known_prefixes():
         name = os.path.basename(env_path.rstrip("/"))
         env_var_names[name] = env_path.rstrip("/")
@@ -536,47 +578,52 @@ def prefix_in_conda(prefix):
     prefix_path = get_conda_prefix_path(prefix)
 
     ## Check that the file path includes the conda base directory
-    if cbase not in prefix_path: 
+    if cbase not in prefix_path:
         raise CondaEnvironmentNotFound(prefix)
-        
+
     ## Check that the prefix is an existing directory
     if not os.path.isdir(prefix_path):
         raise CondaEnvironmentNotFound(prefix)
-    
-    return(True)
+
+    return True
 
 
 class CondaEnvironmentNotFound(Exception):
     """
     Exception Class for a bad conda environment given 
     """
+
     def __init__(self, location):
-        self.message = "The prefix supplied is not a conda enviroment: %s\n" %(location)
-        return_code = 1
+        self.message = "The prefix supplied is not a conda enviroment: %s\n" % (
+            location
+        )
         sys.tracebacklimit = 0
         print("\n")
         super(CondaEnvironmentNotFound, self).__init__(self.message)
 
     def __str__(self):
-        return(self.message)
+        return self.message
 
 
 class ChecksumError(Exception):
     """
     Exception Class for failed checksum
     """
+
     def __init__(self, pkg_name):
-        self.message = "Data file content validation failed. The %s data package did not install correctly.\n" %(pkg_name)
-        return_code = 1
+        self.message = (
+            "Data file content validation failed. The %s data package did not install correctly.\n"
+            % (pkg_name)
+        )
         sys.tracebacklimit = 0
         print("\n")
         super(ChecksumError, self).__init__(self.message)
 
     def __str__(self):
-        return(self.message)
+        return self.message
 
 
-def get_conda_package_list(prefix, regex=None,include_local=False):
+def get_conda_package_list(prefix, regex=None, include_local=False):
     """
     This method is used to get the list of packages in a specifc conda environmnet (prefix). Rather then running 
      `conda list` itself, it uses the conda module to grab the information 
@@ -592,7 +639,7 @@ def get_conda_package_list(prefix, regex=None,include_local=False):
     +++++++
     1) A dictionary with the package name as a key, and the value as another dictionary with name, version, build, and channel keys
     """
-    
+
     from logging import getLogger
     from conda.gateways import logging
     from conda.core.prefix_data import PrefixData
@@ -600,21 +647,30 @@ def get_conda_package_list(prefix, regex=None,include_local=False):
     from conda.cli.main_list import get_packages
 
     ## Get a list of availble ggd channels
-    ggd_channels = ["ggd-"+x for x in get_ggd_channels()] 
-    
+    ggd_channels = ["ggd-" + x for x in get_ggd_channels()]
+
     if include_local:
         ggd_channels = ggd_channels + ["local"]
-    
+
     ## Get a prefix data object with installed package information
-    installed_packages = sorted(PrefixData(prefix).reload().iter_records(), key=lambda x: x.name)
+    installed_packages = sorted(
+        PrefixData(prefix).reload().iter_records(), key=lambda x: x.name
+    )
 
     ## Create a dictionary with ggd packages
     package_dict = {}
     for precs in get_packages(installed_packages, regex):
-        if str(precs.schannel) in ggd_channels:  ## Filter based off packages from the ggd channels only (or local file system for check-recipe)
-            package_dict[precs.name] = {"name":precs.name,"version":precs.version,"build":precs.build,"channel":precs.schannel}
+        if (
+            str(precs.schannel) in ggd_channels
+        ):  ## Filter based off packages from the ggd channels only (or local file system for check-recipe)
+            package_dict[precs.name] = {
+                "name": precs.name,
+                "version": precs.version,
+                "build": precs.build,
+                "channel": precs.schannel,
+            }
 
-    return(package_dict)
+    return package_dict
 
 
 def get_file_md5sum(file_path):
@@ -644,7 +700,7 @@ def get_file_md5sum(file_path):
         for chunk in iter(lambda: f.read(4096), b""):
             md5sum.update(chunk)
 
-    return(md5sum.hexdigest())
+    return md5sum.hexdigest()
 
 
 def get_checksum_dict_from_txt(txt_file_path):
@@ -672,7 +728,7 @@ def get_checksum_dict_from_txt(txt_file_path):
                 continue
             cs_dict[line_list[0]] = line_list[1]
 
-    return(cs_dict)
+    return cs_dict
 
 
 def get_checksum_dict_from_tar(fbz2):
@@ -694,13 +750,13 @@ def get_checksum_dict_from_tar(fbz2):
 
     info = None
     with tarfile.open(fbz2, mode="r|bz2") as tf:
-        for info in tf: ## For/else 
+        for info in tf:  ## For/else
             if info.name == ("info/recipe/checksums_file.txt"):
                 break
         else:
             print(":ggd:checksum: !!Error!!: Incorrect tar.bz format.", file=sys.stderr)
             exit(1)
-        
+
         checksum_file = tf.extractfile(info)
         cs_dict = {}
         for line in str(checksum_file.read().decode("utf8")).strip().split("\n"):
@@ -710,7 +766,7 @@ def get_checksum_dict_from_tar(fbz2):
                 continue
             cs_dict[line_list[0]] = line_list[1]
 
-    return(cs_dict)
+    return cs_dict
 
 
 def data_file_checksum(installed_dir_path, checksum_dict):
@@ -734,14 +790,25 @@ def data_file_checksum(installed_dir_path, checksum_dict):
     import glob
 
     ## Get a list of the installed data files
-    installed_files = glob.glob(os.path.join(installed_dir_path,"*"))
+    installed_files = glob.glob(os.path.join(installed_dir_path, "*"))
 
     ## Check that there are the same number of installed data files as files with orignial checksums
     if len(installed_files) != len(checksum_dict):
-        print("\n\n:ggd:checksum: !!ERROR!!: The number of installed files does not match the number of checksum files")
-        print(":ggd:checksum: Installed files checksum  (n = {n}): {f}".format(n = len(installed_files), f = ", ".join([os.path.basename(x) for x in installed_files])))
-        print(":ggd:checksum: Metadata checksum record  (n = {n}): {f}".format(n = len(checksum_dict), f = ", ".join(checksum_dict.keys())))
-        return(False)
+        print(
+            "\n\n:ggd:checksum: !!ERROR!!: The number of installed files does not match the number of checksum files"
+        )
+        print(
+            ":ggd:checksum: Installed files checksum  (n = {n}): {f}".format(
+                n=len(installed_files),
+                f=", ".join([os.path.basename(x) for x in installed_files]),
+            )
+        )
+        print(
+            ":ggd:checksum: Metadata checksum record  (n = {n}): {f}".format(
+                n=len(checksum_dict), f=", ".join(checksum_dict.keys())
+            )
+        )
+        return False
 
     ## Check each installed data file against the recipe's checksum
     for ifile in installed_files:
@@ -749,21 +816,42 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
         ## Check that the file exists in the checksum
         if ifile_name not in checksum_dict.keys():
-            print("\n\n:ggd:checksum: !!ERROR!!: The installed file {f} is not one of the checksum files\n".format(f= ifile_name))
-            return(False)
+            print(
+                "\n\n:ggd:checksum: !!ERROR!!: The installed file {f} is not one of the checksum files\n".format(
+                    f=ifile_name
+                )
+            )
+            return False
 
         ## Check md5sum
-        ifile_md5sum = get_file_md5sum(ifile) 
-        print(":ggd:checksum: installed  file checksum:", os.path.basename(ifile),"checksum:",ifile_md5sum)
-        print(":ggd:checksum: metadata checksum record:", ifile_name, "checksum:", checksum_dict[ifile_name], "\n")
+        ifile_md5sum = get_file_md5sum(ifile)
+        print(
+            ":ggd:checksum: installed  file checksum:",
+            os.path.basename(ifile),
+            "checksum:",
+            ifile_md5sum,
+        )
+        print(
+            ":ggd:checksum: metadata checksum record:",
+            ifile_name,
+            "checksum:",
+            checksum_dict[ifile_name],
+            "\n",
+        )
         if ifile_md5sum != checksum_dict[ifile_name]:
-            print("\n\n:ggd:checksum: !!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly\n".format(f=ifile_name))
-            return(False)
+            print(
+                "\n\n:ggd:checksum: !!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly\n".format(
+                    f=ifile_name
+                )
+            )
+            return False
 
-    return(True)
+    return True
 
 
-def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=False,prefix=None):
+def bypass_satsolver_on_install(
+    pkg_names, conda_channel="ggd-genomics", debug=False, prefix=None
+):
     """Method to bypass the sat solver used by conda when a cached recipe is being installed
 
     bypass_satsolver_on_install
@@ -782,10 +870,10 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
     2) conda_channel: The ggd conda channel that package is being installed from. (Example: ggd-genomics)
     """
 
-    #-------------------------------------------------------------------------
-    # import statments 
-    #-------------------------------------------------------------------------
-    from conda.base.context import context 
+    # -------------------------------------------------------------------------
+    # import statments
+    # -------------------------------------------------------------------------
+    from conda.base.context import context
     from conda.cli import common
     from conda.cli import install
     from conda.core.solve import Solver
@@ -806,16 +894,28 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
     from conda.gateways.logging import set_all_logger_level, set_conda_log_level
     from conda.gateways.logging import VERBOSITY_LEVELS
     from conda.gateways.logging import log
-    from logging import DEBUG, ERROR, Filter, Formatter, INFO, StreamHandler, WARN, getLogger
-    import sys 
+    from logging import (
+        DEBUG,
+        ERROR,
+        Filter,
+        Formatter,
+        INFO,
+        StreamHandler,
+        WARN,
+        getLogger,
+    )
+    import sys
 
-    print("\n:ggd:utils:bypass: Installing %s from the %s conda channel\n" %(", ".join(pkg_names), conda_channel))
+    print(
+        "\n:ggd:utils:bypass: Installing %s from the %s conda channel\n"
+        % (", ".join(pkg_names), conda_channel)
+    )
 
-    #-------------------------------------------------------------------------
-    # Nested functions 
-    #-------------------------------------------------------------------------
-    #def bypass_sat(package_name,ssc_object): ## Package_name will be used as a key
-    def bypass_sat(package_names,ssc_object): ## Package_name will be used as a key
+    # -------------------------------------------------------------------------
+    # Nested functions
+    # -------------------------------------------------------------------------
+    # def bypass_sat(package_name,ssc_object): ## Package_name will be used as a key
+    def bypass_sat(package_names, ssc_object):  ## Package_name will be used as a key
         """Method used to extract information during sat solving, but to bypass the sat solving step
 
         bypass_sat
@@ -835,13 +935,21 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
         1) The updated ssc object based off the sat bypass and package filtering. 
 
         """
-        
+
         ## From Solver.run_sat
         specs_map_set = set(itervalues(ssc_object.specs_map))
 
         ## Get the specs from ssc filtered by the package name
-        new_odict = odict([(p_name, ssc_object.specs_map[p_name]) for p_name in package_names])
-        final_environment_specs = IndexedSet(concatv(itervalues(new_odict), ssc_object.track_features_specs, ssc_object.pinned_specs))
+        new_odict = odict(
+            [(p_name, ssc_object.specs_map[p_name]) for p_name in package_names]
+        )
+        final_environment_specs = IndexedSet(
+            concatv(
+                itervalues(new_odict),
+                ssc_object.track_features_specs,
+                ssc_object.pinned_specs,
+            )
+        )
 
         ## Run the resolve process and get info for desired package
         ssc_object.solution_precs = ssc_object.r.solve(tuple(final_environment_specs))
@@ -852,18 +960,19 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
                 if p_name in ssc_object.solution_precs[i].namekey:
                     wanted_indices.append(i)
 
-        filtered_ssc_solution_precs = [ssc_object.solution_precs[x] for x in wanted_indices]
+        filtered_ssc_solution_precs = [
+            ssc_object.solution_precs[x] for x in wanted_indices
+        ]
         ssc_object.solution_precs = filtered_ssc_solution_precs
 
         ## Add the final environment specs to ssc
         ssc_object.final_environment_specs = final_environment_specs
 
-        return(ssc_object)
+        return ssc_object
 
-
-    #-------------------------------------------------------------------------
-    # Run install 
-    #-------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # Run install
+    # -------------------------------------------------------------------------
 
     ## Set the context.always_yes to True to bypass user input
     context.always_yes = True
@@ -871,30 +980,44 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
     target_prefix = context.target_prefix if prefix == None else prefix
 
     # Setup solver object
-    #solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
-    solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, pkg_names)
+    # solve = Solver(target_prefix, (conda_channel,u'default'), context.subdirs, [pkg_name])
+    solve = Solver(
+        target_prefix, (conda_channel, u"default"), context.subdirs, pkg_names
+    )
 
-    ## Create a solver state container 
-    ### Make sure to Freeze those packages already installed in the current env in order to bypass update checking.  
-    ssc = SolverStateContainer(prefix=target_prefix, update_modifier=UpdateModifier.FREEZE_INSTALLED, 
-                               deps_modifier=context.deps_modifier, prune=True, ignore_pinned=context.ignore_pinned, 
-                               force_remove=context.force_remove, should_retry_solve=False)
+    ## Create a solver state container
+    ### Make sure to Freeze those packages already installed in the current env in order to bypass update checking.
+    ssc = SolverStateContainer(
+        prefix=target_prefix,
+        update_modifier=UpdateModifier.FREEZE_INSTALLED,
+        deps_modifier=context.deps_modifier,
+        prune=True,
+        ignore_pinned=context.ignore_pinned,
+        force_remove=context.force_remove,
+        should_retry_solve=False,
+    )
 
     ## Get channel metadata
-    with Spinner("Collecting package metadata", not context.verbosity and not context.quiet, context.json):
+    with Spinner(
+        "Collecting package metadata",
+        not context.verbosity and not context.quiet,
+        context.json,
+    ):
         ssc = solve._collect_all_metadata(ssc)
 
     ## Set specs map to an empty map. (No need to check other specs)
     add_spec = []
-    for p_name, spec  in iteritems(ssc.specs_map):
+    for p_name, spec in iteritems(ssc.specs_map):
         for pkg_name in pkg_names:
             if str(p_name) in pkg_name:
                 add_spec.append((pkg_name, MatchSpec(pkg_name)))
 
     ssc.specs_map = odict(add_spec)
 
-    ## Process the data in the solver state container 
-    with Spinner("Processing data", not context.verbosity and not context.quiet, context.json):
+    ## Process the data in the solver state container
+    with Spinner(
+        "Processing data", not context.verbosity and not context.quiet, context.json
+    ):
         ssc = solve._add_specs(ssc)
         ssc = bypass_sat(pkg_names, ssc)
         ssc = solve._post_sat_handling(ssc)
@@ -902,20 +1025,35 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
     ## create an IndexedSet from ssc.solution_precs
     ssc.solution_precs = IndexedSet(PrefixGraph(ssc.solution_precs).graph)
 
-    ## Get linked and unlinked 
-    unlink_precs, link_precs = diff_for_unlink_link_precs(target_prefix, ssc.solution_precs, solve.specs_to_add)
+    ## Get linked and unlinked
+    unlink_precs, link_precs = diff_for_unlink_link_precs(
+        target_prefix, ssc.solution_precs, solve.specs_to_add
+    )
 
-    #set unlinked to empty indexed set so we do not unlink/remove any pacakges 
+    # set unlinked to empty indexed set so we do not unlink/remove any pacakges
     unlink_precs = IndexedSet()
 
     ## Create a PrefixSetup
-    stp = PrefixSetup(solve.prefix, unlink_precs, link_precs, solve.specs_to_remove, solve.specs_to_add, solve.neutered_specs)
+    stp = PrefixSetup(
+        solve.prefix,
+        unlink_precs,
+        link_precs,
+        solve.specs_to_remove,
+        solve.specs_to_add,
+        solve.neutered_specs,
+    )
 
     ## Create an UnlinkLinkTransaction with stp
     unlink_link_transaction = UnlinkLinkTransaction(stp)
 
-    #create Namespace
-    args = Namespace(channel=None, cmd="install", deps_modifier=context.deps_modifier, json=False, packages=pkg_names)
+    # create Namespace
+    args = Namespace(
+        channel=None,
+        cmd="install",
+        deps_modifier=context.deps_modifier,
+        json=False,
+        packages=pkg_names,
+    )
 
     ## Set logger level
     if debug:
@@ -924,11 +1062,12 @@ def bypass_satsolver_on_install(pkg_names, conda_channel="ggd-genomics",debug=Fa
 
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
-    
+
     ## Retrun True if finished
-    return(True)
-        
+    return True
+
 
 if __name__ == "__main__":
     import doctest
+
     doctest.testmod()

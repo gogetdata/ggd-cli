@@ -7,11 +7,20 @@ from .utils import get_conda_env
 
 
 def add_show_env(p):
-    c = p.add_parser('show-env', help="Show ggd data package environment variables available for the current conda environment", description="Display the environment variables for data packages installed in the current conda environment")
-    c.add_argument("-p", "--pattern", help="regular expression pattern to match the name of the variable desired")
+    c = p.add_parser(
+        "show-env",
+        help="Show ggd data package environment variables available for the current conda environment",
+        description="Display the environment variables for data packages installed in the current conda environment",
+    )
+    c.add_argument(
+        "-p",
+        "--pattern",
+        help="regular expression pattern to match the name of the variable desired",
+    )
     c.set_defaults(func=show_env)
 
-def show_env(parser, args): 
+
+def show_env(parser, args):
     """Main method to show the current environment variables created by ggd for the specific conda environment
 
     show_env
@@ -23,20 +32,20 @@ def show_env(parser, args):
     import sys
 
     pattern = args.pattern if args.pattern else ".*"
-    conda_env,conda_path = get_conda_env()
-    env_filename = os.path.join(conda_path, "etc", "conda","activate.d","env_vars.sh")
+    conda_env, conda_path = get_conda_env()
+    env_filename = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
     env_vars = {}
     try:
         with open(env_filename, "r") as env_file:
             for var in env_file:
-                #parsing with checks in case there is a nonstandard/corrupt line in env file
+                # parsing with checks in case there is a nonstandard/corrupt line in env file
                 var_array = var.strip().split()
                 if len(var_array) >= 2:
                     var_item_array = var_array[1].split("=")
                     if len(var_item_array) >= 1:
                         env_vars[var_item_array[0]] = var_item_array[1]
         matching_vars = {}
-        print ("*****************************\n")
+        print("*****************************\n")
         for env_var in env_vars:
             try:
                 if re.search(pattern, env_var):
@@ -44,28 +53,31 @@ def show_env(parser, args):
             except:
                 print("Invalid pattern")
                 sys.exit(1)
-        active_vars,inactive_vars = test_vars(matching_vars)
-        
+        active_vars, inactive_vars = test_vars(matching_vars)
+
         if len(active_vars) > 0:
-            print ("Active environment variables:")
+            print("Active environment variables:")
             for active_var in sorted(active_vars):
-                print ("> $" + active_var)
+                print("> $" + active_var)
             print()
         if len(inactive_vars) > 0:
-            print ("Inactive or out-of-date environment variables:")
+            print("Inactive or out-of-date environment variables:")
             for inactive_var in sorted(inactive_vars):
-                print ("> $" + inactive_var)
-            #print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % conda_env)
-            print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % "base")
+                print("> $" + inactive_var)
+            # print ("\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n" % conda_env)
+            print(
+                "\nTo activate inactive or out-of-date vars, run:\nsource activate %s\n"
+                % "base"
+            )
         if not active_vars and not inactive_vars:
-            raise ValueError 
+            raise ValueError
     except (IOError, ValueError):
-        print ("No matching recipe variables found for this environment")
+        print("No matching recipe variables found for this environment")
     finally:
-        print ("*****************************\n")
+        print("*****************************\n")
 
 
-def remove_env_variable(env_var,prefix=None):
+def remove_env_variable(env_var, prefix=None):
     """Method to remove an environment variable if the files are removed from the system
 
     remove_env_variable
@@ -78,20 +90,24 @@ def remove_env_variable(env_var,prefix=None):
     1) env_var: The environment variable to remove
     2) prefix: The conda environment/prefix to remove the environment var from
     """
-    
+
     from .utils import conda_root
 
-    target_prefix = conda_root() if prefix == None else prefix 
+    target_prefix = conda_root() if prefix == None else prefix
 
-    env_var = env_var.replace("-","_")
-    print("\n:ggd:env: Removing the %s environment variable" %env_var)
+    env_var = env_var.replace("-", "_")
+    print("\n:ggd:env: Removing the %s environment variable" % env_var)
     conda_env, conda_path = get_conda_env(target_prefix)
-    active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
-    deactive_env_file = os.path.join(conda_path, "etc", "conda", "deactivate.d", "env_vars.sh")
+    active_env_file = os.path.join(
+        conda_path, "etc", "conda", "activate.d", "env_vars.sh"
+    )
+    deactive_env_file = os.path.join(
+        conda_path, "etc", "conda", "deactivate.d", "env_vars.sh"
+    )
     var_list = []
     with open(active_env_file, "r") as active_env:
         for var in active_env:
-            if not re.search(r"\b"+env_var+"=", var):
+            if not re.search(r"\b" + env_var + "=", var):
                 var_list.append(var.strip())
     with open(active_env_file, "w") as new_active_env:
         for var in var_list:
@@ -99,7 +115,7 @@ def remove_env_variable(env_var,prefix=None):
     var_list = []
     with open(deactive_env_file, "r") as deactive_env:
         for var in deactive_env:
-            if not re.search(r"\b"+env_var+r"\b", var):
+            if not re.search(r"\b" + env_var + r"\b", var):
                 var_list.append(var.strip())
     with open(deactive_env_file, "w") as new_deactive_env:
         for var in var_list:
@@ -115,13 +131,11 @@ def activate_enviroment_variables():
     """
     import subprocess as sp
     from argparse import Namespace
-    from .utils import check_output
-
 
     conda_env, conda_path = get_conda_env()
-    active_env_file = os.path.join(conda_path, "etc", "conda", "activate.d", "env_vars.sh")
     sp.check_output(["activate", "base"])
-    show_env((),Namespace(command='show-env', pattern=None))
+    show_env((), Namespace(command="show-env", pattern=None))
+
 
 def test_vars(env_vars):
     """Method to identify the active and inactive environment variables for a specific conda environment
@@ -143,10 +157,10 @@ def test_vars(env_vars):
 
     active_vars = []
     inactive_vars = []
-    
+
     for env_var in env_vars:
         if env_var in os.environ and os.environ[env_var] == env_vars[env_var]:
             active_vars.append(env_var)
         else:
             inactive_vars.append(env_var)
-    return active_vars,inactive_vars 
+    return active_vars, inactive_vars
