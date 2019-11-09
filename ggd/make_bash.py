@@ -245,9 +245,9 @@ def make_bash(parser, args):
 
     ## Check coordinates
     assert (
-        args.coordinate_based in GENOMIC_COORDINATE_LIST
+        args.coordinate_base in GENOMIC_COORDINATE_LIST
     ), "{c} is not an acceptable genomic coordinate base".format(
-        c=args.coordinate_based
+        c=args.coordinate_base
     )
     # ("Please provide a genomic coordinate base from the follow list: {}".format(", ".join(GENOMIC_COORDINATE_LIST)))
 
@@ -286,7 +286,7 @@ def make_bash(parser, args):
             "keywords": args.keyword,
             "summary": args.summary,
             "tags": {
-                "genomic-coordinate-base": args.coordinate_based.strip(),
+                "genomic-coordinate-base": args.coordinate_base.strip(),
                 "data-version": args.data_version.strip(),
                 "data-provider": args.data_provider.strip(),
                 "file-type": [],
