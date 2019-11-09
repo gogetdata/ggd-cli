@@ -2,8 +2,9 @@ requests>=2.20.0
 pyyaml
 gitpython
 git
-conda-build=3.18.5
 conda=4.7.12
+conda-build=3.18.11
+ripgrep
 fuzzywuzzy
 python-levenshtein
 htslib
@@ -11,8 +12,9 @@ samtools
 zlib
 check-sort-order
 krb5
-gsort
+gsort>=0.1.2
 wget
 pytest
 future
 oyaml
+pytest-socket

@@ -25,7 +25,7 @@ def install_hg19_gaps_ucsc_v1():
 
     name = "hg19-gaps-ucsc-v1"
     try:
-        assert sp.check_call(["ggd", "install", name]) == 0
+        assert sp.check_call(["ggd", "install", name])
     except Exception as e:
         print("Assertion failed")
         jdict = install.check_ggd_recipe(name,"genomics")
@@ -33,7 +33,7 @@ def install_hg19_gaps_ucsc_v1():
         genome_build =  jdict["packages"][name]["identifiers"]["genome-build"] == "hg19"
         version = jdict["packages"][name]["version"]
         ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
-        uninstall.check_for_installation(name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        uninstall.check_for_installation([name],ggd_jdict) ## .uninstall method to remove extra ggd files
         ## Exit
         sys.exit(1)  
 
@@ -59,7 +59,7 @@ def uninstall_hg19_gaps_ucsc_v1():
         genome_build =  jdict["packages"][name]["identifiers"]["genome-build"] == "hg19"
         version = jdict["packages"][name]["version"]
         ggd_jdict = {"packages":{name:{"identifiers":{"species":species,"genome-build":genome_build},"version":version}}}
-        uninstall.check_for_installation(name,ggd_jdict) ## .uninstall method to remove extra ggd files
+        uninstall.check_for_installation([name],ggd_jdict) ## .uninstall method to remove extra ggd files
         ## Exit
         sys.exit(1)  
     #assert sp.check_call(["ggd", "uninstall", name]) == 0
@@ -152,5 +152,55 @@ class CreateRecipe(object):
                     fout.write(value)
         self.basedir = basedir
 
+    def write_nested_recipes(self):
+        """Method to create a nested level "recipe" or directory path with files in the base dir
+
+        - top level dirs should have "dir" in the name
+        - base level dirs should NOT have a "dir" in the name
+            + a base dir is any dir that will have files in it
+        
+        Example:
+
+            Toplevel_dir:
+                nextlevel_dir:
+                    anotherlevel_dir:
+                        baselevel: 
+                            first_file: |
+                                Text in the first file 
+                                .
+                                .
+                                .
+
+                            second_file: |
+                                Text in the second file
+                                .
+                                .
+                                .
+        Results:
+        ++++++++
+        The dict returned will be: key = dir-name, value = dir path
+            nested dirs will be seperated with a "/". 
+            For the example above, to get the base dir the key would be: "Toplevel_dir/nextlevel_dir/anotherlevel_dir/baselevel"
+        """
+
+        basedir = tempfile.mkdtemp()
+        self.recipe_dirs = {}
+
+        def nested_recipe(recipe_list,base_dir,base_dir_name=""):
+
+            for name, recipe in recipe_list.items():
+                rdir = os.path.join(base_dir, name)
+                os.makedirs(rdir)
+                updated_name = base_dir_name + "/" + name if base_dir_name != "" else name 
+                self.recipe_dirs[updated_name] = rdir
+                if "dir" in name or "info" in name:
+                    nested_recipe(recipe,rdir,updated_name)
+                else:
+                    for key, value in recipe.items():
+                        with open(os.path.join(rdir, key), 'w') as fout:
+                            fout.write(value)
+            self.basedir = basedir
+
+        nested_recipe(self.recipes,basedir)
 
 

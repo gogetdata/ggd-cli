@@ -26,6 +26,12 @@ variables:
     run:
       name: Setup ggd recipe local repos
       command: python .circleci/get_repos.py
+  install_osx_md5sum: &install_osx_md5sum
+    run: 
+      name: Install md5sum ## Homebrew on CircleCI: (https://circleci.com/docs/2.0/testing-ios/#installing-custom-packages_
+      command: |
+        brew update-reset
+        brew install md5sha1sum  ## brew package from md5sum: (http://microbrew.org/tools/md5sha1sum/) (https://formulae.brew.sh/formula/md5sha1sum)
 
 
 jobs:
@@ -57,19 +63,35 @@ jobs:
             conda --version
             py.test tests/ --durations=0 -v
           no_output_timeout: 9900
-  test-macos-python2:
+  test-macos-python2-part1:
     <<: *macos
     steps:
       - checkout
       - *setup_p2
       - *install_ggd_cli
       - *setup_local_repos
+      - *install_osx_md5sum
       - run: 
           shell: /bin/bash
           name: ggd cli unit tests (macOS)
           command: |
             conda --version
-            py.test tests/ --duration=0 -v
+            py.test tests/test_check_recipe.py tests/test_info_scripts.py --duration=0 -v
+          no_output_timeout: 9900
+  test-macos-python2-part2:
+    <<: *macos
+    steps:
+      - checkout
+      - *setup_p2
+      - *install_ggd_cli
+      - *setup_local_repos
+      - *install_osx_md5sum
+      - run: 
+          shell: /bin/bash
+          name: ggd cli unit tests (macOS)
+          command: |
+            conda --version
+            py.test tests/test_install.py tests/test_internet_free.py tests/test_make_recipe.py tests/test_search.py tests/test_uninstall.py tests/test_utils.py --duration=0 -v
           no_output_timeout: 9900
   test-macos-python3:
     <<: *macos
@@ -78,6 +100,7 @@ jobs:
       - *setup_p3
       - *install_ggd_cli
       - *setup_local_repos
+      - *install_osx_md5sum
       - run: 
           shell: /bin/bash
           name: ggd cli unit tests (macOS)
@@ -93,9 +116,10 @@ workflows:
     jobs:
       - test-linux-python2
       - test-linux-python3
-      - test-macos-python2
+      - test-macos-python2-part1
+      - test-macos-python2-part2
       - test-macos-python3
-  ggd-recipe-nightly-build:
+  ggd-cli-nightly-build:
     triggers:
       - schedule:
           cron: "0 3 * * *" # "0 3 * * *" = ~9PM MST, 3AM UTC
@@ -106,5 +130,6 @@ workflows:
     jobs:
       - test-linux-python2
       - test-linux-python3
-      - test-macos-python2
+      - test-macos-python2-part1
+      - test-macos-python2-part2
       - test-macos-python3

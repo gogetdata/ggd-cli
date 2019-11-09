@@ -1,42 +1,73 @@
-#-------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------
 ## Import Statements
-#-------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------
 from __future__ import print_function
-import sys 
-import os
-import argparse
-import glob
-import json
-import requests
-import traceback
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
-from .utils import get_species
-from .utils import get_ggd_channels
-from .utils import get_channeldata_url
-from .utils import conda_root
 
-SPECIES_LIST = get_species(update_repo=False)
-CHANNEL_LIST = [x.encode('ascii') for x in get_ggd_channels()]
+import sys
 
-#-------------------------------------------------------------------------------------------------------------
+from .utils import get_builds, get_ggd_channels, get_species
+
+SPECIES_LIST = sorted(get_species(update_files=False))
+GENOME_BUILDS = sorted(get_builds("*"))
+CHANNEL_LIST = [x.encode("ascii") for x in get_ggd_channels()]
+
+# -------------------------------------------------------------------------------------------------------------
 ## Argument Parser
-#-------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------
 def add_search(p):
-    c = p.add_parser("search", help="Search for a data recipe stored in ggd")
-    c.add_argument("-t", "--term", nargs="+", required=True, help="**Required** The term(s) to search for. Multiple terms can be used. Example: '-t reference genome'")
-    c.add_argument("-g", "--genome_build", help="(Optional) The genome build of the desired recipe")
-    c.add_argument("-s", "--species", help="(Optional) The species for the desired recipe", choices=SPECIES_LIST)
-    c.add_argument("-k", "--keyword", nargs="+", help="(Optional) Keyword(s) the are used to describe the recipe. Multiple keywords can be used. Example: '-k ref reference genome'")
-    c.add_argument("-m", "--match_score", default="50", help="(Optional) A score between 0 and 100 to use percent match between the search term(s) and the ggd-recipes")
-    c.add_argument("-c", "--channel", help="(Optional) The ggd channel to search. (Default = genomics)", choices=[x.decode('ascii') for x in CHANNEL_LIST],
-                    default="genomics")
+
+    c = p.add_parser(
+        "search",
+        help="Search for a ggd data package",
+        description="Search for available ggd data packages. Results are filtered by match score from high to low. (Only 5 results will be reported unless the -dn flag is changed)",
+    )
+    c.add_argument(
+        "search_term",
+        nargs="+",
+        help="**Required** The term(s) to search for. Multiple terms can be used. Example: 'ggd search reference genome'",
+    )
+    c.add_argument(
+        "-g",
+        "--genome-build",
+        default=[],
+        action="append",
+        choices=[str(x) for x in GENOME_BUILDS],
+        help="(Optional) Filter results by the genome build of the desired recipe",
+    )
+    c.add_argument(
+        "-s",
+        "--species",
+        default=[],
+        action="append",
+        help="(Optional) Filter results by the species for the desired recipe",
+        choices=[str(x) for x in SPECIES_LIST],
+    )
+    c.add_argument(
+        "-dn",
+        "--display-number",
+        default=5,
+        help="(Optional) The number of search results to display. (Default = 5)",
+    )
+    c.add_argument(
+        "-m",
+        "--match-score",
+        default="75",
+        help="(Optional) A score between 0 and 100 to use to filter the results by. (Default = 75). The lower the number the more results will be output",
+    )
+    c.add_argument(
+        "-c",
+        "--channel",
+        help="(Optional) The ggd channel to search. (Default = genomics)",
+        choices=[x.decode("ascii") for x in CHANNEL_LIST],
+        default="genomics",
+    )
     c.set_defaults(func=search)
 
 
-#-------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------
 ## Functions/Methods
-#-------------------------------------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------------------------------------
+
 
 def load_json(jfile):
     """Method to load a json file into a dictionary
@@ -52,9 +83,10 @@ def load_json(jfile):
     Returns:
     1) A dictionary of a json object 
     """
+    import json
 
     with open(jfile) as jsonFile:
-       return(json.load(jsonFile))
+        return json.load(jsonFile)
 
 
 def load_json_from_url(json_url):
@@ -73,176 +105,160 @@ def load_json_from_url(json_url):
     ++++++++
     1) A dictionary of a json object 
     """
+    import json
+    import requests
+    import traceback
 
     try:
-        return(requests.get(json_url).json())
+        return requests.get(json_url).json()
     except ValueError as e:
-        sys.stderr.write("\n\t-> Error in loading json file from url")
-        sys.stderr.write("\n\t-> Invalid URL")
-        sys.stderr.write("\n\t\t-> URL: %s\n" %json_url)
+        sys.stderr.write("\n:ggd:search: !!ERROR!! in loading json file from url")
+        sys.stderr.write("\n\t Invalid URL: %s" % json_url)
         sys.stderr.write(str(e))
         sys.stderr.write(traceback.format_exc())
         sys.exit(1)
 
 
-def search_packages(jsonDict,searchTerm):
+def search_packages(json_dict, search_terms, score_cutoff=50):
     """Method to search for ggd packages in the ggd channeldata.json metadata file based on user provided search terms
 
     search_packages
     ===============
     Method to search for ggd packages/recipes 
-     contaniing specific search terms 
+     contaning specific search terms 
+
+     NOTE: Both the package name and the package keywords are searched
 
     Parameters:
     ---------
-    1) jsonDict: A json file loaded into a dictionary. (The file to search)
+    1) json_dict: A json file loaded into a dictionary. (The file to search)
                   the load_json_from_url() method creates the dictionary 
-    2) searchTerm: A term or list of terms representing package names to search for
+    2) search_terms: A list of terms representing package names or keywords to search for
+    3) score_cutoff: A number betwnee 0 and 100 that represent which matches to return
+                        (Default = 50)
 
     Returns:
     ++++++++
-    1) A list of each packages within the json dictionary, and the match score for each. 
-        The match score is between 0 and 100, representing the percent match 
+    1) A list of pkg names who's either name or keyword match score reached the score cutoff
     """
+    from fuzzywuzzy import fuzz
+    from fuzzywuzzy import process
 
-    packages = jsonDict["packages"].keys()
-    match_list = process.extract(searchTerm,packages,limit=10000) 
+    pkg_score = {}
+    for term in search_terms:
+        for pkg in json_dict["packages"].keys():
+            ## Get match score between name and term
+            score = fuzz.partial_ratio(term.lower(), pkg.lower())
+            ## Get a list of match score for the keywrods
+            additional_scores = process.extract(
+                term, json_dict["packages"][pkg]["keywords"]
+            )
+            ## Get the max score from all scores found
+            max_score = max([x[1] for x in additional_scores] + [score])
 
-    return(match_list)
+            ## Set max score in dict
+            if pkg in pkg_score:
+                pkg_score[pkg] = max(pkg_score[pkg], max_score)
+            else:
+                pkg_score[pkg] = max_score
+
+    ## Get a final list of pkg names
+    temp_list = sorted(
+        [
+            [pkg, int(max_score)]
+            for pkg, max_score in pkg_score.items()
+            if max_score >= score_cutoff
+        ],
+        key=lambda x: x[1],
+        reverse=True,
+    )
+    final_list = [pkg_list[0] for pkg_list in temp_list]
+
+    return final_list
 
 
-def check_installed(ggd_recipe,ggd_jdict):
+def check_installed(ggd_recipe, ggd_jdict):
     """Method to check if the recipe has already been installed and is in the conda ggd storage path. 
         
     check_if_installed
     ==================
     This method is used to check if the ggd package has been installed and is located in the ggd storage path.
     """
+    import glob
+    import os
+    from .utils import conda_root
 
     species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = ggd_jdict["packages"][ggd_recipe]["version"]
 
     CONDA_ROOT = conda_root()
-    path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
+    path = os.path.join(CONDA_ROOT, "share", "ggd", species, build, ggd_recipe, version)
     recipe_exists = glob.glob(path)
     if recipe_exists:
-        return(True,path)
-        
+        return (True, path)
+
     else:
-        return(False,None)
+        return (False, None)
 
 
-def filter_by_score(filterScore,matchList):
-    """Method to filter search results by a match/filter score.
-
-    filter_by_score
-    ==============
-    Method used to filter the match scored package list based on a match score.
-     Any packages at or above the match score will be included in the final set
-     Match/filter score is set to a default of 50, but can be adjusted by the user.
-
-    Parameters:
-    ----------
-    1) filterScore: The match score to filter the recipes by
-    2) matchList: The list of recipes with match scores
-
-    Returns:
-    ++++++++
-    1) a new list of recipes filtered by the match score
-    """
-    newMatchList = [x for x in matchList if x[1] >= int(filterScore)]
-    return(newMatchList)
-
-
-def filter_by_identifiers(iden_key,matchList,jsonDict,filterTerm):
-    """Method to filter the results based of an identifier field for the certain package.
+def filter_by_identifiers(iden_keys, json_dict, filter_terms):
+    """Method to filter a dictionary by an identifier field for the certain package.
 
     filter_by_identifiers
     =====================
-    A method used to filter the list of recipes by information in the 
+    A method used to filter the list of data packages by information in the 
      identifiers field in the channeldata.json file
 
     Parameters:
     ----------
-    1) iden_key: The identifiers key. Example = genome-build
-    2) matchList: The list of recipes with match scores 
-    3) jsonDict: The json dictionary craeted from laod_json()
-    4) filterTerm: The term to filter by. Example: Homo_sapiens
+    1) iden_keys: A list of he identifiers keys. Example = ["species","genome-build"] 
+    2) json_dict: The json dictionary craeted from laod_json()
+    3) filter_terms: A list of the term(s) to filter by. Example: ["Homo_sapiens","hg19"]
+
+    NOTE: List order of iden_keys should match list order of filter_terms
 
     Returns:
     ++++++++
-    1) A filtered list of pacakges
+    1) Updated/filtered json_dict
     """
+    import copy
 
-    tempDict = {}
-    tempSet = set()
-    if len(matchList) < 1:
-        print("\n\t---------------------------------------------\n\t|  No recipes to filter using '%s' | \n\t---------------------------------------------" %filterTerm)
-        sys.exit()
-    for key in matchList:
-        if iden_key in jsonDict["packages"][key[0]]["identifiers"]:
-            identifierTerm  = jsonDict["packages"][key[0]]["identifiers"][iden_key] 
-            tempSet.add(identifierTerm)
-            if identifierTerm in tempDict:
-                tempDict[identifierTerm].append(key)
-            else:
-                tempDict[identifierTerm] = [key]
-    if len(tempSet) > 0:
-        filteredList = process.extract(filterTerm,tempSet,limit=100) 
-        if filteredList[0][1] > 85: ## Match score greater than 85%
-            return(tempDict[filteredList[0][0]])
+    key_count = len(json_dict["packages"].keys())
+    keys = json_dict["packages"].keys()
 
-    ## If unable to return a filtered set return the original match list
-    print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
-    print("\tThe un-filtered list will be used\n")
-    if iden_key == "species":
-        print("\tAvaiable species terms = %s" %SPECIES_LIST)
-    return(matchList)
+    keys_to_keep = set()
+    if len(iden_keys) > 0 and len(iden_keys) == len(filter_terms):
+        for key in keys:
+            for i, iden_key in enumerate(iden_keys):
+                if iden_key in json_dict["packages"][key]["identifiers"]:
+                    if len(filter_terms[i]) == 0:
+                        continue
+                    if (
+                        filter_terms[i]
+                        in json_dict["packages"][key]["identifiers"][iden_key]
+                    ):
+                        keys_to_keep.add(key)
 
+    new_json_dict = copy.deepcopy(json_dict)
+    ## Remove packages
+    if len(keys_to_keep) > 0:
+        for key in keys:
+            if key not in keys_to_keep:
+                del new_json_dict["packages"][key]
 
-def filter_by_keywords(matchList,jsonDict,filterTerm):
-    """Method to filter search result based off keywords added to the ggd data package
-
-    filter_by_keywords
-    =====================
-    A method used to filter the list of recipes by information in the 
-     keywords field in the channeldata.json file
-
-    Parameters:
-    ----------
-    1) matchList: The list of recipes with match scores 
-    2) jsonDict: The json dictionary craeted from laod_json()
-    3) filterTerm: The term to filter by. Example: regions
-
-    Returns:
-    ++++++++
-    1) A filtered list of pacakges
-    """
-
-    tempDict = {}
-    tempSet = set()
-    if len(matchList) < 1:
-        print("\n\t---------------------------------------------\n\t|  No recipes to filter using '%s' | \n\t---------------------------------------------" %filterTerm)
-        sys.exit()
-    for key in matchList:
-        identifierTerm  = jsonDict["packages"][key[0]]["keywords"] 
-        for keyword in identifierTerm:
-            tempSet.add(keyword)
-            if keyword in tempDict:
-                tempDict[keyword].append(key)
-            else:
-                tempDict[keyword] = [key]
-    filteredList = process.extract(filterTerm,tempSet,limit=100) 
-    if filteredList[0][1] > 65: ## Match score greater than 65%
-        return(tempDict[filteredList[0][0]])
-    else:
-        print("\n-> Unable to filter recieps using: '%s'" %filterTerm)
+    if len(new_json_dict["packages"].keys()) == key_count:
+        ## If unable to return a filtered set return the original match list
+        print(
+            "\n:ggd:search: WARNING: Unable to filter packages using: '%s'"
+            % ", ".join(filter_terms)
+        )
         print("\tThe un-filtered list will be used\n")
-        return(matchList)
+
+    return new_json_dict
 
 
-def print_summary(searchTerms,jsonDict,matchList):
+def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed_paths):
     """ Method to print the summary/results of the search
 
     print_summary
@@ -251,38 +267,132 @@ def print_summary(searchTerms,jsonDict,matchList):
 
     Parameters:
     ---------
-    1) jsonDict: The json dictionary from the load_json() method
-    2) matchList: The filtered and final set of searched recipes
+    1) search_terms: The search terms from the user
+    2) json_dict: The json dictionary from the load_json() method
+    3) match_list: The filtered and final set of searched recipes
+    4) isntalled_pkgs: A set of pkg names that are installed
+    5) installed_paths: A dictionary with keys = pkg names, values = installed paths
 
     Returns:
     +++++++
     1) True if print summary printed out successfully
     """
 
-    if len(matchList) < 1:
-        print("\n\tNo results for %s. Update your search term and try again" %searchTerms)
+    dash = "     " + "-" * 100
+
+    if len(match_list) < 1:
+        print(
+            "\n:ggd:search: No results for %s. Update your search term(s) and try again"
+            % ", ".join(search_terms)
+        )
         sys.exit()
-    for key in matchList:
-        if key[0] in jsonDict["packages"]:
-            print("\n\n", key[0])
-            if "summary" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["summary"]:
-                print("\tSummary:", jsonDict["packages"][key[0]]["summary"])
-            if "identifiers" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["identifiers"]:
-                print("\tSpecies:", jsonDict["packages"][key[0]]["identifiers"]["species"])
-                print("\tGenome Build:", jsonDict["packages"][key[0]]["identifiers"]["genome-build"])
-            if "keywords" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["keywords"]: 
-                print("\tKeywords:", ", ".join(jsonDict["packages"][key[0]]["keywords"]))
-            if "tags" in jsonDict["packages"][key[0]] and jsonDict["packages"][key[0]]["tags"]:
-                if "data-version" in jsonDict["packages"][key[0]]["tags"]:
-                    print("\tData Version:", jsonDict["packages"][key[0]]["tags"]["data-version"])
-                if "cache" in jsonDict["packages"][key[0]]["tags"]:
-                    print("\tCached:", jsonDict["packages"][key[0]]["tags"]["cached"])
-            if key[2]: ## IF installed
-                print("\n\tThis pacakge is already installed on your system.\n\t You can find the installed data files here:\n\t\t%s" %key[3])
+    print("\n", dash)
+    for pkg in match_list:
+        results = []
+        if pkg in json_dict["packages"]:
+            # results.append("\n\t{} {}\n".format(("\033[1m" + "GGD Package:" + "\033[0m"), pkg))
+            results.append(
+                "\n\t{}\n\t{}".format(("\033[1m" + pkg + "\033[0m"), "=" * len(pkg))
+            )
+            if (
+                "summary" in json_dict["packages"][pkg]
+                and json_dict["packages"][pkg]["summary"]
+            ):
+                results.append(
+                    "\t{} {}".format(
+                        ("\033[1m" + "Summary:" + "\033[0m"),
+                        json_dict["packages"][pkg]["summary"],
+                    )
+                )
+            if (
+                "identifiers" in json_dict["packages"][pkg]
+                and json_dict["packages"][pkg]["identifiers"]
+            ):
+                results.append(
+                    "\t{} {}".format(
+                        ("\033[1m" + "Species:" + "\033[0m"),
+                        json_dict["packages"][pkg]["identifiers"]["species"],
+                    )
+                )
+                results.append(
+                    "\t{} {}".format(
+                        ("\033[1m" + "Genome Build:" + "\033[0m"),
+                        json_dict["packages"][pkg]["identifiers"]["genome-build"],
+                    )
+                )
+            if (
+                "keywords" in json_dict["packages"][pkg]
+                and json_dict["packages"][pkg]["keywords"]
+            ):
+                results.append(
+                    "\t{} {}".format(
+                        ("\033[1m" + "Keywords:" + "\033[0m"),
+                        ", ".join(json_dict["packages"][pkg]["keywords"]),
+                    )
+                )
+            if (
+                "tags" in json_dict["packages"][pkg]
+                and json_dict["packages"][pkg]["tags"]
+            ):
+                if "cache" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Cached:" + "\033[0m"),
+                            json_dict["packages"][pkg]["tags"]["cached"],
+                        )
+                    )
+                if "data-provider" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Data Provider" + "\033[0m"),
+                            json_dict["packages"][pkg]["tags"]["data-provider"],
+                        )
+                    )
+                if "data-version" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Data Version:" + "\033[0m"),
+                            json_dict["packages"][pkg]["tags"]["data-version"],
+                        )
+                    )
+                if "file-type" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "File type(s):" + "\033[0m"),
+                            ", ".join(json_dict["packages"][pkg]["tags"]["file-type"]),
+                        )
+                    )
+                if "genomic-coordinate-base" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Data file coordinate base:" + "\033[0m"),
+                            json_dict["packages"][pkg]["tags"][
+                                "genomic-coordinate-base"
+                            ],
+                        )
+                    )
+                if "final-files" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Included Data Files:" + "\033[0m"),
+                            "\n\t\t"
+                            + "\n\t\t".join(
+                                json_dict["packages"][pkg]["tags"]["final-files"]
+                            ),
+                        )
+                    )
+
+            if pkg in installed_pkgs:  ## IF installed
+                results.append(
+                    "\n\tThis pacakge is already installed on your system.\n\t  You can find the installed data files here:  %s"
+                    % installed_paths[pkg]
+                )
             else:
-                print("\n\tTo install run:\n\t\tggd install %s" %key[0])
-    
-    return(True)
+                results.append("\n\tTo install run:\n\t\tggd install %s" % pkg)
+        print("\n\n".join(results))
+        print("\n", dash)
+
+    return True
 
 
 def search(parser, args):
@@ -297,29 +407,86 @@ def search(parser, args):
     1) parser  
     2) args
     """
+    from .utils import get_channeldata_url, get_builds
 
     ## load the channeldata.json file
-    jDict = load_json_from_url(get_channeldata_url(args.channel))
-    #jDict = load_json(CHANNEL_DATA)
-    matchResults = search_packages(jDict,str(args.term))
+    j_dict = load_json_from_url(get_channeldata_url(args.channel))
 
-    ## extra filtering 
-    matchResults = filter_by_score(args.match_score,matchResults)
-    if args.genome_build:
-        matchResults = filter_by_identifiers("genome-build",matchResults,jDict,args.genome_build)
-    if args.species:
-        get_species(update_repo=True) ## update the local repo.
-        matchResults = filter_by_identifiers("species",matchResults,jDict,args.species)
-    if args.keyword:
-        matchResults = filter_by_keywords(matchResults,jDict,str(args.keyword))
+    ## identify if search_terms have any species or genome build in them
+    species_lower = {x.lower(): x for x in SPECIES_LIST}
+    gb_lower = {x.lower(): x for x in GENOME_BUILDS}
+    filtered_search_terms = []
+    for term in args.search_term:
+        if term.lower() in species_lower.keys():
+            if species_lower[term.lower()] not in args.species:
+                args.species.append(species_lower[term.lower()])
+        elif term.lower() in gb_lower.keys():
+            if gb_lower[term.lower()] not in args.genome_build:
+                args.genome_build.append(gb_lower[term.lower()])
+        else:
+            ## Only use search terms that are not used to filter the results by identifiers
+            filtered_search_terms.append(term)
 
-    ## Add True or False and path if the match/ggd package has been installed
-    for i,match in enumerate(matchResults):
-        isinstalled, path = check_installed(match[0],jDict)
-        ## Add a 2 and 3 index containing if the package is already installed and where it is installed
-        matchResults[i] = (match[0], match[1], isinstalled, path) 
+    ## genome_build takes precedence over species (If genome build provided, species is implied)
+    final_species_list = args.species
+    for species in args.species:
+        build = get_builds(species)
+        if [x for x in build if x in args.genome_build]:
+            final_species_list.remove(species)
+    args.species = final_species_list
+
+    ## Filter the json dict by species or genome build if applicable
+    if args.genome_build or args.species:
+        j_dict = filter_by_identifiers(
+            ["species"] * len(args.species) + ["genome-build"] * len(args.genome_build),
+            j_dict,
+            args.species + args.genome_build,
+        )
+
+    ## Search pkg names and keywords
+    match_results = search_packages(
+        j_dict, filtered_search_terms, int(args.match_score)
+    )
+
+    ## Get installed paths
+    installed_dict = {}
+    installed_set = set()
+    for pkg in match_results:
+        isinstalled, path = check_installed(pkg, j_dict)
+        if isinstalled:
+            installed_dict[pkg] = path
+            installed_set.add(pkg)
 
     ## Print search results
-    return(print_summary(args.term,jDict,matchResults))
-    
+    match_result_num = str(len(match_results))
+    if int(match_result_num) >= int(args.display_number):
+        subset_match_results = match_results[0 : int(args.display_number)]
+    else:
+        subset_match_results = match_results
 
+    ## Print search results to STDOUT
+    printed = print_summary(
+        args.search_term, j_dict, subset_match_results, installed_set, installed_dict
+    )
+
+    ## Add a comment if a subset of search results are provided
+    if int(match_result_num) > int(args.display_number):
+        print(
+            "\n\n:ggd:search: NOTE  Only showing results for top {d} of {m} matches.".format(
+                d=str(args.display_number), m=match_result_num
+            )
+        )
+
+        print(
+            ":ggd:search: To display all matches append your search command with '-dn {m}'".format(
+                m=match_result_num
+            )
+        )
+        print(
+            "\n\t ggd search {t} -dn {m}\n".format(
+                t=" ".join(args.search_term), m=match_result_num
+            )
+        )
+
+    ## Return result of print_summary
+    return printed
