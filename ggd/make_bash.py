@@ -80,7 +80,9 @@ def add_make_bash(p):
     c2.add_argument(
         "-dv",
         "--data-version",
-        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)",
+        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)" +
+        " If there is no data version apparent we recommend you use the date associated with the files" +
+        " or something else that can uniquely identify the 'version' of the data",
         required=True,
     )
     c2.add_argument(
