@@ -80,7 +80,9 @@ def add_make_bash(p):
     c2.add_argument(
         "-dv",
         "--data-version",
-        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)",
+        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)" +
+        " If there is no data version apparent we recommend you use the date associated with the files" +
+        " or something else that can uniquely identify the 'version' of the data",
         required=True,
     )
     c2.add_argument(
@@ -245,9 +247,9 @@ def make_bash(parser, args):
 
     ## Check coordinates
     assert (
-        args.coordinate_based in GENOMIC_COORDINATE_LIST
+        args.coordinate_base in GENOMIC_COORDINATE_LIST
     ), "{c} is not an acceptable genomic coordinate base".format(
-        c=args.coordinate_based
+        c=args.coordinate_base
     )
     # ("Please provide a genomic coordinate base from the follow list: {}".format(", ".join(GENOMIC_COORDINATE_LIST)))
 
@@ -286,7 +288,7 @@ def make_bash(parser, args):
             "keywords": args.keyword,
             "summary": args.summary,
             "tags": {
-                "genomic-coordinate-base": args.coordinate_based.strip(),
+                "genomic-coordinate-base": args.coordinate_base.strip(),
                 "data-version": args.data_version.strip(),
                 "data-provider": args.data_provider.strip(),
                 "file-type": [],

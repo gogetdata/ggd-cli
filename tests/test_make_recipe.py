@@ -77,7 +77,7 @@ def test_make_bash_test_bad_summary():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -94,7 +94,7 @@ def test_make_bash_test_bad_summary():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary=' ',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -119,7 +119,7 @@ def test_make_bash_test_bad_name():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -136,7 +136,7 @@ def test_make_bash_test_bad_name():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name=' ', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -159,7 +159,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test.gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -176,7 +176,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test?gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -193,7 +193,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test*gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -210,7 +210,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test[gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -227,7 +227,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test]gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -245,7 +245,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test{gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -263,7 +263,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test}gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -281,7 +281,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test!gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -299,7 +299,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test+gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -316,7 +316,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test^gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -333,7 +333,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test$gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -350,7 +350,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test(gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -367,7 +367,7 @@ def test_make_bash_test_wildcards():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC", 
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test)gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -391,7 +391,7 @@ def test_make_bash_test_bad_genome_build():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg09', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
 
     try:
         temp_stderr = StringIO()
@@ -407,7 +407,7 @@ def test_make_bash_test_bad_genome_build():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hgmm10', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         temp_stderr = StringIO()
         with redirect_stderr(temp_stderr):
@@ -428,7 +428,7 @@ def test_make_bash_test_bad_recipe():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script='bad-recipe.sh', species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         make_bash.make_bash((), args)
@@ -470,7 +470,7 @@ def test_make_bash_missing_tags():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="2-based-exclusive", file_type= [],final_file=[])
+                        coordinate_base="2-based-exclusive", file_type= [],final_file=[])
 
     try:
         assert make_bash.make_bash((),args)  
@@ -486,7 +486,7 @@ def test_make_bash_missing_tags():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
     try:
         assert make_bash.make_bash((),args)  
         assert False
@@ -501,7 +501,7 @@ def test_make_bash_missing_tags():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from USCS',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
 
     try:
         assert make_bash.make_bash((),args)  
@@ -546,7 +546,7 @@ def test_make_bash():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
 
     assert make_bash.make_bash((),args) 
 
@@ -693,7 +693,7 @@ def test_make_bash_all_params():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=['vt','samtools','bedtools'], extra_file=['not.a.real.extra.file'], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps2', platform='none', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="1-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="1-based-inclusive", file_type= [],final_file=[])
 
     assert make_bash.make_bash((),args) 
 
@@ -779,7 +779,7 @@ def test_make_bash_meta_yaml_key_order():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=['vt','samtools','bedtools'], extra_file=['not.a.real.extra.file'], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps3', platform='none', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= ["Bed"], final_file=["hg19-test-gaps3-ucsc-v1.bed.gz", "hg19-test-gaps3-ucsc-v1.bed.gz.tbi"])
+                        coordinate_base="0-based-inclusive", file_type= ["Bed"], final_file=["hg19-test-gaps3-ucsc-v1.bed.gz", "hg19-test-gaps3-ucsc-v1.bed.gz.tbi"])
 
     assert make_bash.make_bash((),args) 
 

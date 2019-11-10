@@ -633,7 +633,7 @@ def test_make_bash_internet_free():
     args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
                         dependency=[], extra_file=[], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
                         name='test-gaps', platform='noarch', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
-                        coordinate_based="0-based-inclusive", file_type= [],final_file=[])
+                        coordinate_base="0-based-inclusive", file_type= [],final_file=[])
 
     assert make_bash.make_bash((),args) 
 

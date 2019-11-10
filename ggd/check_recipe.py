@@ -889,10 +889,10 @@ def check_files(
                 ":ggd:check-recipe: !!ERROR!!: with: %s(%s) must be sorted, bgzipped AND tabixed.\n"
                 % (P, n)
             )
-        elif n.endswith((".fasta", ".fa", ".fasta.gz", ".fa.gz")):
+        elif n.endswith((".fasta", ".fa", ".fasta.gz", ".fa.gz", ".fastq", ".fq", ".fastq.gz", ".fq.gz")):
             if (
                 not op.basename(n + ".fai") in fais
-                and not (re.sub("(.+).fa(?:sta)?$", "\\1", op.basename(n)) + ".fai")
+                and not (re.sub("(.+).f(?:sta)?$", "\\1", op.basename(n)) + ".fai")
                 in fais
             ):
                 not_faidxed.append(
