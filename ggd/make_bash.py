@@ -163,9 +163,7 @@ def make_bash(parser, args):
     assert (
         args.summary.strip() != ""
     ), "Please provide a thorough summary of the data package"
-    print(name)
-    print(
-        "{0}-{1}-{2}-v{3}".format(
+    print("\n:ggd:make-recipe: Name of recipe: {0}-{1}-{2}-v{3}\n".format(
             args.genome_build.lower(),
             args.name.lower(),
             data_provider.lower(),
