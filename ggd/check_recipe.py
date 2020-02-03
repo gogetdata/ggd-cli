@@ -27,7 +27,7 @@ else:
 
 
 def add_check_recipe(p):
-    """Argument method used to add check-recipes as a module arugment/function """
+    """Argument method used to add check-recipe as a module arugment/function """
     import argparse
 
     c = p.add_parser(
@@ -159,7 +159,7 @@ def _build(path, recipe, debug=False):
                     [d], ggd_jdict
                 )  ## .uninstall method to remove extra ggd files
         print(
-            "\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n"
+            "\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipe\n"
         )
         ## Exit
         sys.exit(5)
@@ -302,7 +302,7 @@ def _install(bz2, recipe_name, debug=False):
             print(e)
 
         print(
-            "\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n"
+            "\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipe\n"
         )
         ## Exit
         sys.exit(1)
@@ -437,7 +437,7 @@ def check_recipe(parser, args):
 
     ## Check if previous package is already installed or it is a new installation
     if new_installed:
-        check_files(
+        extra = check_files(
             install_path,
             species,
             build,
@@ -449,7 +449,7 @@ def check_recipe(parser, args):
 
         ## Add final files and md5sum
         if args.dont_add_md5sum_for_checksum == False:
-            recipe = add_final_files(install_path, recipe, args.recipe_path)
+            recipe = add_final_files(install_path, recipe, args.recipe_path, extra)
             add_to_checksum_md5sums(
                 install_path, recipe, op.join(args.recipe_path, "checksums_file.txt")
             )
@@ -598,7 +598,7 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
     return True
 
 
-def add_final_files(installed_dir_path, yaml_dict, recipe_path):
+def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     """Method to add the final data files to the meta.yaml file of a recipe
 
     add_final_files
@@ -659,6 +659,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path):
             "mzml",
             "cvs",
             "tsv",
+            "txt",
             "bim",
             "fam",
             "ped",
@@ -688,6 +689,11 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path):
     yaml_dict["about"]["tags"]["final-files"] = sorted(
         yaml_dict["about"]["tags"]["final-files"]
     )
+
+    ## Add extra files if they exists
+    if extra_files:
+        print(":ggd:check-recipe: Attempting to add the extra files not already added in the mat.yaml file\n")
+        yaml_dict["extra"]["extra-files"] = extra_files
 
     ## Rewrite yaml file with new tags and new final files
     with open(os.path.join(recipe_path, "meta.yaml"), "w") as newFile:
@@ -804,7 +810,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
         print(e)
 
     print(
-        "\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipes\n"
+        "\n:ggd:check-recipe: Review the STDOUT and STDERR, correct the errors, and re-run $ggd check-recipe\n"
     )
     ## Exit
     sys.exit(exit_num)
@@ -868,6 +874,8 @@ def check_files(
     missing = []
     not_tabixed = []
     not_faidxed = []
+    add_extra = False
+    add_extra_files = []
     for n in nons:
         print(":ggd:check-recipe: > checking %s" % n)
         if n.endswith(
@@ -903,16 +911,21 @@ def check_files(
         elif op.basename(n) not in extra_files and not any(
             fnmatch(op.basename(n), e) for e in extra_files
         ):
-            missing.append(
-                ":ggd:check-recipe: !!ERROR!!: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n"
-                % (P, n)
-            )
+                print(
+                    "\n:ggd:check-recipe: !!WARNING!!: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n"
+                    % (P, n) 
+                )
+                add_extra_files.append(op.basename(n))           
+                add_extra = True
 
     if missing or not_tabixed or not_faidxed:
         print("\n".join(missing + not_tabixed + not_faidxed), file=sys.stderr)
         remove_package_after_install(bz2, recipe_name, 2)
 
-    return True
+    if add_extra:
+        return add_extra_files
+    else:
+        return []
 
 
 def check_yaml(recipe):
