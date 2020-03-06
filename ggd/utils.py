@@ -319,6 +319,9 @@ def update_installed_pkg_metadata(
     4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
     5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
     """
+
+
+
     ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
     if add_packages and remove_old == True:
         add_packages = None
@@ -338,6 +341,10 @@ def update_installed_pkg_metadata(
     ## Get the ggd info metadata dir
     ggd_info_dir = os.path.join(prefix, "share", "ggd_info")
 
+    ## Check the conda pkg dir for deviation in the installed tar files
+    if os.path.isdir(ggd_info_dir):
+        check_conda_pkg_dir(prefix, exclude_pkg)
+
     ## Remove old ggd_info dir and re-create it
     if remove_old:
         if os.path.isdir(ggd_info_dir):
@@ -353,6 +360,8 @@ def update_installed_pkg_metadata(
     ## Create the "noarch" dir
     if not os.path.isdir(os.path.join(ggd_info_dir, "noarch")):
         os.makedirs(os.path.join(ggd_info_dir, "noarch"))
+
+
 
     if add_packages and remove_old == False:
         for (
@@ -420,6 +429,54 @@ def update_installed_pkg_metadata(
 
     return True
 
+
+def check_conda_pkg_dir(prefix, exclude_pkg=None):
+    """Method to check that the conda pkg directory contains the tar files in the ggd list directory
+
+    check_conda_pkg_dir
+    ===================
+    Method to check that the conda pkg directory contains the tar files for installed ggd recipes. This is 
+     useful if for some reason the .tar.bz2 files are removed from the conda pkg dir. This is seen to happen 
+     if someone runs `conda clean`. This will make sure that ggd tar files are maintined. 
+
+    Parameters:
+    ----------
+    1) prefix: The conda environment/prefix to update. (Default = the current conda environment)
+    2) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
+    
+    Returns:
+    ++++++++
+    True if no errors
+    False if copy error
+    """
+
+    ## Get the ggd info metadata dir
+    ggd_info_dir = os.path.join(prefix, "share", "ggd_info")
+
+    ## Get the dir to the pkgs dir
+    pkg_dir = os.path.join(prefix, "pkgs")
+    conda_pkg_files = set(os.listdir(pkg_dir))
+
+    ## Conda list for ggd recipes. IF exclude_pkg is set, the key will be removed from this set
+    installed_pkgs = set([key+"-"+value["version"]+"-"+value["build"]+".tar.bz2" for key,value in get_conda_package_list(prefix).items() if key != exclude_pkg])
+
+    ## Check if the .tar.bz2 files are in the conda pkg dir or not, and fix if not
+    for f in os.listdir(os.path.join(ggd_info_dir, "noarch")):
+
+        ## Only look at .tar.bz2 files
+        if not f.endswith(".tar.bz2"):
+            continue
+
+        ## IF file is installed but not present in the conda_pkg_files, copy it to the conda_pkg_files
+        if f in installed_pkgs and f not in conda_pkg_files:
+            print("ggd:utils: Fixing the {t} file in the conda pkg dir\n".format(t = f))
+            try:
+                shutil.copy2(os.path.join(ggd_info_dir,"noarch",f), pkg_dir)
+            except OSError as e:
+                return(False)
+
+    return(True)
+        
 
 def validate_build(build, species):
     """
