@@ -1891,9 +1891,12 @@ def test_check_recipe_package_env_vars():
 
             ## Iterate over new files and replace file name with data package name and data version  
             for f in *; do
-                ext="${f#*.}"
-                filename="{f%%.*}"
-                (mv $f "two_files_noindex_v1.$ext")
+                ext="${ext_string}"
+                filename="{filename_string}"
+                if [[ ! -f "{name}.$ext" ]]  
+                then
+                    (mv $f "{name}.$ext")
+                fi  
             done
 
             ## Add environment variables 
@@ -2061,9 +2064,12 @@ def test_check_recipe_package_env_vars():
 
             ## Iterate over new files and replace file name with data package name and data version  
             for f in *; do
-                ext="${f#*.}"
-                filename="{f%%.*}"
-                (mv $f "three_files_v1.$ext")
+                ext="${ext_string}"
+                filename="{filename_string}"
+                if [[ ! -f "{name}.$ext" ]]  
+                then
+                    (mv $f "{name}.$ext")
+                fi  
             done
 
             ## Add environment variables 
