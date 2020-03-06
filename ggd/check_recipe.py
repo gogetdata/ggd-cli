@@ -203,16 +203,13 @@ def _install(bz2, recipe_name, debug=False):
     3) If the installation fails progam exits. ggd data handeling is initated to remove any new/updated files from the installation process
     """
     import traceback
-    from .utils import get_required_conda_version
+    from .utils import get_conda_package_list, get_required_conda_version
 
     conda_version = get_required_conda_version()
     conda_install = "conda=" + conda_version
 
     ## See if it is already installed
-    pkg_out = sp.check_output(["conda list {}".format(recipe_name)], shell=True).decode(
-        "utf8"
-    )
-    if recipe_name in pkg_out:  ## If already installed
+    if recipe_name in get_conda_package_list(conda_root(),include_local=True).keys():
         return False
 
     ## Set CONDA_SOURCE_PREFIX environment variable
@@ -437,6 +434,19 @@ def check_recipe(parser, args):
 
     ## Check if previous package is already installed or it is a new installation
     if new_installed:
+
+        ## Check that the file has a header
+        if not check_header(install_path):
+            print("\n:ggd:check-recipe: !!ERROR!!")
+            print(
+                "\n\t!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!\n"
+            )
+            print(
+                "\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\t! Recipe NOT ready for Pull Requests !\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
+            )
+            remove_package_after_install(bz2, recipe_name, 1)
+            
+        ## Get the extra files
         extra = check_files(
             install_path,
             species,
@@ -618,6 +628,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     1) installed_dir_path: The directory path to the installed data files
     2) yaml_dict: A dictionary of the meta.yaml file for the recipe
     3) recipe_path: The directory path to the recipe being checked 
+    4) extra_files: The name of the extra files found from check_files method
 
     Returns: 
     ++++++++
@@ -816,6 +827,167 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     sys.exit(exit_num)
 
 
+def check_header(install_path):
+    """Method to check the final genomic headers have a header or not
+
+    check_header
+    ============
+    This method is going to go through each of the files that were created by the recipe, 
+     and it will check if the those files have a header or not. 
+    
+    sam/bam/cram, vcf/bcf, gtf/gff/gff3, bed/bedGraph, csv, txt files require a header and if no header is provided 
+     check-recipe will fail. 
+   
+    Other files that don't have header will be given a warning. GGD expects most files to have 
+      a header. Some files are okay not to have headers, but if a header can be added it should be. 
+
+    For each file, the file header and first 5 lines of the file body will be provided to stdout.
+
+    Parameters:
+    -----------
+    1) install_path: The path to the directory where the files have been installed into.
+
+    Returns:
+    +++++++
+    True or False. 
+     - True if a header exist or if only a warning was given
+     - False if a header does not exists and is required
+
+    """
+
+    print(":ggd:check-recipe: Checking that the final files have headers if appropriate\n")
+
+    installed_files = os.listdir(install_path)
+
+    for file_name in [x for x in installed_files if os.path.isfile(os.path.join(install_path,x))]:
+
+        f_path = os.path.join(install_path, file_name)
+
+        ## Check for an index file
+        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw"]):
+            continue 
+
+        ## Skip fasta or fastq files
+        if any(x in file_name for x in [".fasta",".fa",".fastq",".fq"]):
+            continue
+
+        ## Check for sam/bam/cram files
+        if any(x in file_name for x in [".sam",".bam",".cram"]):
+            import pysam
+
+            try:
+                samfile = pysam.AlignmentFile(f_path, check_sq=False)
+                header = samfile.header
+                if any(header.lengths):
+                    print(":ggd:check-recipe: Header found in file {name}\n".format(name=file_name))
+                    print("Head of file:")
+                    print("---------------------------")
+                    print(str(header).strip())
+                    for i,read in enumerate(samfile):
+                        print(read)
+                        if i >= 4: 
+                            break
+                    print("---------------------------\n")
+
+                else:
+                    print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
+                    print(":ggd:check-recipe: !!ERROR!! A header is required for sam/bam/cram files\n")
+                    return(False)
+
+            except (ValueError, IOError, Exception) as e:
+                print(str(e))
+                print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
+                print(":ggd:check-recipe: !!ERROR!! A header is required for sam/bam/cram files\n")
+                return(False)
+
+    
+        ## Check vcf/bcf files
+        elif any(x in file_name for x in [".vcf",".bcf"]): 
+            from cyvcf2 import VCF
+            try:
+                vcffile = VCF(f_path)
+                header = str(vcffile.raw_header)
+
+                if header:
+                    print(":ggd:check-recipe: Header found in file {name}\n".format(name=file_name))
+                    print("Head of file:")
+                    print("---------------------------")
+                    print(str(header).strip())
+                    for i,var in enumerate(vcffile):
+                        print(var)
+                        if i >= 4: 
+                            break
+                    print("---------------------------\n")
+
+                else:
+                    print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
+                    print(":ggd:check-recipe: !!ERROR!! A header is required for vcf/bcf files\n")
+                    return(False)
+
+            except IOError as e:
+                print(str(e))
+                print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
+                print(":ggd:check-recipe: !!ERROR!! A header is required for vcf/bcf files\n")
+                return(False)
+
+        ## Check other files
+        else:
+            import gzip
+            try:
+                file_handler = gzip.open(f_path) if f_path.endswith(".gz") else open(f_path)
+                header = []
+                body = []
+                try:
+                    for line in file_handler:
+
+                        if type(line) != str:
+                            line = line.strip().decode("utf-8")
+
+                        if len(line) > 0 and str(line)[0] == "#":
+                            header.append(str(line))
+
+                        else:
+                            body.append(str(line))
+                            if len(body) > 4:
+                                break
+
+                except UnicodeDecodeError:
+                    print(":ggd:check-recipe: Cannot decode file contents into unicode.\n") 
+                    pass
+
+
+                if header:
+                    print(":ggd:check-recipe: Header found in file {name}\n".format(name=file_name))
+                    print("Head of file:")
+                    print("---------------------------")
+                    print("\n".join(header))
+                    print("\n".join(body))
+                    print("---------------------------\n")
+                elif any(x in file_name for x in [".gtf", ".gff", ".gff3", ".bed", ".bedGraph", ".csv", ".txt"]):
+                    print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
+                    print(":ggd:check-recipe: !!ERROR!! A header is required for this type of file\n")
+                    print("First 5 lines of file body:")
+                    print("---------------------------")
+                    print("\n".join(body))
+                    print("---------------------------\n")
+                    return(False)
+                else:
+                    print(":ggd:check-recipe: !!WARNING!! No header found for file {name}\n".format(name=file_name))
+                    print("First 5 lines of file body:")
+                    print("---------------------------")
+                    print("\n".join(body))
+                    print("---------------------------\n")
+                    print(":ggd:check-recipe: !!WARNING!! GGD requires that any file that can have a header should. Please either add a header or if the file cannot have a header move forward.\n")
+                    print(":ggd:check-recipe: !!WARNING!! IF you move forwared without adding a header when one should be added, this recipe will be rejected until a header is added.\n")
+                    
+            except IOError as e:
+                print(":ggd:check-recipe: !!ERROR!!")
+                print(str(e))
+                return False
+
+    return(True)
+
+
 def check_files(
     install_path, species, build, recipe_name, extra_files, before_files, bz2
 ):
@@ -833,8 +1005,9 @@ def check_files(
     print(":ggd:check-recipe: modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
 
     tbis = [x for x in files if x.endswith(".tbi")]  # all tbi files
+    tbis = [x for x in files if x.endswith((".tbi",".csi"))]  # all tbi files
 
-    nons = [x for x in files if not x.endswith(".tbi")]  # all non tbi files
+    nons = [x for x in files if not x.endswith((".tbi",".csi"))]  # all non tbi files
 
     tbxs = [x[:-4] for x in tbis if x[:-4] in nons]  # names of files tabixed
 
