@@ -638,7 +638,7 @@ def test__build_ggd_requirments_removed_on_bad_build():
 pytest.global_tarball_testing_file = ""
 pytest.global_ggd_recipe_path = ""
 
-def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False):
+def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,remove_header=False):
     """
     test the _build function properly builds a ggd recipe into a ggd pocakge using conda build
     """
@@ -646,21 +646,26 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False)
     
     if final_files:
         if bad_files:
-            ft = """final-files:
+            ff = """final-files:
                     - trial-bad-hg38-gaps-v1.bed.gz
                     - trial-bad-hg38-gaps-v1.bed.gz.tbi """
-            ff = """file-type: 
+            ft = """file-type: 
                     - bed """
         else:
-            ft = """final-files:
+            ff = """final-files:
                     - trial-hg38-gaps-v1.bed.gz
                     - trial-hg38-gaps-v1.bed.gz.tbi """
-            ff = """file-type: 
+            ft = """file-type: 
                     - bed """
         
     else:
-        ft = "file-type: []"
         ff = "final-files: []"
+        ft = "file-type: []"
+
+    if remove_header:
+        header = ""
+    else:
+        header = """BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"}"""
 
     ## testing-hg38-gaps-v1 recipe as of 3/27/2019
     recipe = CreateRecipe(
@@ -712,7 +717,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False)
             genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
             wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
             | gzip -dc \\
-            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | awk -v OFS="\t" '%s {print $2,$3,$4,$7,$8,"+"}' \\
             | gsort /dev/stdin $genome \\
             | bgzip -c > gaps.bed.gz
 
@@ -797,7 +802,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False)
 
         checksums_file.txt: |
             
-    """ %(ft, ff), from_string=True)
+    """ %(ff, ft, header), from_string=True)
 
     recipe.write_recipes()
 
@@ -820,7 +825,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False)
         recipe_yaml = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml"))) 
         species, build, version, recipe_name = check_recipe.check_yaml(recipe_yaml)
         install_path = os.path.join(utils.conda_root(), "share", "ggd", species, build, recipe_name, version)
-        recipe_yaml = check_recipe.add_final_files(install_path, recipe_yaml, recipe_dir_path)
+        recipe_yaml = check_recipe.add_final_files(install_path, recipe_yaml, recipe_dir_path,[])
         check_recipe.add_to_checksum_md5sums(install_path, recipe_yaml, os.path.join(recipe_dir_path,"checksums_file.txt"))
         tarball_file_path = check_recipe._build(recipe_dir_path,recipe_yaml)
         pytest.global_tarball_testing_file = tarball_file_path
@@ -1244,6 +1249,25 @@ def test_check_recipe_bz2_file():
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
 
 
+    # Test bz2 files with no header in the final-files
+    ### Header check will Error, uninstall the recipe and exit wit 1 
+    ## Buid the bz2 file
+    test__build_normal_run(final_files=True,remove_header=True)
+
+    ## Use the previously created tarball.bz2 file from runing the _build funtion
+    bz2_file = pytest.global_tarball_testing_file
+    assert os.path.exists(bz2_file)
+    assert os.path.isfile(bz2_file)
+
+    ## Set args
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_recipe((),args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
+
+
     # Test bz2 files without checksum values
     ### checksum will Error, uninstall the recipe and exit with 222 
     ## Buid the bz2 file
@@ -1341,7 +1365,7 @@ def test_check_recipe_recipe_path():
         assert not os.path.exists(bz2_file)
         assert not os.path.isfile(bz2_file)
     except AssertionError as e:
-        if os.path.exits(bz2_file):
+        if os.path.exsits(bz2_file):
             os.remove(bz2_file)
         else:
             raise e
@@ -2734,13 +2758,14 @@ def test_add_final_files():
     assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.ped.gz")) 
 
     ## test check_recipes add files files:
-    yaml_file = check_recipe.add_final_files(os.path.join(recipe_dir_path,"installed_files"),yaml_file,recipe_dir_path)
+    yaml_file = check_recipe.add_final_files(os.path.join(recipe_dir_path,"installed_files"),yaml_file,recipe_dir_path, ["trial3-hg38-gaps-ucsc-v1.test.the.extension.addition"])
     assert len(yaml_file["about"]["tags"]["final-files"]) == 6 
     assert len(yaml_file["about"]["tags"]["file-type"]) == 5 
 
     assert "trial3-hg38-gaps-ucsc-v1.bed.gz" in yaml_file["about"]["tags"]["final-files"] 
     assert "trial3-hg38-gaps-ucsc-v1.bed.gz.tbi" in yaml_file["about"]["tags"]["final-files"] 
     assert "trial3-hg38-gaps-ucsc-v1.test.the.extension.addition" in yaml_file["about"]["tags"]["final-files"] 
+    assert "trial3-hg38-gaps-ucsc-v1.test.the.extension.addition" in yaml_file["extra"]["extra-files"] 
     assert "trial3-hg38-gaps-ucsc-v1.vcf.gz" in yaml_file["about"]["tags"]["final-files"]
     assert "trial3-hg38-gaps-ucsc-v1.gtf.gz" in yaml_file["about"]["tags"]["final-files"]
     assert "trial3-hg38-gaps-ucsc-v1.ped.gz" in yaml_file["about"]["tags"]["final-files"]
@@ -2979,6 +3004,288 @@ def test_remove_package_after_installation():
 
     pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial-hg38-gaps-ucsc-v1" not in pkg_out ## Identify that it was removed from the conda env
+
+
+def test_check_header():
+    """
+    Test teh check_header functional properly checks for headers in genomic files
+    """
+    
+    ## Test that a fasta file does not need a header 
+    fastafile = CreateRecipe(
+    """
+    fastafile:
+        test.fa: |
+            >chr1
+            CTGAAGAACTGTCTGCACCCAGGGCAGAGATTACGGGGTTCTGAGGTTCCCCCGCCCCGCGGCCTCTCTT
+            GGCGGCTGTGCGTGTTCAGTTGCCTTCATTGAAACCCAAGCATCCGTCCTCGGCTGCCACCGACACAGGT
+            CAAGGCCACCCAGGAGGAGACACTGTGGGGCCCTGCCCAGTTCTCACGGGTATCGCATTTTGGCAGGACG
+            >chr2
+            GGCGGCTGTGCGTGTTCAGTTGCCTTCATTGAAACCCAAGCATCCGTCCTCGGCTGCCACCGACACAGGT
+            CAAGGCCACCCAGGAGGAGACACTGTGGGGCCCTGCCCAGTTCTCACGGGTATCGCATTTTGGCAGGACG
+            CTGAAGAACTGTCTGCACCCAGGGCAGAGATTACGGGGTTCTGAGGTTCCCCCGCCCCGCGGCCTCTCTT
+            >chr3
+            CAAGGCCACCCAGGAGGAGACACTGTGGGGCCCTGCCCAGTTCTCACGGGTATCGCATTTTGGCAGGACG
+            CTGAAGAACTGTCTGCACCCAGGGCAGAGATTACGGGGTTCTGAGGTTCCCCCGCCCCGCGGCCTCTCTT
+            GGCGGCTGTGCGTGTTCAGTTGCCTTCATTGAAACCCAAGCATCCGTCCTCGGCTGCCACCGACACAGGT
+    """, from_string=True)
+    
+    fastafile.write_recipes()
+    files_path = fastafile.recipe_dirs["fastafile"]   
+
+    assert check_recipe.check_header(files_path) == True
+
+    ## Test an fai file is not checked for a header 
+    for f in os.listdir(files_path):
+        sp.check_output("samtools faidx " + os.path.join(files_path,f), shell=True)
+        os.remove(os.path.join(files_path,f))
+
+    assert check_recipe.check_header(files_path) == True
+
+
+    ## Test a sam file with a header
+    samfile = CreateRecipe(
+    """
+    samfiles:
+        sampleID1.sam: |
+            @SQ\tSN:chr4\tLN:191154276
+            @RG\tID:SampleID1\tSM:SampleID1
+            @PG\tID:bwa\tPN:bwa\tVN:0.6.1-r104-tpx
+            HSQ1004:134:C0D8DACXX:4:2108:19016:76849\t147\tchr4\t115922321\t60\t101M\t=\t115922047\t-375\tTGCTTTTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTG\tABCDDCCCCDDDECDCCECCC;AFFDEB=?3EC=7.CIIIHF>DF=GIHFB@HF@>DFGDGJIGIHEIHCEGIGIGIHFDHF<B@HGHDDHFCDDDDF@@@\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:1:2108:17456:60548\t147\tchr4\t115922322\t60\t101M\t=\t115922004\t-419\tGCTTTTCTTGTTAATCAATCATTTTCCTTTTTACTGGTAATATCGCCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGC\t8CCCC?<@:((535(,(C>5(=;;A=3;;67;7;CC=77---''(;BEC?*D8;2B???9?039?9F?C1??*?A+3<+3+E?BB<9@<+<+<2++:A:+:\tRG:Z:SampleID1\tXT:A:U\tNM:i:3\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:3\tXO:i:0\tXG:i:0\tMD:Z:10C31G1A56
+            HSQ1004:134:C0D8DACXX:3:1308:17367:95762\t163\tchr4\t115922324\t60\t101M\t=\t115922538\t315\tTTTTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCT\tCC@FFDFDHHHDHJJJJJJJIJJJJJJJJJIJJJJGHJIJJJJJJJJJJIFHIJJJHGHIJJIIJIJJJCCHIJIGIJIHHHHFFFFFFDDE'(;->;3>>\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:2:1206:7849:91591\t163\tchr4\t115922326\t60\t101M\t=\t115922503\t278\tTTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTG\tCCCFFFFFHHHHHJJJJJJJJJJJJJJJJJIJIFHIJJIJIJJJJJJHIIHIJIJJFJJJJJJJJJJHGIJJJIIJIJHHHHHFFFFFEE'(-5>((5(:5\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:4:2305:10567:8390\t163\tchr4\t115922326\t60\t100M1S\t=\t115922562\t337\tTTCTTGCTAATCAATCATTTTCCTTTTTACTGGCAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGTGTTT\t88?+4A4+2A?D<A<+<,,3,<+,<<CH9E42++1??CB9*1:*?*?0:)09BDH<?*9F><883BADFAG:C)=CECCE9;;);C.6(.,((-(;-5,5(\tRG:Z:SampleID1\tXC:i:100\tXT:A:U\tNM:i:3\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:3\tXO:i:0\tXG:i:0\tMD:Z:33T62C0C2
+            HSQ1004:134:C0D8DACXX:1:2204:2840:75379\t99\tchr4\t115922327\t60\t97M4S\t=\t115922504\t278\tTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGA\tC@@FFFFFHHDHHJJJJJJJJHIJJJIIJJJICHGIJJJJJJJJJJDGHJJIJFIJJJIJJ@HGHIFFHIJJJJIGIIHHGHHDFEFFE'(;@5(55(5((\tRG:Z:SampleID1\tXC:i:97\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:97
+            HSQ1004:134:C0D8DACXX:1:1307:17550:186583\t83\tchr4\t115922331\t60\t101M\t=\t115922271\t-161\tGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAA\t>DEDEDDEDDDDDCDDDDDDEEEFFFFFDBFHEHC@JIIJJJJJJJIJIJIHIHIJJJJJJJJJJJJJJJJJJJIJJIJJJJIJJIIJHHHHHFFFFFC@C\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:4:2101:11036:6225\t83\tchr4\t115922333\t60\t101M\t=\t115922047\t-387\tTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGG\tCDEDDEDCDDDDDDDDEEEEECEFFDFFFFFHHAHJJIJIIJJJIJJJJIEJJIJJJIJIJJJJJIIJJJIJJJIJJJJJJJJIJIJJHHHHHFFFFFCCC\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:3:2105:13056:109024\t163\tchr4\t115922333\t60\t101M\t=\t115922556\t324\tTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGG\tCCCFFFFFHHHHHJJJJJJJJJJJJJHHHIJJJJJJJJJJIIJIJIJIJJGHIJJJHJJJGHIJIJIJJJIJIJJJJHHHHHF/(;6;(3>3>35@;@A:A\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:4:1305:7777:86311\t83\tchr4\t115922336\t60\t101M\t=\t115922116\t-321\tTCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGGGGT\tADC@ACDDC?BBDDDDDC@EDECEDBFFFECHHHJJIIGFFGGIIJIJIHCIJJJJJIGIJIJIIGJJJIJJJIHCJJJJJIJJJIJJHHGGHFFFFFCCC\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:2:2205:18898:48636\t163\tchr4\t115922337\t29\t99M2S\t=\t115922631\t395\tCACTCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCCTTCCCTGATTAAGGGGGG\tB@+=?B;DFDDFHIIIJGF@J<<CF@E::9CF@9?@?BEDD@?CGGG@GEB????DD8???CB=@F;DEGHJGGGGECA'6;)7((6(6(5@(-5(-<?=&\tRG:Z:SampleID1\tXC:i:100\tXT:A:M\tNM:i:5\tSM:i:29\tAM:i:29\tXM:i:5\tXO:i:0\tXG:i:0\tMD:Z:2A79T1G2T4C6
+            HSQ1004:134:C0D8DACXX:3:2304:7606:185281\t99\tchr4\t115922340\t60\t101M\t=\t115922484\t245\tTCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGGGGGCAGC\t@?@DDDDDAFHHFGHGFBECCFHHHCEHHGIII<EHGIBHIIICHGHIGIIII;DDGHICGGID3;FDGHIIIGGC'(7);).;76;6(..5(-;@'0097\tRG:Z:SampleID1\tXT:A:U\tNM:i:1\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:1\tXO:i:0\tXG:i:0\tMD:Z:96T4
+            HSQ1004:134:C0D8DACXX:1:1103:14822:61719\t163\tchr4\t115922342\t60\t94M7S\t=\t115922524\t283\tATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTTCCTTGATCAAAGGGTCAACAC\t@@@FFAFFGHHHBHEHBHADEJHBHJGEHCBEHHIIEG<DG@FHIHD<9EGBDGFB<0?3C;CG<F>FH@>DGH'67)=)7B)7).6;(;(5;=(-,(,5(\tRG:Z:SampleID1\tXC:i:94\tXT:A:U\tNM:i:2\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:2\tXO:i:0\tXG:i:0\tMD:Z:79G10G3
+    """, from_string = True)
+
+    samfile.write_recipes()
+    files_path = samfile.recipe_dirs["samfiles"]
+    
+    assert check_recipe.check_header(files_path) == True
+
+
+    ## Test a bam file with a header
+    for f in os.listdir(files_path):
+        sp.check_output("samtools view -b " + os.path.join(files_path, f) + " > " + os.path.join(files_path,"sampleID1.bam"), shell=True)
+        os.remove(os.path.join(files_path,f))
+
+    assert check_recipe.check_header(files_path) == True
+
+    ## Test sam file without header
+    samfile2 = CreateRecipe(
+    """
+    samfiles:
+        sampleID1.sam: |
+            HSQ1004:134:C0D8DACXX:4:2108:19016:76849\t147\tchr4\t115922321\t60\t101M\t=\t115922047\t-375\tTGCTTTTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTG\tABCDDCCCCDDDECDCCECCC;AFFDEB=?3EC=7.CIIIHF>DF=GIHFB@HF@>DFGDGJIGIHEIHCEGIGIGIHFDHF<B@HGHDDHFCDDDDF@@@\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:1:2108:17456:60548\t147\tchr4\t115922322\t60\t101M\t=\t115922004\t-419\tGCTTTTCTTGTTAATCAATCATTTTCCTTTTTACTGGTAATATCGCCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGC\t8CCCC?<@:((535(,(C>5(=;;A=3;;67;7;CC=77---''(;BEC?*D8;2B???9?039?9F?C1??*?A+3<+3+E?BB<9@<+<+<2++:A:+:\tRG:Z:SampleID1\tXT:A:U\tNM:i:3\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:3\tXO:i:0\tXG:i:0\tMD:Z:10C31G1A56
+            HSQ1004:134:C0D8DACXX:3:1308:17367:95762\t163\tchr4\t115922324\t60\t101M\t=\t115922538\t315\tTTTTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCT\tCC@FFDFDHHHDHJJJJJJJIJJJJJJJJJIJJJJGHJIJJJJJJJJJJIFHIJJJHGHIJJIIJIJJJCCHIJIGIJIHHHHFFFFFFDDE'(;->;3>>\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:2:1206:7849:91591\t163\tchr4\t115922326\t60\t101M\t=\t115922503\t278\tTTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTG\tCCCFFFFFHHHHHJJJJJJJJJJJJJJJJJIJIFHIJJIJIJJJJJJHIIHIJIJJFJJJJJJJJJJHGIJJJIIJIJHHHHHFFFFFEE'(-5>((5(:5\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:4:2305:10567:8390\t163\tchr4\t115922326\t60\t100M1S\t=\t115922562\t337\tTTCTTGCTAATCAATCATTTTCCTTTTTACTGGCAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGTGTTT\t88?+4A4+2A?D<A<+<,,3,<+,<<CH9E42++1??CB9*1:*?*?0:)09BDH<?*9F><883BADFAG:C)=CECCE9;;);C.6(.,((-(;-5,5(\tRG:Z:SampleID1\tXC:i:100\tXT:A:U\tNM:i:3\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:3\tXO:i:0\tXG:i:0\tMD:Z:33T62C0C2
+            HSQ1004:134:C0D8DACXX:1:2204:2840:75379\t99\tchr4\t115922327\t60\t97M4S\t=\t115922504\t278\tTCTTGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGA\tC@@FFFFFHHDHHJJJJJJJJHIJJJIIJJJICHGIJJJJJJJJJJDGHJJIJFIJJJIJJ@HGHIFFHIJJJJIGIIHHGHHDFEFFE'(;@5(55(5((\tRG:Z:SampleID1\tXC:i:97\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:97
+            HSQ1004:134:C0D8DACXX:1:1307:17550:186583\t83\tchr4\t115922331\t60\t101M\t=\t115922271\t-161\tGCTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAA\t>DEDEDDEDDDDDCDDDDDDEEEFFFFFDBFHEHC@JIIJJJJJJJIJIJIHIHIJJJJJJJJJJJJJJJJJJJIJJIJJJJIJJIIJHHHHHFFFFFC@C\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:4:2101:11036:6225\t83\tchr4\t115922333\t60\t101M\t=\t115922047\t-387\tTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGG\tCDEDDEDCDDDDDDDDEEEEECEFFDFFFFFHHAHJJIJIIJJJIJJJJIEJJIJJJIJIJJJJJIIJJJIJJJIJJJJJJJJIJIJJHHHHHFFFFFCCC\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:3:2105:13056:109024\t163\tchr4\t115922333\t60\t101M\t=\t115922556\t324\tTAATCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGG\tCCCFFFFFHHHHHJJJJJJJJJJJJJHHHIJJJJJJJJJJIIJIJIJIJJGHIJJJHJJJGHIJIJIJJJIJIJJJJHHHHHF/(;6;(3>3>35@;@A:A\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:4:1305:7777:86311\t83\tchr4\t115922336\t60\t101M\t=\t115922116\t-321\tTCAATCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGGGGT\tADC@ACDDC?BBDDDDDC@EDECEDBFFFECHHHJJIIGFFGGIIJIJIHCIJJJJJIGIJIJIIGJJJIJJJIHCJJJJJIJJJIJJHHGGHFFFFFCCC\tRG:Z:SampleID1\tXT:A:U\tNM:i:0\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:0\tXO:i:0\tXG:i:0\tMD:Z:101
+            HSQ1004:134:C0D8DACXX:2:2205:18898:48636\t163\tchr4\t115922337\t29\t99M2S\t=\t115922631\t395\tCACTCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCCTTCCCTGATTAAGGGGGG\tB@+=?B;DFDDFHIIIJGF@J<<CF@E::9CF@9?@?BEDD@?CGGG@GEB????DD8???CB=@F;DEGHJGGGGECA'6;)7((6(6(5@(-5(-<?=&\tRG:Z:SampleID1\tXC:i:100\tXT:A:M\tNM:i:5\tSM:i:29\tAM:i:29\tXM:i:5\tXO:i:0\tXG:i:0\tMD:Z:2A79T1G2T4C6
+            HSQ1004:134:C0D8DACXX:3:2304:7606:185281\t99\tchr4\t115922340\t60\t101M\t=\t115922484\t245\tTCATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTGCCTTGATCAAGGGGGCAGC\t@?@DDDDDAFHHFGHGFBECCFHHHCEHHGIII<EHGIBHIIICHGHIGIIII;DDGHICGGID3;FDGHIIIGGC'(7);).;76;6(..5(-;@'0097\tRG:Z:SampleID1\tXT:A:U\tNM:i:1\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:1\tXO:i:0\tXG:i:0\tMD:Z:96T4
+            HSQ1004:134:C0D8DACXX:1:1103:14822:61719\t163\tchr4\t115922342\t60\t94M7S\t=\t115922524\t283\tATTTTCCTTTTTACTGGTAATAGCACCTTGGTTTTCTGGCATTGCATGAGGTCTCAGTGGGATGCTTATGGCTTGCCTTTCCTTGATCAAAGGGTCAACAC\t@@@FFAFFGHHHBHEHBHADEJHBHJGEHCBEHHIIEG<DG@FHIHD<9EGBDGFB<0?3C;CG<F>FH@>DGH'67)=)7B)7).6;(;(5;=(-,(,5(\tRG:Z:SampleID1\tXC:i:94\tXT:A:U\tNM:i:2\tSM:i:37\tAM:i:37\tX0:i:1\tX1:i:0\tXM:i:2\tXO:i:0\tXG:i:0\tMD:Z:79G10G3
+    """, from_string = True)
+
+    samfile2.write_recipes()
+    files_path = samfile2.recipe_dirs["samfiles"]
+
+    assert check_recipe.check_header(files_path) == False
+
+
+    ## test vcf file with header
+    vcffiles = CreateRecipe(
+    """
+    vcffiles:
+        some.vcf: |
+            ##fileformat=VCFv4.2
+            ##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
+            ##FILTER=<ID=LowQual,Description="Low quality">
+            ##FORMAT=<ID=RGQ,Number=1,Type=Integer,Description="Unconditional reference genotype confidence, encoded as a phred quality -10*log10 p(
+            ##INFO=<ID=set,Number=1,Type=String,Description="Source VCF for the merged record in CombineVariants">
+            ##reference=file:///scratch/ucgd/lustre/ugpuser/ucgd_data/references/human_g1k_v37_decoy.fasta
+            #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO    
+            chr1\t69270\t.\tA\tG\t206020.99\tPASS\tAC=959;AF=0.814;AN=1178;BaseQRankSum=1.20;ClippingRankSum=0.433;DP=15730;ExcessHet=0.0000;FS
+            chr1\t69428\t.\tT\tG\t13206.32 \tPASS\tAC=37;AF=0.028;AN=1302;BaseQRankSum=0.727;ClippingRankSum=0.842;DP=25114;ExcessHet=-0.0000;F
+            chr1\t69511\t.\tA\tG\t843359.35\tPASS\tAC=1094;AF=0.943;AN=1160;BaseQRankSum=0.736;ClippingRankSum=-3.200e-02;DP=55870;ExcessHet=-0
+            chr1\t69552\t.\tG\tC\t616.05\tPASS\tAC=2;AF=1.701e-03;AN=1176;BaseQRankSum=2.06;ClippingRankSum=1.25;DP=28398;ExcessHet=3.0214;FS=8.
+            chr1\t69761\t.\tA\tT\t47352.67\t.\tAC=147;AF=0.096;AN=1524;BaseQRankSum=0.713;ClippingRankSum=0.056;DP=10061;ExcessHet=-0.0000;FS=5
+    """, from_string=True)
+    
+    vcffiles.write_recipes()
+    files_path = vcffiles.recipe_dirs["vcffiles"]   
+
+    assert check_recipe.check_header(files_path) == True
+
+    ## test vcf: bgzip it and tabix it
+    for f in os.listdir(files_path):
+        sp.check_output("bgzip -c "+os.path.join(files_path,f)+" > "+os.path.join(files_path,f)+".gz", shell=True)
+        sp.check_output("tabix "+os.path.join(files_path,f)+".gz", shell=True)
+
+    assert check_recipe.check_header(files_path) == True
+
+    ## test vcf file with header
+    vcffiles2 = CreateRecipe(
+    """
+    vcffiles:
+        some.vcf: |
+            chr1\t69270\t.\tA\tG\t206020.99\tPASS\tAC=959;AF=0.814;AN=1178;BaseQRankSum=1.20;ClippingRankSum=0.433;DP=15730;ExcessHet=0.0000;FS
+            chr1\t69428\t.\tT\tG\t13206.32 \tPASS\tAC=37;AF=0.028;AN=1302;BaseQRankSum=0.727;ClippingRankSum=0.842;DP=25114;ExcessHet=-0.0000;F
+            chr1\t69511\t.\tA\tG\t843359.35\tPASS\tAC=1094;AF=0.943;AN=1160;BaseQRankSum=0.736;ClippingRankSum=-3.200e-02;DP=55870;ExcessHet=-0
+            chr1\t69552\t.\tG\tC\t616.05\tPASS\tAC=2;AF=1.701e-03;AN=1176;BaseQRankSum=2.06;ClippingRankSum=1.25;DP=28398;ExcessHet=3.0214;FS=8.
+            chr1\t69761\t.\tA\tT\t47352.67\t.\tAC=147;AF=0.096;AN=1524;BaseQRankSum=0.713;ClippingRankSum=0.056;DP=10061;ExcessHet=-0.0000;FS=5
+    """, from_string=True)
+    
+    vcffiles2.write_recipes()
+    files_path = vcffiles2.recipe_dirs["vcffiles"]   
+
+    assert check_recipe.check_header(files_path) == False
+
+    ## test vcf: bgzip it and tabix it
+    for f in os.listdir(files_path):
+        sp.check_output("bgzip -c "+os.path.join(files_path,f)+" > "+os.path.join(files_path,f)+".gz", shell=True)
+        sp.check_output("tabix "+os.path.join(files_path,f)+".gz", shell=True)
+
+    assert check_recipe.check_header(files_path) == False
+
+
+    ## Test bed file without header
+    bedfiles = CreateRecipe(
+    """
+    bedfiles:
+        cpg.bed: |
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+    """, from_string=True)
+    
+    bedfiles.write_recipes()
+    files_path = bedfiles.recipe_dirs["bedfiles"]   
+
+    assert check_recipe.check_header(files_path) == False
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        check_recipe.check_header(files_path)
+    output = temp_stdout.getvalue().strip()
+    assert ":ggd:check-recipe: !!ERROR!! No header found for file" in output
+    assert ":ggd:check-recipe: !!ERROR!! A header is required for this type of file" in output
+
+
+    ## Test bed file with header
+    bedfiles2 = CreateRecipe(
+    """
+    bedfiles:
+        cpg.bed: |
+            #chrom\tstart\tend\tscore
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+    """, from_string=True)
+    
+    bedfiles2.write_recipes()
+    files_path = bedfiles2.recipe_dirs["bedfiles"]   
+
+    assert check_recipe.check_header(files_path) == True
+
+
+    ## Tets a gtf without a header
+    gtffiles = CreateRecipe(
+    """
+    gtffiles:
+        hg19.gtf: |
+            chr1\thg19_knownGene\texon\t11874\t12227\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr1\thg19_knownGene\tstart_codon\t12190\t12192\t0.000000\t+\t.\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\tCDS\t12190\t12227\t0.000000\t+\t0\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\texon\t12595\t12721\t0.000000\t+\t.\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\texon\t12613\t12721\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr1\thg19_knownGene\texon\t13221\t14409\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+    """, from_string=True)
+    
+    gtffiles.write_recipes()
+    files_path = gtffiles.recipe_dirs["gtffiles"]   
+
+    assert check_recipe.check_header(files_path) == False
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        check_recipe.check_header(files_path)
+    output = temp_stdout.getvalue().strip()
+    assert ":ggd:check-recipe: !!ERROR!! No header found for file" in output
+    assert ":ggd:check-recipe: !!ERROR!! A header is required for this type of file" in output
+
+
+    ## Tets a gtf with a header
+    gtffiles2 = CreateRecipe(
+    """
+    gtffiles:
+        hg19.gtf: |
+            #chrom\tsource\tfeature\tstart\tend\tscore\tstrand\tfname\tattribute
+            chr1\thg19_knownGene\texon\t11874\t12227\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr1\thg19_knownGene\tstart_codon\t12190\t12192\t0.000000\t+\t.\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\tCDS\t12190\t12227\t0.000000\t+\t0\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\texon\t12595\t12721\t0.000000\t+\t.\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\texon\t12613\t12721\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr1\thg19_knownGene\texon\t13221\t14409\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+    """, from_string=True)
+    
+    gtffiles2.write_recipes()
+    files_path = gtffiles2.recipe_dirs["gtffiles"]   
+
+    assert check_recipe.check_header(files_path) == True
+
+
+    ## Test a non standard genomic extention file 
+    otherfiles = CreateRecipe(
+    """
+    otherfiles:
+        otherfiles.some_extension: |
+            chr1\t28735\t29810\t116
+            chr1\t135124\t135563\t30
+            chr1\t327790\t328229\t29
+            chr1\t437151\t438164\t84
+            chr1\t449273\t450544\t99
+            chr1\t533219\t534114\t94
+            chr1\t544738\t546649\t171
+            chr1\t713984\t714547\t60
+            chr1\t762416\t763445\t115
+            chr1\t788863\t789211\t28
+    """, from_string=True)
+    
+    otherfiles.write_recipes()
+    files_path = otherfiles.recipe_dirs["otherfiles"]   
+
+    assert check_recipe.check_header(files_path) == True
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        check_recipe.check_header(files_path)
+    output = temp_stdout.getvalue().strip()
+    assert ":ggd:check-recipe: !!WARNING!! GGD requires that any file that can have a header should. Please either add a header or if the file cannot have a header move forward." in output 
+    assert ":ggd:check-recipe: !!WARNING!! IF you move forwared without adding a header when one should be added, this recipe will be rejected until a header is added." in output
 
 
 def get_a_tarfile():
@@ -3266,7 +3573,8 @@ def test_check_files_good_genomic_file():
     for f in os.listdir(files_path):
         if ".fa" not in f:
             sp.check_output("bgzip -c "+os.path.join(files_path,f)+" > "+os.path.join(files_path,f)+".gz", shell=True)
-            out = sp.check_output("tabix "+os.path.join(files_path,f)+".gz", shell=True)
+            out = sp.check_output("tabix "+os.path.join(files_path,f)+".gz", shell=True) ## Create a .tbi file
+            out = sp.check_output("tabix -C "+os.path.join(files_path,f)+".gz", shell=True) ## Create .csi file
 
     species = "Homo_sapiens"
     build = "hg19"
@@ -3294,8 +3602,88 @@ def test_check_files_good_genomic_file():
     for file_tuple in file_tuples:
         sp.check_output(["touch", "-m", file_tuple[0]])
 
-    ## Check correct run of check_files
-    assert check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path) == True  
+    ## Check correct run of check_files. An empty list should be returned. 
+    assert check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path) == []  
+
+    ## Remove the tempfile
+    os.remove(hold_tarfile_path)
+
+
+    ## Check that extra files is handled
+    files2 = CreateRecipe(
+    """
+    genomicfiles:
+        test.fa: |
+            >chr1
+            CTGAAGAACTGTCTGCACCCAGGGCAGAGATTACGGGGTTCTGAGGTTCCCCCGCCCCGCGGCCTCTCTT
+            GGCGGCTGTGCGTGTTCAGTTGCCTTCATTGAAACCCAAGCATCCGTCCTCGGCTGCCACCGACACAGGT
+            CAAGGCCACCCAGGAGGAGACACTGTGGGGCCCTGCCCAGTTCTCACGGGTATCGCATTTTGGCAGGACG
+            >chr2
+            GGCGGCTGTGCGTGTTCAGTTGCCTTCATTGAAACCCAAGCATCCGTCCTCGGCTGCCACCGACACAGGT
+            CAAGGCCACCCAGGAGGAGACACTGTGGGGCCCTGCCCAGTTCTCACGGGTATCGCATTTTGGCAGGACG
+            CTGAAGAACTGTCTGCACCCAGGGCAGAGATTACGGGGTTCTGAGGTTCCCCCGCCCCGCGGCCTCTCTT
+            >chr3
+            CAAGGCCACCCAGGAGGAGACACTGTGGGGCCCTGCCCAGTTCTCACGGGTATCGCATTTTGGCAGGACG
+            CTGAAGAACTGTCTGCACCCAGGGCAGAGATTACGGGGTTCTGAGGTTCCCCCGCCCCGCGGCCTCTCTT
+            GGCGGCTGTGCGTGTTCAGTTGCCTTCATTGAAACCCAAGCATCCGTCCTCGGCTGCCACCGACACAGGT
+        test.fa.fai: |
+            chr1\t249250621\t6\t50\t51  
+            chr2\t243199373\t254235646\t50\t51  
+            chr3\t198022430\t502299013\t50\t51  
+            chr4\t191154276\t704281898\t50\t51  
+            chr5\t180915260\t899259266\t50\t51  
+        extra.file: |
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+        extra.file2: |
+            ##gff-version   3
+            ##sequence-region   1 1 249250621
+            ##sequence-region   10 1 135534747
+            ##sequence-region   11 1 135006516
+            ##sequence-region   12 1 133851895
+            ##sequence-region   13 1 115169878
+            chr1\tEponine\tbiological_region\t10650\t10657\t0.999\t+\t.\tlogic_name=eponine
+            chr1\tEponine\tbiological_region\t10656\t10658\t0.999\t-\t.\tlogic_name=eponine
+            chr1\tEponine\tbiological_region\t10678\t10687\t0.999\t+\t.\tlogic_name=eponine
+            chr1\tEponine\tbiological_region\t10682\t10689\t0.999\t-\t.\tlogic_name=eponine
+    """, from_string=True)
+
+    files2.write_recipes()
+
+    files_path = files2.recipe_dirs["genomicfiles"]   
+
+    ## Create a .gz and .gz.tbi file for each genomic file other than .fa
+
+    species = "Homo_sapiens"
+    build = "hg19"
+    name = "testing-hg19-recipe-v1"
+    file_tuples = check_recipe.list_files(files_path)
+
+    ## Get tarfile
+    tarfile_path = get_a_tarfile()
+    ## Copy tarfile to temp location
+    tempdir = os.path.join(tempfile.gettempdir(), "tarfile_copy")
+    hold_tarfile_path = copy_tarfile(tarfile_path, tempdir)
+
+    ## Copy the hold_tarfile_path back to the original file path
+    tarfile_dir_path = os.path.dirname(tarfile_path)
+    tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
+
+    ## Modify files
+    time.sleep(1)
+    for file_tuple in file_tuples:
+        sp.check_output(["touch", "-m", file_tuple[0]])
+
+    ## Check correct run of check_files. An empty list should be returned. 
+    assert check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path) == ["extra.file","extra.file2"]  
 
     ## Remove the tempfile
     os.remove(hold_tarfile_path)
@@ -3787,6 +4175,4 @@ def test_check_yaml():
     except Exception as e:
         print(str(e))
         assert False
-
-
 
