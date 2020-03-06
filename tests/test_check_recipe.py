@@ -1855,7 +1855,10 @@ def test_check_recipe_package_env_vars():
             #!/bin/sh
             set -eo pipefail -o nounset
             wget --quiet https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
-            wget --quiet http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz 
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz \
+                | gzip -dc \
+                | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \
+                | bgzip -c > two_files_noindex_v1.txt.gz
 
         post-link.sh: |
             set -eo pipefail -o nounset
@@ -2020,7 +2023,10 @@ def test_check_recipe_package_env_vars():
             #!/bin/sh
             set -eo pipefail -o nounset
             wget --quiet https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
-            wget --quiet http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz 
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz \
+                | gzip -dc \
+                | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \
+                | bgzip -c > gap.txt.gz
             cp gap.txt.gz gaps.1.txt.gz
             mv gap.txt.gz gaps.2.txt.gz
 
@@ -3683,7 +3689,10 @@ def test_check_files_good_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     ## Check correct run of check_files. An empty list should be returned. 
-    assert check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path) == ["extra.file","extra.file2"]  
+    extra_file_list = check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path)
+    assert len(extra_file_list) == 2
+    assert "extra.file" in extra_file_list
+    assert "extra.file2" in extra_file_list  
 
     ## Remove the tempfile
     os.remove(hold_tarfile_path)
