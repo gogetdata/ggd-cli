@@ -2,7 +2,7 @@ requests>=2.20.0
 pyyaml
 gitpython
 git
-conda=4.7.12
+conda=4.8.2
 conda-build=3.18.11
 ripgrep
 fuzzywuzzy
