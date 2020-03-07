@@ -441,22 +441,21 @@ def test_check_conda_pkg_dir():
 
     ## Test prefix not set:
     ### Temp conda environment 
-    temp_env = os.path.join(utils.conda_root(), "envs", "check_pkg_info_dif")
+    temp_env = os.path.join(utils.conda_root(), "envs", "check_pkg_info_dir")
     ### Remove temp env if it already exists
-    sp.check_output(["conda", "env", "remove", "--name", "check_pkg_info_dif"])
+    sp.check_output(["conda", "env", "remove", "--name", "check_pkg_info_dir"])
     try: 
         shutil.rmtree(temp_env)
     except Exception:
         pass 
     ### Create conda environmnet 
-    sp.check_output(["conda", "create", "--name", "check_pkg_info_dif"])
+    sp.check_output(["conda", "create", "--name", "check_pkg_info_dir"])
 
     ## Test for a info dir and pkg dir that do not exists
     try:
         utils.check_conda_pkg_dir(temp_env) 
-    except IOError as e:
+    except OSError as e:
         assert "No such file or directory" in str(e)
-
 
     ### Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
@@ -482,7 +481,7 @@ def test_check_conda_pkg_dir():
     assert os.path.exists(os.path.join(conda_pkg_dir,installed_pkg)) == True
 
     ### Remove temp env
-    sp.check_output(["conda", "env", "remove", "--name", "check_pkg_info_dif"])
+    sp.check_output(["conda", "env", "remove", "--name", "check_pkg_info_dir"])
     try:
         shutil.rmtree(temp_env)
     except Exception:
