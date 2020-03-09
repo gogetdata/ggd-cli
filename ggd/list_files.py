@@ -58,7 +58,6 @@ def add_list_files(p):
     c.add_argument(
         "name",
         help="pattern to match recipe name(s)."
-        + ' Ex. `ggd list-files "hg19-hello*" -s "Homo_sapiens" -g "hg19" -p "out*"`',
     )
     c.set_defaults(func=list_files)
 
