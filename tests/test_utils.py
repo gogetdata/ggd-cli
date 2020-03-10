@@ -200,8 +200,8 @@ def test_get_required_conda_version():
     ## Test that the conda version is greater than or equal to 4.6.8. (4.6.8 is the oldest release where all tests passed and ggd was work.)
     ## As of 4/10/2019 the latest conda version that works with all tests passing is 4.6.12
     assert int(version_list[0]) == 4 ## Conda version == 4.*.*
-    assert int(version_list[1]) == 7 ## Conda version == *.6.*
-    assert int(version_list[2]) >= 5 ## Conda version >= *.*.8
+    assert int(version_list[1]) == 8 ## Conda version == *.8.*
+    assert int(version_list[2]) >= 2 ## Conda version >= *.*.2
     
 
 def test_check_output():
@@ -427,6 +427,61 @@ def test_update_installed_pkg_metadata():
 
     ### Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "temp_env9"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
+def test_check_conda_pkg_dir(): 
+    """
+    Test that the check_conda_pkg_dir correctly replaces an installed ggd .tar.bz2 if it has been removed from the conda pkg dir  
+    """
+
+    ## Test prefix not set:
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "check_pkg_info_dir")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "check_pkg_info_dir"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "check_pkg_info_dir"])
+
+    ## Test for a info dir and pkg dir that do not exists
+    try:
+        utils.check_conda_pkg_dir(temp_env) 
+    except OSError as e:
+        assert "No such file or directory" in str(e)
+
+    ### Install ggd recipe using conda into temp_env
+    ggd_package = "hg19-pfam-domains-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
+    assert install.install((), install_args) == True 
+
+    ## Check that there is no errors
+    assert utils.check_conda_pkg_dir(temp_env) == True 
+
+
+    ## Check a tar.bz2 file removed from conda pkg dir
+    conda_pkg_dir = os.path.join(temp_env,"pkgs")
+    installed_ggd_pkgs = utils.get_conda_package_list(temp_env)
+    installed_pkg =  ggd_package + "-" + installed_ggd_pkgs[ggd_package]["version"] + "-"+ installed_ggd_pkgs[ggd_package]["build"] + ".tar.bz2" 
+
+    ## Remove the pkg from the conda pkg dir 
+    if os.path.exists(os.path.join(conda_pkg_dir,installed_pkg)):
+        os.remove(os.path.join(conda_pkg_dir,installed_pkg))
+
+    ## Test that when a pkg tar file does not exists in the conda pkg dir, ggd will replace it 
+    assert os.path.exists(os.path.join(conda_pkg_dir,installed_pkg)) == False
+    assert utils.check_conda_pkg_dir(temp_env) == True 
+    assert os.path.exists(os.path.join(conda_pkg_dir,installed_pkg)) == True
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "check_pkg_info_dir"])
     try:
         shutil.rmtree(temp_env)
     except Exception:

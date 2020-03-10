@@ -32,6 +32,9 @@ elif sys.version_info[0] == 2:
     from StringIO import StringIO
 
 
+from conda.base.context import context
+CONDA_ROOT = context.target_prefix
+
 #---------------------------------------------------------------------------------------------------------
 ## enable socket
 #---------------------------------------------------------------------------------------------------------
@@ -1003,6 +1006,9 @@ def test_install_checksum():
 
     from ggd import check_recipe
 
+    ## Chec kif the recipe is already installed
+    if "trail-recipe-v1" in sp.check_output(["conda list {}".format("trail-recipe-v1")], shell=True).decode("utf8"):
+        sp.check_output(["conda uninstall trail-recipe-v1 -y"], shell = True)
     ## Create recipe
     recipe_dir_path = recipe.recipe_dirs["trial-recipe-v1"] 
     ## Remove checksum file
@@ -1013,6 +1019,7 @@ def test_install_checksum():
     assert os.path.isfile(tarball_file_path)
     ## Install recipe
     assert check_recipe._install(tarball_file_path, "trial-recipe-v1") == True
+
     
     ## Fake ggd_jdict
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-recipe-v1': 
