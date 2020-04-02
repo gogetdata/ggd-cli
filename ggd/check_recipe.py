@@ -944,10 +944,10 @@ def check_header(install_path):
                             line = line.strip().decode("utf-8")
 
                         if len(line) > 0 and str(line)[0] == "#":
-                            header.append(str(line))
+                            header.append(str(line).strip())
 
                         else:
-                            body.append(str(line))
+                            body.append(str(line).strip())
                             if len(body) > 4:
                                 break
 
