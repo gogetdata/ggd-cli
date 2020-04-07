@@ -122,6 +122,9 @@ def _build(path, recipe, debug=False):
     """
     from .install import check_ggd_recipe
 
+    ## Set CONDA_SOURCE_PREFIX environment variable for any ggd dependencies that will be installed during the build 
+    os.environ["CONDA_SOURCE_PREFIX"] = conda_root()
+
     sp.check_call(["conda", "build", "purge"], stderr=sys.stderr, stdout=sys.stdout)
     try:
         if debug:
