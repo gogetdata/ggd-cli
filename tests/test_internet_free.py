@@ -589,10 +589,10 @@ def test_info_main_internet_free():
     assert lines[2] == "\t\x1b[1mGGD-Package:\x1b[0m {}".format(ggd_package) 
     assert lines[4] == "\t\x1b[1mGGD-Channel:\x1b[0m ggd-{}".format(ggd_channel)
     assert lines[6] == "\t\x1b[1mGGD Pkg Version:\x1b[0m 1"
-    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format"
+    assert lines[8] == "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed fromat. Scaffoldings that are not contained in the hg19.genome file are removed"
     assert lines[10] == "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens"
     assert lines[12] == "\t\x1b[1mGenome Build:\x1b[0m hg19"
-    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file"
+    assert lines[14] == "\t\x1b[1mKeywords:\x1b[0m gaps, regions, gap-locations, Assembly-Gaps, clone-gaps, contig-gaps, centromere-gaps, telomere-gaps, heterochromatin-gaps, short-arm-gaps"
     assert lines[16] == "\t\x1b[1mCached:\x1b[0m uploaded_to_aws"
 
 

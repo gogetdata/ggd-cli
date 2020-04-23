@@ -998,7 +998,7 @@ def test_install_checksum():
             echo 'Recipe successfully built!'
 
         checksums_file.txt: |
-            trial-recipe-v1.genome\t2aed13a997b3cc454e16cc0bf67080cd
+            trial-recipe-v1.genome\t54416e6d1884e0178e5819fbd4f3a38f
 
     """, from_string=True)
 
@@ -1006,7 +1006,7 @@ def test_install_checksum():
 
     from ggd import check_recipe
 
-    ## Chec kif the recipe is already installed
+    ## Check if the recipe is already installed
     if "trail-recipe-v1" in sp.check_output(["conda list {}".format("trail-recipe-v1")], shell=True).decode("utf8"):
         sp.check_output(["conda uninstall trail-recipe-v1 -y"], shell = True)
     ## Create recipe
@@ -1037,8 +1037,8 @@ def test_install_checksum():
         install.install_checksum(["trial-recipe-v1"],ggd_jdict)
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:install: Checksum for trial-recipe-v1" in output
-    assert ":ggd:checksum: installed  file checksum: trial-recipe-v1.genome checksum: 2aed13a997b3cc454e16cc0bf67080cd" in output
-    assert ":ggd:checksum: metadata checksum record: trial-recipe-v1.genome checksum: 2aed13a997b3cc454e16cc0bf67080cd" in output
+    assert ":ggd:checksum: installed  file checksum: trial-recipe-v1.genome checksum: 54416e6d1884e0178e5819fbd4f3a38f" in output
+    assert ":ggd:checksum: metadata checksum record: trial-recipe-v1.genome checksum: 54416e6d1884e0178e5819fbd4f3a38f" in output
     assert ":ggd:install: ** Successful Checksum **" in output
 
     ## Create fake recipes
@@ -1066,7 +1066,6 @@ def test_install_checksum():
     trial_recipe2_path = fakerecipe.recipe_dirs["trial_recipe_dir2"]
 
     if os.path.exists(os.path.join(utils.conda_root(),"pkgs","trial-recipe-v1-1-0.tar.bz2")):
-        print("Exists")
         os.remove(os.path.join(utils.conda_root(),"pkgs","trial-recipe-v1-1-0.tar.bz2"))
 
     import tarfile
@@ -1079,8 +1078,6 @@ def test_install_checksum():
     with redirect_stdout(temp_stdout):
         install.install_checksum(["trial-recipe-v1"],ggd_jdict)
     output2 = temp_stdout.getvalue().strip() 
-    print("TEST2")
-    print(output2)
     assert ":ggd:install: WARNING: Checksum file not available for the trial-recipe-v1 data package. Data file content validation will be skipped" in output2
 
 

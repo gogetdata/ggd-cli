@@ -983,12 +983,12 @@ def test_info_main():
     assert "\t\x1b[1mGGD-Package:\x1b[0m hg19-gaps-ucsc-v1" in output 
     assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics" in output
     assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
-    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format" in output
+    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed fromat. Scaffoldings that are not contained in the hg19.genome file are removed" in output
     assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
     assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
-    assert "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file" in output
+    assert "\t\x1b[1mKeywords:\x1b[0m gaps, regions, gap-locations, Assembly-Gaps, clone-gaps, contig-gaps, centromere-gaps, telomere-gaps, heterochromatin-gaps, short-arm-gaps" in output
     assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
-    assert "\t\x1b[1mData Version:\x1b[0m 27-Apr-2009" in output
+    assert "\t\x1b[1mData Version:\x1b[0m 22-Mar-2020" in output
     conda_root = utils.conda_root()
     assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) in output 
     assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
@@ -1008,10 +1008,10 @@ def test_info_main():
     assert "\t\x1b[1mGGD-Package:\x1b[0m {}".format(ggd_package) in output 
     assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-{}".format(ggd_channel) in output
     assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
-    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed format" in output
+    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed fromat. Scaffoldings that are not contained in the hg19.genome file are removed" in output
     assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
     assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
-    assert "\t\x1b[1mKeywords:\x1b[0m gaps, region, bed-file" in output
+    assert "\t\x1b[1mKeywords:\x1b[0m gaps, regions, gap-locations, Assembly-Gaps, clone-gaps, contig-gaps, centromere-gaps, telomere-gaps, heterochromatin-gaps, short-arm-gaps" in output
     assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
     assert "{} recipe file:\n***********************".format(ggd_package) in output 
 

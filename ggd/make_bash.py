@@ -237,6 +237,22 @@ def make_bash(parser, args):
         )
     )
 
+
+
+    from .search import load_json
+    from .utils import get_channel_data
+
+    ## Get a list of ggd packages
+    ggd_packages = set()
+    for channel in CHANNEL_LIST:
+        channel = channel.decode("utf-8") if not isinstance(channel,str) else channel
+        json_dict = load_json(get_channel_data(channel))
+        ggd_packages.update(json_dict["packages"].keys())
+
+    ## Get non-ggd dependencies 
+    non_ggd_deps = [x for x in deps if x not in ggd_packages]
+
+
     extra_files = []
     for f in args.extra_file:
         flist = f.strip().split(".")
@@ -278,7 +294,7 @@ def make_bash(parser, args):
         }
     yml2 = {"extra": {"authors": args.authors, "extra-files": extra_files,}}
     yml3 = {"package": {"name": name, "version": args.package_version}}
-    yml4 = {"requirements": {"build": deps[:], "run": deps[:]}}
+    yml4 = {"requirements": {"build": non_ggd_deps[:], "run": deps[:]}}
     yml5 = {"source": {"path": "."}}
     yml6 = {
         "about": {
