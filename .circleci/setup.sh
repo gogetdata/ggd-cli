@@ -48,7 +48,9 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
     conda config --system --add channels ggd-genomics
 
     ## Add strict priority 
-    conda config --system --add channel_priority: strict
+    echo "channel_priority: strict" >> ~/.condarc
+
+    cat ~/.condarc
 
     # step 3: install ggd requirements 
     conda install -y --file requirements.txt 
