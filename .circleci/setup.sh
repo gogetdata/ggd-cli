@@ -33,16 +33,13 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
         exit 1
     fi  
 
-    curl -O https://repo.continuum.io/miniconda/Miniconda$pythonversion-latest-$tag-x86_64.sh
-    ls -lh
+    curl -L -O https://repo.continuum.io/miniconda/Miniconda$pythonversion-latest-$tag-x86_64.sh
     sudo bash Miniconda$pythonversion-latest-$tag-x86_64.sh -b -p $WORKSPACE/anaconda/
-    ls -lh $WORKSPACE/anaconda/
     sudo chown -R $USER $WORKSPACE/anaconda/
     curl -Lo $WORKSPACE/anaconda/bin/check-sort-order https://github.com/gogetdata/ggd-utils/releases/download/v0.0.6/check-sort-order-$tag2\_amd64
 
     chmod +x $WORKSPACE/anaconda/bin/check-sort-order
     mkdir -p $WORKSPACE/anaconda/conda-bld/$tag-64
-
 
     # step 2: setup channels
     conda config --system --add channels defaults
