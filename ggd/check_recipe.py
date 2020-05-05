@@ -867,7 +867,7 @@ def check_header(install_path):
         f_path = os.path.join(install_path, file_name)
 
         ## Check for an index file
-        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw"]):
+        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw","csi"]):
             continue 
 
         ## Skip fasta or fastq files
