@@ -625,6 +625,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     New meta.yaml fields = 
         - final-files
         - file-type
+        - final-file-sizes
 
     Parameters:
     -----------
@@ -639,6 +640,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     """
     print("\n:ggd:check-recipe: Updating the list of final data files\n")
     import glob
+    from .utils import get_file_size
 
     file_types = set(
         [
@@ -685,11 +687,20 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
 
     yaml_dict["about"]["tags"]["final-files"] = []
     final_file_types = set()
+    file_size_dict = dict()
 
     ## Add final data files to yaml dict
     for ffile_path in installed_files:
+
+        ## Get the Final File
         ffile = os.path.basename(ffile_path)
         yaml_dict["about"]["tags"]["final-files"].append(ffile)
+
+        ## Get the size of the final file
+        file_size = get_file_size(ffile_path)
+        file_size_dict[ffile] = file_size
+
+        ## the file type of the final file 
         ftype = [x for x in file_types if x in ffile.lower().split(".")]
         if ftype:
             final_file_types.update(ftype)
@@ -699,6 +710,9 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     ## Create a file-type key in the yaml
     yaml_dict["about"]["tags"]["file-type"] = sorted(list(final_file_types))
 
+    ## Add file sizes
+    yaml_dict["about"]["tags"]["final-file-sizes"] = file_size_dict
+
     ## Sort final files
     yaml_dict["about"]["tags"]["final-files"] = sorted(
         yaml_dict["about"]["tags"]["final-files"]
@@ -706,7 +720,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
 
     ## Add extra files if they exists
     if extra_files:
-        print(":ggd:check-recipe: Attempting to add the extra files not already added in the mat.yaml file\n")
+        print(":ggd:check-recipe: Attempting to add the extra files not already added in the meta.yaml file\n")
         yaml_dict["extra"]["extra-files"] = extra_files
 
     ## Rewrite yaml file with new tags and new final files
@@ -867,7 +881,7 @@ def check_header(install_path):
         f_path = os.path.join(install_path, file_name)
 
         ## Check for an index file
-        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw"]):
+        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw","csi"]):
             continue 
 
         ## Skip fasta or fastq files

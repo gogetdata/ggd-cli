@@ -307,6 +307,7 @@ def make_bash(parser, args):
                 "data-provider": args.data_provider.strip(),
                 "file-type": [],
                 "final-files": [],
+                "final-file-sizes": {},
                 "ggd-channel": args.channel,
             },
         }
