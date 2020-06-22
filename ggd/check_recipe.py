@@ -208,8 +208,8 @@ def _install(bz2, recipe_name, debug=False):
     import traceback
     from .utils import get_conda_package_list, get_required_conda_version
 
-    conda_version = get_required_conda_version()
-    conda_install = "conda=" + conda_version
+    conda_version, equals = get_required_conda_version()
+    conda_install = "\"" + "conda" + equals + conda_version + "\""
 
     ## See if it is already installed
     if recipe_name in get_conda_package_list(conda_root(),include_local=True).keys():
@@ -1162,6 +1162,15 @@ def check_yaml(recipe):
     assert (
         "ggd-channel" in recipe["about"]["tags"]
     ), ":ggd:check-recipe: must specify the specific ggd channel for the recipe in the 'about:tags' section"
+    assert (
+        "file-type" in recipe["about"]["tags"]
+    ),  ":ggd:check-recipe: The final data file types must be specified in the 'about:tags' section"
+    assert (
+        "final-files" in recipe["about"]["tags"]
+    ),  ":ggd:check-recipe: All final data file must be specified in the 'about:tags' section"
+    assert (
+        "final-file-sizes" in recipe["about"]["tags"]
+    ),  ":ggd:check-recipe: The size of each final data file must be specified in the 'about:tags' section"
 
     species, build, version, name = (
         recipe["about"]["identifiers"]["species"],
