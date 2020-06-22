@@ -58,10 +58,14 @@ def get_channeldata(ggd_recipe, ggd_channel):
     if check_for_internet_connection():
         CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
         jdict = load_json_from_url(CHANNEL_DATA_URL)
+        ## Remove the ggd key if it exists
+        ggd_key = jdict["packages"].pop("ggd", None)
     else:
         try:
             ## If no internet connection just load from the local file
             jdict = load_json(get_channel_data(ggd_channel))
+            ## Remove the ggd key if it exists
+            ggd_key = jdict["packages"].pop("ggd", None)
         except:
             pass
 
