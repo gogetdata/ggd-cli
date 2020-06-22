@@ -128,15 +128,20 @@ def get_required_conda_version():
     Return:
     +++++++
     1) The required version if found, else -1
+    2) An = or >= depending on the requirement
     """
 
     req = requests.get(GGD_CLI_REQUIREMENTS, stream=True)
 
     conda_version = -1
+    equals = "="
     for line in req.iter_lines():
         if "conda=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split("=")[1]
-    return conda_version
+        elif "conda>=" in str(line.decode()):
+            conda_version = str(line.decode()).strip().split("=")[1]
+            equals = ">="
+    return conda_version, equals 
 
 
 def check_output(args, **kwargs):
