@@ -344,7 +344,7 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                 if "data-provider" in json_dict["packages"][pkg]["tags"]:
                     results.append(
                         "\t{} {}".format(
-                            ("\033[1m" + "Data Provider" + "\033[0m"),
+                            ("\033[1m" + "Data Provider:" + "\033[0m"),
                             json_dict["packages"][pkg]["tags"]["data-provider"],
                         )
                     )
