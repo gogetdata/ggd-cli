@@ -989,12 +989,14 @@ def test_info_main():
     assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
     assert "\t\x1b[1mKeywords:\x1b[0m gaps, regions, gap-locations, Assembly-Gaps, clone-gaps, contig-gaps, centromere-gaps, telomere-gaps, heterochromatin-gaps, short-arm-gaps" in output
     assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
+
     assert "\t\x1b[1mData Provider:\x1b[0m UCSC" in output
     assert "\t\x1b[1mData Version:\x1b[0m 22-Mar-2020" in output
     assert "\t\x1b[1mFile type(s):\x1b[0m bed" in output
     assert "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive" in output
     assert "\t\x1b[1mIncluded Data Files:\x1b[0m" in output
     assert "\t\x1b[1mApproximate Data File Sizes:\x1b[0m" in output
+
     conda_root = utils.conda_root()
     assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) in output 
     assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
