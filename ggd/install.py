@@ -83,8 +83,14 @@ def check_ggd_recipe(ggd_recipe, ggd_channel):
     from .utils import get_channeldata_url
 
     CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
+    ## Get ggd repodata
     jdict = load_json_from_url(CHANNEL_DATA_URL)
+    ## Remove the ggd key if it exists
+    ggd_key = jdict["packages"].pop("ggd", None)
+
     package_list = search_packages(jdict, [ggd_recipe])
+
+
     if ggd_recipe in package_list:
         print(
             "\n:ggd:install: %s exists in the ggd-%s channel"
@@ -342,10 +348,10 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None)
     target_prefix = prefix if prefix != None else conda_root()
 
     ## Get conda version
-    conda_version = str(get_required_conda_version())
+    conda_version, equals = get_required_conda_version()
 
     ## create install string
-    conda_install_str = "conda=" + conda_version
+    conda_install_str = "\"" + "conda" + equals + str(conda_version) + "\"" 
 
     ## Add debug option
     conda_install_str += " --debug" if debug else ""
