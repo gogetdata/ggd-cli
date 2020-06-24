@@ -910,6 +910,8 @@ def test_install_checksum():
                 data-provider: UCSC
                 file-type: 
                 - genome
+                final-file-sizes:
+                  hg19-chromsizes-ggd-v1.txt: 1.99K
                 final-files: 
                 - trial-recipe-v1.genome
                 ggd-channel: genomics
