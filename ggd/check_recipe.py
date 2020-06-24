@@ -227,11 +227,11 @@ def _install(bz2, recipe_name, debug=False):
                         "conda",
                         "install",
                         "-v",
+                        "-v",
                         "--use-local",
                         "-y",
                         recipe_name,
                         conda_install,
-                        "--debug",
                     ],
                     stderr=sys.stderr,
                     stdout=sys.stdout,
@@ -257,10 +257,10 @@ def _install(bz2, recipe_name, debug=False):
                         "conda",
                         "install",
                         "-v",
+                        "-v",
                         "--use-local",
                         "-y",
                         recipe_name,
-                        "--debug",
                     ],
                     stderr=sys.stderr,
                     stdout=sys.stdout,
@@ -654,6 +654,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
             "vcf",
             "bcf",
             "bed",
+            "bedpe",
             "bigwig",
             "bw",
             "gff",
@@ -744,7 +745,8 @@ def check_final_files(installed_dir_path, yaml_file):
 
     check_final_files
     =================
-    Method to check that the final installed files from the data recipe are the same files listed in the meta.yaml file
+    Method to check that the final installed files from the data recipe are the same files listed in the meta.yaml file, 
+     as well as are the same size indiciated in the meta.yaml file
 
     Parameters:
     -----------
@@ -757,6 +759,7 @@ def check_final_files(installed_dir_path, yaml_file):
     """
     print(":ggd:check-recipe: Checking the final data files\n")
     import glob
+    from .utils import get_file_size
 
     installed_files = glob.glob(op.join(installed_dir_path, "*"))
 
@@ -788,6 +791,19 @@ def check_final_files(installed_dir_path, yaml_file):
         ), ":ggd:check-recipe: The {ff} file designated in the recipes is not a file in the installed path".format(
             ff=ffile
         )
+        assert (
+            ffile in yaml_file["about"]["tags"]["final-file-sizes"] 
+        ),  ":ggd:check-recipe: The file size for the '{}' data file is missing from the metadata".format(
+            ffile
+        )
+        file_size = get_file_size(ffile_path)
+        assert ( 
+            file_size == yaml_file["about"]["tags"]["final-file-sizes"][ffile]
+        ),  ":ggd:check-recipe: The size of the data file '{} is {}, which does not match the file size in metadata {}".format(
+            ffile, 
+            file_size, 
+            yaml_file["about"]["tags"]["final-file-sizes"][ffile]
+        )  
 
     return True
 
@@ -881,7 +897,7 @@ def check_header(install_path):
         f_path = os.path.join(install_path, file_name)
 
         ## Check for an index file
-        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw","csi"]):
+        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw","csi","gzi"]):
             continue 
 
         ## Skip fasta or fastq files
@@ -1074,6 +1090,7 @@ def check_files(
             (
                 ".bed",
                 ".bed.gz",
+                ".bedpe.gz",
                 ".vcf",
                 ".vcf.gz",
                 ".gff",
