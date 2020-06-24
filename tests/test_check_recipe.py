@@ -651,16 +651,24 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
                     - trial-bad-hg38-gaps-v1.bed.gz.tbi """
             ft = """file-type: 
                     - bed """
+            ffs = """final-file-sizes:
+                       trial-bad-hg38-gaps-v1.bed.gz: 33.2k
+                       trial-bad-hg38-gaps-v1.bed.gz.tbi: 5.6k"""
+
         else:
             ff = """final-files:
                     - trial-hg38-gaps-v1.bed.gz
                     - trial-hg38-gaps-v1.bed.gz.tbi """
             ft = """file-type: 
                     - bed """
+            ffs = """final-file-sizes:
+                       trial-hg38-gaps-v1.bed.gz: 9.20K
+                       trial-hg38-gaps-v1.bed.gz.tbi: 10.72K"""
         
     else:
         ff = "final-files: []"
         ft = "file-type: []"
+        ffs = "final-file-sizes: {}"
 
     if remove_header:
         header = ""
@@ -706,6 +714,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
                 genomic-coordinate-base: 0-based-inclusive
                 data-version: 11-Mar-2019
                 data-provider: UCSC
+                %s
                 %s
                 %s
                 ggd-channel: genomics
@@ -802,7 +811,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
 
         checksums_file.txt: |
             
-    """ %(ff, ft, header), from_string=True)
+    """ %(ff, ft, ffs, header), from_string=True)
 
     recipe.write_recipes()
 
@@ -1365,7 +1374,7 @@ def test_check_recipe_recipe_path():
         assert not os.path.exists(bz2_file)
         assert not os.path.isfile(bz2_file)
     except AssertionError as e:
-        if os.path.exsits(bz2_file):
+        if os.path.exists(bz2_file):
             os.remove(bz2_file)
         else:
             raise e
@@ -1512,6 +1521,8 @@ def test_check_recipe_package_env_vars():
                 - bw
                 final-files: 
                 - one_file_v1.bw
+                final-file-sizes:
+                  one_file_v1.bw: 10.1K
                 data-provider: UCSC
                 ggd-channel: genomics
         
@@ -1676,6 +1687,9 @@ def test_check_recipe_package_env_vars():
                 final-files: 
                 - two_files_v1.bed.gz
                 - two_files_v1.bed.gz.tbi
+                final-file-sizes:
+                  two_files_v1.bed.gz: 24.02K
+                  two_files_v1.bed.gz.tbi: 10.24K
                 ggd-channel: genomics
 
         
@@ -1860,6 +1874,9 @@ def test_check_recipe_package_env_vars():
                 final-files: 
                 - two_files_noindex_v1.genome
                 - two_files_noindex_v1.txt.gz
+                final-file-sizes: 
+                  two_files_noindex_v1.genome: 10.01K
+                  two_files_noindex_v1.txt.gz: 12.41K
                 ggd-channel: genomics
         
         recipe.sh: |
@@ -2031,6 +2048,10 @@ def test_check_recipe_package_env_vars():
                 - three_files_v1.1.txt.gz
                 - three_files_v1.2.txt.gz
                 - three_files_v1.genome
+                final-file-sizes: 
+                  three_files_v1.1.txt.gz: 24.04K
+                  three_files_v1.2.txt.gz: 24.04K
+                  three_files_v1.genome: 10.01K
                 ggd-channel: genomics
         
         recipe.sh: |
@@ -2547,13 +2568,56 @@ def test_check_final_files():
     assert os.path.isfile(tarball_file_path)
     assert "noarch" in tarball_file_path
 
+    ## Check for installed recipe
     pkg_out = sp.check_output(["conda list trial2-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial2-hg38-gaps-ucsc-v1" in pkg_out ## Identify that it was installed in the conda env
     
-    ## Check for good files
+    ## Get for installed files
     install_dir_path = os.path.join(utils.conda_root(),"share/ggd/Homo_sapiens/hg38/trial2-hg38-gaps-ucsc-v1/1")
     assert os.path.exists(install_dir_path) == True
+
+    ## Get an updated yaml file
+    yaml_file = check_recipe.add_final_files(install_dir_path,yaml_file,recipe_dir_path,[])
+
+    ## Check for good files
     assert check_recipe.check_final_files(install_dir_path, yaml_file) == True
+
+    ## Check for final-file-sizes is missing for one of the files
+    yaml_file2 = deepcopy(yaml_file)
+    yaml_file2["about"]["tags"]["final-file-sizes"].pop("trial2-hg38-gaps-ucsc-v1.bed.gz")
+
+    try:
+        check_recipe.check_final_files(install_dir_path, yaml_file2)
+        assert False
+    except AssertionError as e:
+        if ":ggd:check-recipe: The file size for the '{}' data file is missing from the metadata".format("trial2-hg38-gaps-ucsc-v1.bed.gz") in str(e): 
+            pass
+        else:
+            assert False
+    except Exception as e:
+        print(str(e))
+        assert False
+
+    ## Check for final-file-sizes is incorrect
+    yaml_file3 = deepcopy(yaml_file)
+    yaml_file3["about"]["tags"]["final-file-sizes"]["trial2-hg38-gaps-ucsc-v1.bed.gz"] = "100G"
+    print(yaml_file3)
+
+    try:
+        check_recipe.check_final_files(install_dir_path, yaml_file3)
+        assert False
+    except AssertionError as e:
+        if ":ggd:check-recipe: The size of the data file '{} is {}, which does not match the file size in metadata {}".format(
+            "trial2-hg38-gaps-ucsc-v1.bed.gz",
+            yaml_file["about"]["tags"]["final-file-sizes"]["trial2-hg38-gaps-ucsc-v1.bed.gz"],
+            yaml_file3["about"]["tags"]["final-file-sizes"]["trial2-hg38-gaps-ucsc-v1.bed.gz"]
+            ) in str(e): 
+            pass
+        else:
+            assert False
+    except Exception as e:
+        print(str(e))
+        assert False
 
     ## Remove package
     sp.check_output(["conda", "uninstall", "-y", "trial2-hg38-gaps-ucsc-v1"])
@@ -2781,7 +2845,13 @@ def test_add_final_files():
     assert os.path.exists(os.path.join(recipe_dir_path,"installed_files","trial3-hg38-gaps-ucsc-v1.ped.gz")) 
 
     ## test check_recipes add files files:
-    yaml_file = check_recipe.add_final_files(os.path.join(recipe_dir_path,"installed_files"),yaml_file,recipe_dir_path, ["trial3-hg38-gaps-ucsc-v1.test.the.extension.addition"])
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        yaml_file = check_recipe.add_final_files(os.path.join(recipe_dir_path,"installed_files"),yaml_file,recipe_dir_path, ["trial3-hg38-gaps-ucsc-v1.test.the.extension.addition"])
+    output = temp_stdout.getvalue().strip()
+    ## Check for the extra file warning 
+    assert ":ggd:check-recipe: Attempting to add the extra files not already added in the meta.yaml file" in output
+
     assert len(yaml_file["about"]["tags"]["final-files"]) == 6 
     assert len(yaml_file["about"]["tags"]["file-type"]) == 5 
 
@@ -2797,6 +2867,18 @@ def test_add_final_files():
     assert "vcf" in yaml_file["about"]["tags"]["file-type"] 
     assert "gtf" in yaml_file["about"]["tags"]["file-type"] 
     assert "ped" in yaml_file["about"]["tags"]["file-type"] 
+    assert "final-file-sizes" in yaml_file["about"]["tags"] 
+    assert len(yaml_file["about"]["tags"]["final-file-sizes"]) > 0
+    assert isinstance(yaml_file["about"]["tags"]["final-file-sizes"], dict)
+    assert len(yaml_file["about"]["tags"]["final-file-sizes"].keys()) == 6 
+    assert "final-files" in yaml_file["about"]["tags"] 
+
+    ## Check that the file sizes were assigned correctly 
+    for f in yaml_file["about"]["tags"]["final-files"]:
+        file_size = utils.get_file_size(os.path.join(recipe_dir_path,"installed_files",f))
+        assert yaml_file["about"]["tags"]["final-file-sizes"][f] == file_size
+        
+
 
     ## Check the final files
     assert check_recipe.check_final_files(os.path.join(recipe_dir_path,"installed_files"), yaml_file) == True
@@ -3988,6 +4070,9 @@ def test_check_yaml():
                 final-files: 
                 - testing-recipe.bed.gz
                 - testing-recipe.bed.gz.tbi
+                final-file-sizes:
+                  testing-recipe.bed.gz: 54.4k
+                  testing-recipe.bed.gz.tbi: 10.3k
                 ggd-channel: genomics
     """, from_string=True)
 
@@ -4181,6 +4266,34 @@ def test_check_yaml():
         assert False
     except AssertionError as e:
         if "must specify the specific ggd channel for the recipe in the 'about:tags' section" in str(e):
+            pass
+        else:
+            assert False
+    except Exception as e:
+        print(str(e))
+        assert False
+
+    yaml_file = deepcopy(yaml_file_copy) 
+    del yaml_file["about"]["tags"]["final-files"]
+    try:
+        check_recipe.check_yaml(yaml_file)
+        assert False
+    except AssertionError as e:
+        if "All final data file must be specified in the 'about:tags' section" in str(e):
+            pass
+        else:
+            assert False
+    except Exception as e:
+        print(str(e))
+        assert False
+
+    yaml_file = deepcopy(yaml_file_copy) 
+    del yaml_file["about"]["tags"]["final-file-sizes"]
+    try:
+        check_recipe.check_yaml(yaml_file)
+        assert False
+    except AssertionError as e:
+        if "The size of each final data file must be specified in the 'about:tags' section" in str(e):
             pass
         else:
             assert False

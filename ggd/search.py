@@ -224,8 +224,8 @@ def filter_by_identifiers(iden_keys, json_dict, filter_terms):
     """
     import copy
 
-    key_count = len(json_dict["packages"].keys())
     keys = json_dict["packages"].keys()
+    key_count = len(keys)
 
     keys_to_keep = set()
     if len(iden_keys) > 0 and len(iden_keys) == len(filter_terms):
@@ -344,7 +344,7 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                 if "data-provider" in json_dict["packages"][pkg]["tags"]:
                     results.append(
                         "\t{} {}".format(
-                            ("\033[1m" + "Data Provider" + "\033[0m"),
+                            ("\033[1m" + "Data Provider:" + "\033[0m"),
                             json_dict["packages"][pkg]["tags"]["data-provider"],
                         )
                     )
@@ -382,6 +382,17 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                         )
                     )
 
+                if "final-file-sizes" in json_dict["packages"][pkg]["tags"]:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Approximate Data File Sizes:" + "\033[0m"),
+                            "\n\t\t"
+                            + "\n\t\t".join(
+                                ["{}: {}".format(x,json_dict["packages"][pkg]["tags"]["final-file-sizes"][x]) for x in json_dict["packages"][pkg]["tags"]["final-file-sizes"]] 
+                            ),
+                        )
+                    )
+
             if pkg in installed_pkgs:  ## IF installed
                 results.append(
                     "\n\tThis pacakge is already installed on your system.\n\t  You can find the installed data files here:  %s"
@@ -411,6 +422,9 @@ def search(parser, args):
 
     ## load the channeldata.json file
     j_dict = load_json_from_url(get_channeldata_url(args.channel))
+
+    ## Remove the ggd key if it exists
+    ggd_key = j_dict["packages"].pop("ggd", None)
 
     ## identify if search_terms have any species or genome build in them
     species_lower = {x.lower(): x for x in SPECIES_LIST}

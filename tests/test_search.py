@@ -555,7 +555,9 @@ def test_main_search():
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
     assert "grch37" in output
-    assert "hg19" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m GRCh37" in output
+    assert "hg19-" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg19" not in output
     assert "hg38" not in output
     assert "grch38" not in output
     assert "Homo_sapiens" in output
@@ -571,11 +573,19 @@ def test_main_search():
     output = temp_stdout.getvalue().strip() 
     assert "grch37" in output
     assert "hg19" in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m GRCh37" in output
+    assert "hg19-" in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg19" in output
     assert "hg38" in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg38" in output
     assert "grch38" in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m GRCh38" in output
     assert "Homo_sapiens" in output
+    assert "\033[1m" + "Species:" + "\033[0m Homo_sapiens" in output
     assert "Mus_musculus" not in output
+    assert "\033[1m" + "Species:" + "\033[0m Mus_musculus" not in output
     assert "Drosophila_melanogaster" not in output
+    assert "\033[1m" + "Species:" + "\033[0m Drosophila_melanogaster" not in output
 
     ## Test with genome build and species in search terms
     ## NOTE: genome build should take precedence over species. So only genome build should be displayed, not all species
@@ -585,12 +595,15 @@ def test_main_search():
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
     assert "grch37" in output
-    assert "hg19" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg19" not in output
     assert "hg38" not in output
-    assert "grch38" not in output
-    assert "Homo_sapiens" in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg38" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m GRCh38" not in output
+    assert "\033[1m" + "Species:" + "\033[0m Homo_sapiens" in output
     assert "Mus_musculus" not in output
+    assert "\033[1m" + "Species:" + "\033[0m Mus_musculus" not in output
     assert "Drosophila_melanogaster" not in output
+    assert "\033[1m" + "Species:" + "\033[0m Drosophila_melanogaster" not in output
     assert "grch37-reference-genome-ensembl-v1" in output
 
     ## Test with genome build and other species in search terms
@@ -601,15 +614,41 @@ def test_main_search():
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
     assert "grch37" in output
-    assert "hg19" not in output
-    assert "hg38" not in output
-    assert "grch38" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m GRCh37" in output
+    assert "hg19-" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg19" not in output
+    assert "hg38-" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m hg38" not in output
+    assert "grch38-" not in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m GRCh38" not in output
     assert "Homo_sapiens" in output
     assert "Mus_musculus" in output
     assert "mm10" in output
     assert "mm10-reference-ucsc-v1" in output
+    assert "\033[1m" + "Species:" + "\033[0m Mus_musculus" in output
     assert "Drosophila_melanogaster" not in output
+    assert "\033[1m" + "Species:" + "\033[0m Drosophila_melanogaster" not in output
     assert "grch37-reference-genome-ensembl-v1" in output
+
+
+    ## Test that Approximate data file sizes, final file list, and other tag info are reported  
+    temp_stdout = StringIO()
+    args = Namespace(channel='genomics', command='search', display_number=1, genome_build=[], match_score='75', search_term=['grch37','gene-features'], species=[])
+    with redirect_stdout(temp_stdout):
+        search.search(parser,args) 
+    output = temp_stdout.getvalue().strip() 
+    assert "\033[1m" + "Summary:" + "\033[0m" in output
+    assert "\033[1m" + "Species:" + "\033[0m" in output
+    assert "\033[1m" + "Genome Build:" + "\033[0m" in output
+    assert "\033[1m" + "Keywords:" + "\033[0m" in output
+    assert "\033[1m" + "Data Provider:" + "\033[0m" in output
+    assert "\033[1m" + "Data Version:" + "\033[0m" in output
+    assert "\033[1m" + "File type(s):" + "\033[0m" in output
+    assert "\033[1m" + "Data file coordinate base:" + "\033[0m" in output
+    assert "\033[1m" + "Included Data Files:" + "\033[0m" in output
+    assert "\033[1m" + "Approximate Data File Sizes:" + "\033[0m" in output
+
+
 
     ## Test that a data file path is given if the package is installed
     temp_stdout = StringIO()

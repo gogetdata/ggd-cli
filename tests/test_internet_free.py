@@ -673,6 +673,7 @@ def test_make_bash_internet_free():
             assert yamldict["about"]["tags"]["data-provider"] == "UCSC"
             assert yamldict["about"]["tags"]["file-type"] == []
             assert yamldict["about"]["tags"]["final-files"] == []
+            assert yamldict["about"]["tags"]["final-file-sizes"] == {}
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
     except IOError as e:

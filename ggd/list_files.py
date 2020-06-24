@@ -100,16 +100,23 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
     if check_for_internet_connection(3):
         CHANNELDATA_URL = get_channeldata_url(ggd_channel)
         json_dict = load_json_from_url(CHANNELDATA_URL)
+
+        ## Remove the ggd key if it exists
+        ggd_key = json_dict["packages"].pop("ggd", None)
+
     else:
         try:
             ## If no internet connection just load from the local file
             json_dict = load_json(get_channel_data(ggd_channel))
+            ## Remove the ggd key if it exists
+            ggd_key = json_dict["packages"].pop("ggd", None)
         except:
             pass
 
     package_list = []
     if len(json_dict["packages"].keys()) > 0:
         package_list = search_packages(json_dict, [ggd_recipe])
+
 
     if ggd_recipe in package_list:
         species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]

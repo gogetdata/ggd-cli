@@ -63,10 +63,14 @@ def check_if_ggd_recipe(ggd_recipe, ggd_channel):
     if check_for_internet_connection(3):
         CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
         jdict = load_json_from_url(CHANNEL_DATA_URL)
+        ## Remove the ggd key if it exists
+        ggd_key = jdict["packages"].pop("ggd", None)
     else:
         try:
             ## If no internet connection just load from the local file
             jdict = load_json(get_channel_data(ggd_channel))
+            ## Remove the ggd key if it exists
+            ggd_key = jdict["packages"].pop("ggd", None)
         except:
             pass
 
@@ -192,6 +196,17 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
                 + "\033[0m"
                 + " {}".format(
                     "\n\t\t" + "\n\t\t".join(yaml_dict["about"]["tags"]["final-files"])
+                )
+            )
+
+        if "final-file-sizes" in yaml_dict["about"]["tags"]:
+            results.append(
+                "\t"
+                + "\033[1m"
+                + "Approximate Data File Sizes:"
+                + "\033[0m"
+                + " {}".format(
+                    "\n\t\t" + "\n\t\t".join(["{}: {}".format(x,yaml_dict["about"]["tags"]["final-file-sizes"][x]) for x in yaml_dict["about"]["tags"]["final-file-sizes"]])
                 )
             )
 

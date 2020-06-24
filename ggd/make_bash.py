@@ -175,7 +175,7 @@ def make_bash(parser, args):
         args.name.lower(),
         data_provider.lower(),
         args.package_version.lower(),
-    ), "The recipe name is not formated correctly"
+    ), "The recipe name is not formated correctly. Current name: {}".format(name)
 
     wildcards = [
         "?",
@@ -307,6 +307,7 @@ def make_bash(parser, args):
                 "data-provider": args.data_provider.strip(),
                 "file-type": [],
                 "final-files": [],
+                "final-file-sizes": {},
                 "ggd-channel": args.channel,
             },
         }

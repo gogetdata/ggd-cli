@@ -128,15 +128,20 @@ def get_required_conda_version():
     Return:
     +++++++
     1) The required version if found, else -1
+    2) An = or >= depending on the requirement
     """
 
     req = requests.get(GGD_CLI_REQUIREMENTS, stream=True)
 
     conda_version = -1
+    equals = "="
     for line in req.iter_lines():
         if "conda=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split("=")[1]
-    return conda_version
+        elif "conda>=" in str(line.decode()):
+            conda_version = str(line.decode()).strip().split("=")[1]
+            equals = ">="
+    return conda_version, equals 
 
 
 def check_output(args, **kwargs):
@@ -904,6 +909,39 @@ def data_file_checksum(installed_dir_path, checksum_dict):
             return False
 
     return True
+
+
+def get_file_size(file_path):
+    
+    if os.path.exists(file_path):
+        
+        ## Get size of file in bytes
+        bytes_size = os.path.getsize(file_path)
+
+        ## Convert size to gb, mb, kb
+        ## Use the rough equal numbers. (Over estimate rather than under estimate)
+        gb_size = bytes_size / (1000000000)# (1073741824) ## bytes in a GB = (1024 * 1024 * 1024) = 1073741824 ~~ 1000000000  
+        mb_size = bytes_size / (1000000) #(1048576) ## Bytes in a MB = (1024*1024) = 1048576 ~~ 1000000
+        kb_size = bytes_size / (1000)  #(1024) ## Bytes in a KB = (1024) ~~ 1000
+
+        final_size = ""
+        ## Format the file size
+        if gb_size >= 1.0:
+            final_size = "{:.2f}G".format(gb_size)
+        elif mb_size >= 1.0:
+            final_size = "{:.2f}M".format(mb_size)
+        elif kb_size >= 1.0:
+            final_size = "{:.2f}K".format(kb_size)
+        else:
+            final_size = "{:.2f}b".format(bytes_size)
+
+        return(final_size)
+
+    else:
+        print("\n:ggd:utils: File does not exist: {fp}\n".format(fp = file_path))
+
+        return(None)
+
 
 
 def bypass_satsolver_on_install(

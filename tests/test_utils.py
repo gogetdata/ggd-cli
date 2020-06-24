@@ -194,8 +194,9 @@ def test_get_required_conda_version():
     """
     pytest_enable_socket()
 
-    conda_version = utils.get_required_conda_version()
+    conda_version, equals = utils.get_required_conda_version()
     assert  conda_version != -1
+    assert equals == "=" or equals == ">="
     version_list = conda_version.strip().split(".")
     ## Test that the conda version is greater than or equal to 4.6.8. (4.6.8 is the oldest release where all tests passed and ggd was work.)
     ## As of 4/10/2019 the latest conda version that works with all tests passing is 4.6.12
@@ -1210,6 +1211,114 @@ def test_data_file_checksum():
         utils.data_file_checksum(bed_files_path,checksum_dict4)
     output = temp_stdout.getvalue().strip() 
     assert ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
+
+
+def test_get_file_size():
+    """
+    Test the get_file_size utils function
+    """
+
+    bedfiles = CreateRecipe(
+    """
+    bedfiles:
+        cpg.bed: |
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+    bedfiles2:
+        cpg.bed: |
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+            chr1\t28735\t29810\tCpG: 116
+    bedfiles3:
+        cpg.bed: |
+            chr1\t28735\t29810\tCpG: 116
+            chr1\t135124\t135563\tCpG: 30
+            chr1\t327790\t328229\tCpG: 29
+            chr1\t437151\t438164\tCpG: 84
+            chr1\t449273\t450544\tCpG: 99
+            chr1\t533219\t534114\tCpG: 94
+            chr1\t544738\t546649\tCpG: 171
+            chr1\t713984\t714547\tCpG: 60
+            chr1\t762416\t763445\tCpG: 115
+            chr1\t788863\t789211\tCpG: 28
+        cpg.sh: |
+            touch cpg2.bed
+            for (( c=1; c<=1000; c++ ))
+            do
+                cat cpg.bed >> cpg2.bed
+            done
+
+            rm cpg.bed
+        
+
+    """, from_string=True)
+    
+    bedfiles.write_recipes()
+    bed_files_path = bedfiles.recipe_dirs["bedfiles"]   
+    bed_files_path2 = bedfiles.recipe_dirs["bedfiles2"]   
+    bed_files_path3 = bedfiles.recipe_dirs["bedfiles3"]   
+
+    ## update last cpg file
+    cwd = os.getcwd()
+    os.chdir(bed_files_path3)
+    sp.check_call(["bash","cpg.sh"])
+    os.chdir(cwd)
+
+    ## Get the number of bites per file
+    bytes_size = os.path.getsize(os.path.join(bed_files_path,"cpg.bed"))
+    bytes_size2 = os.path.getsize(os.path.join(bed_files_path2,"cpg.bed"))
+    bytes_size3 = os.path.getsize(os.path.join(bed_files_path3,"cpg2.bed"))
+
+    ## Check that they are teh same 
+    file_size = "{:.2f}b".format(bytes_size)
+    assert utils.get_file_size(os.path.join(bed_files_path,"cpg.bed")) == file_size
+    file_size2 = "{:.2f}b".format(bytes_size2)
+    assert utils.get_file_size(os.path.join(bed_files_path2,"cpg.bed")) == file_size2
+    file_size3 = "{:.2f}K".format(bytes_size3 / 1000)
+    assert utils.get_file_size(os.path.join(bed_files_path3,"cpg2.bed")) == file_size3
+
+    ## Check that get_file_size returns the approximate size rather then the actual size
+    file_size = "{:.2f}K".format(bytes_size3 / 1024)
+    assert utils.get_file_size(os.path.join(bed_files_path3,"cpg2.bed")) != file_size
+
+    ## Check that two files get different file sizes
+    assert utils.get_file_size(os.path.join(bed_files_path,"cpg.bed")) != utils.get_file_size(os.path.join(bed_files_path2,"cpg.bed"))
 
 
 def test_bypass_satsolver_on_install():

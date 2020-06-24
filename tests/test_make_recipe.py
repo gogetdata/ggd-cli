@@ -585,6 +585,7 @@ def test_make_bash():
             assert yamldict["about"]["tags"]["data-provider"] == "UCSC"
             assert yamldict["about"]["tags"]["file-type"] == []
             assert yamldict["about"]["tags"]["final-files"] == []
+            assert yamldict["about"]["tags"]["final-file-sizes"] == {}
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
     except IOError as e:
@@ -731,6 +732,7 @@ def test_make_bash_all_params():
             assert yamldict["about"]["tags"]["data-version"] == "27-Apr-2009"
             assert yamldict["about"]["tags"]["file-type"] == [] ## Should be converted to lower case
             assert yamldict["about"]["tags"]["final-files"] == [] 
+            assert yamldict["about"]["tags"]["final-file-sizes"] == {} 
             assert yamldict["about"]["tags"]["ggd-channel"] == "genomics"
 
 
@@ -821,5 +823,75 @@ def test_make_bash_meta_yaml_key_order():
     os.rmdir(ggd_package)
 
 
+def test_make_bash_meta_yaml_ggd_dependency():
+    """
+    Test the main method of ggd make-recipe
+    """
+    pytest_enable_socket()
+
+    recipe = CreateRecipe(
+
+    """
+    hg19-test-gaps4-ucsc-v1:
+        recipe.sh: |
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg19/hg19.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg19/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+
+    """, from_string=True)
+
+    recipe.write_recipes() 
+
+    ggd_package = "hg19-test-gaps4-ucsc-v1"
+
+    recipe_file = os.path.join(recipe.recipe_dirs["hg19-test-gaps4-ucsc-v1"],"recipe.sh")
+
+    ## grch37-gene-features-ensembl-v1 as a dependency
+    args = Namespace(authors='me', channel='genomics', command='make-recipe', data_version='27-Apr-2009', data_provider="UCSC",
+                        dependency=['grch37-gene-features-ensembl-v1','hg38-chrom-mapping-ensembl2ucsc-ncbi-v1','vt','samtools','bedtools'], extra_file=['not.a.real.extra.file'], genome_build='hg19', package_version='1', keyword=['gaps', 'region'], 
+                        name='test-gaps4', platform='none', script=recipe_file, species='Homo_sapiens', summary='Assembly gaps from UCSC',
+                        coordinate_base="0-based-inclusive", file_type= ["Bed"], final_file=["hg19-test-gaps4-ucsc-v1.bed.gz", "hg19-test-gaps4-ucsc-v1.bed.gz.tbi"])
+
+    assert make_bash.make_bash((),args) 
+
+    new_recipe_file = os.path.join("./", ggd_package, "recipe.sh") 
+    assert os.path.exists(new_recipe_file)
+    assert os.path.isfile(new_recipe_file)
+    new_metayaml_file = os.path.join("./", ggd_package, "meta.yaml") 
+    assert os.path.exists(new_metayaml_file)
+    assert os.path.isfile(new_metayaml_file)
+    new_postlink_file = os.path.join("./", ggd_package, "post-link.sh") 
+    assert os.path.exists(new_postlink_file)
+    assert os.path.isfile(new_postlink_file)
+    new_checksums_file = os.path.join("./", ggd_package, "checksums_file.txt")
+    assert os.path.exists(new_checksums_file)
+    assert os.path.isfile(new_checksums_file)
+
+    ## Test meta.yaml has an ggd dependency in the run requirements and not the build requirements
+    try:
+        with open(new_metayaml_file, "r") as mf:
+            yamldict = yaml.safe_load(mf)
+            assert yamldict["requirements"]["build"] == ['bedtools', 'gsort', 'htslib', 'samtools', 'vt', 'zlib']
+            assert "grch37-gene-features-ensembl-v1" not in yamldict["requirements"]["build"]
+            assert "hg38-chrom-mapping-ensembl2ucsc-ncbi-v1" not in yamldict["requirements"]["build"]
+            assert yamldict["requirements"]["run"] == ['bedtools', 'grch37-gene-features-ensembl-v1', 'gsort', 'hg38-chrom-mapping-ensembl2ucsc-ncbi-v1', 'htslib', 'samtools', 'vt', 'zlib'] 
+            assert "grch37-gene-features-ensembl-v1" in yamldict["requirements"]["run"]
+            assert "hg38-chrom-mapping-ensembl2ucsc-ncbi-v1" in yamldict["requirements"]["run"]
+
+    except IOError as e:
+        print(e)
+        assert False
+
+    os.remove(new_recipe_file)
+    os.remove(new_metayaml_file)
+    os.remove(new_postlink_file)
+    os.remove(new_checksums_file)
+    os.rmdir(ggd_package)
 
 
