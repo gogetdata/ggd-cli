@@ -139,7 +139,7 @@ def get_required_conda_version():
         if "conda=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split("=")[1]
         elif "conda>=" in str(line.decode()):
-            conda_version = str(line.decode()).strip().split("=")[1]
+            conda_version = str(line.decode()).strip().split(">=")[1]
             equals = ">="
     return conda_version, equals 
 

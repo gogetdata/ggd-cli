@@ -209,7 +209,7 @@ def _install(bz2, recipe_name, debug=False):
     from .utils import get_conda_package_list, get_required_conda_version
 
     conda_version, equals = get_required_conda_version()
-    conda_install = "\"" + "conda" + equals + conda_version + "\""
+    conda_install = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
 
     ## See if it is already installed
     if recipe_name in get_conda_package_list(conda_root(),include_local=True).keys():

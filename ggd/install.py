@@ -351,7 +351,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None)
     conda_version, equals = get_required_conda_version()
 
     ## create install string
-    conda_install_str = "\"" + "conda" + equals + str(conda_version) + "\"" 
+    conda_install = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
 
     ## Add debug option
     conda_install_str += " --debug" if debug else ""
