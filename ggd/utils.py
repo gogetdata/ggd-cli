@@ -684,6 +684,22 @@ class ChecksumError(Exception):
     def __str__(self):
         return self.message
 
+class literal_block(str): pass
+
+def add_yaml_literal_block(yaml_object):
+    """
+    Get a yaml literal block representer function to converte normal strings into yaml literals during yaml dumping
+
+    Convert string to yaml literal block
+    yaml docs: see "Block mappings" in https://pyyaml.org/wiki/PyYAMLDocumentation
+    """
+
+    def literal_str_representer(dumper, data):
+        return(dumper.represent_scalar("tag:yaml.org,2002:str", data, style='|'))
+
+    return(yaml_object.add_representer(literal_block, literal_str_representer))
+
+
 
 def get_conda_package_list(prefix, regex=None, include_local=False):
     """
