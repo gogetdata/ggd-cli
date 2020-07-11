@@ -456,6 +456,7 @@ def check_recipe(parser, args):
             build,
             recipe["package"]["name"],
             recipe["extra"].get("extra-files", []),
+            recipe["extra"].get("genome_file", None),
             before,
             bz2,
         )
@@ -1026,7 +1027,7 @@ def check_header(install_path):
 
 
 def check_files(
-    install_path, species, build, recipe_name, extra_files, before_files, bz2
+    install_path, species, build, recipe_name, extra_files, different_genome_file, before_files, bz2
 ):
     """Method to check the presence of correct genomic files """
     from fnmatch import fnmatch
@@ -1063,9 +1064,53 @@ def check_files(
     # ignore gzi
     nons = [n for n in nons if not n.endswith(".gzi")]  # just ignore gzi files
 
-    gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(
-        build=build, species=species
-    )
+    if different_genome_file is None:
+        print(":ggd:check-recipe: Checking sort order using GGD genome file\n")
+        gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(
+            build=build, species=species
+        )
+    else:
+        print(":ggd:check-recipe: Checking sort order using an alternative genome file specified in the meta.yaml\n")
+        if "commands" not in different_genome_file:
+            sys.stderr.write(
+                ":ggd:check-recipe: !!ERROR!!: An alternative genome file was requested, but the 'commands' key is missing from the meta.yaml file."
+                " Cannot check sort order with no genome file\n"
+            )
+            remove_package_after_install(bz2, recipe_name, e.returncode)
+
+        import tempfile 
+        import shutil
+        
+        ## create temp dir
+        temp_dir_name = "temp_genome_file"
+        tempdir = os.path.join(tempfile.gettempdir(), temp_dir_name)
+        if not os.path.exists(tempdir):
+            os.mkdir(tempdir)
+
+        ## Add commands to temp file
+        temp_script_name = "temp.sh"
+        temp_script_path = os.path.join(tempdir, temp_script_name)
+        with open(temp_script_path, "w") as out:
+            for command in different_genome_file["commands"].strip().split("\n"):
+                out.write(command + "\n")
+
+        ## Run temp script
+        cwd = os.getcwd()
+        try:
+            os.chdir(tempdir)
+            sp.check_call(["bash", temp_script_path], stderr=sys.stderr)
+        except sp.CalledProcessError as e:
+            os.chdir(cwd)
+            sys.stderr.write(
+                ":ggd:check-recipe: !!ERROR!!: Unable to create alternative genome file.\n"
+            )
+            sys.stderr.write(str(e))
+            remove_package_after_install(bz2, recipe_name, e.returncode)
+        os.chdir(cwd)
+    
+        ## Get the alternative genome file
+        gf = os.path.join(tempdir,different_genome_file["file_name"])
+
 
     # TODO is this just repeating the _check_build call performed in the previous function?
     _check_build(species, build)
@@ -1080,6 +1125,12 @@ def check_files(
                 % (P, tbx)
             )
             remove_package_after_install(bz2, recipe_name, e.returncode)
+
+    #@ Remove temp file if it exists
+    if different_genome_file is not None:
+        ## Remove temp dir
+        if os.path.exists(tempdir):
+            shutil.rmtree(tempdir)
 
     missing = []
     not_tabixed = []
