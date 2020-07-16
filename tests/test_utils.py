@@ -198,11 +198,23 @@ def test_get_required_conda_version():
     assert  conda_version != -1
     assert equals == "=" or equals == ">="
     version_list = conda_version.strip().split(".")
+
     ## Test that the conda version is greater than or equal to 4.6.8. (4.6.8 is the oldest release where all tests passed and ggd was work.)
     ## As of 4/10/2019 the latest conda version that works with all tests passing is 4.6.12
     assert int(version_list[0]) == 4 ## Conda version == 4.*.*
     assert int(version_list[1]) == 8 ## Conda version == *.8.*
-    assert int(version_list[2]) >= 2 ## Conda version >= *.*.2
+    assert int(version_list[2].strip().split(",")[0]) >= 2 ## Conda version >= *.*.2
+
+    ## Check for a second version 
+    ## Example 4.8.2,<=4.8.3   -->  [4,8,3]
+    if "=" in version_list[2] or ">" in version_list[2] or "<" in version_list[2]:
+        spliter = "=" if "=" in version_list[2] else "<" if "<" in version_list[2] else ">" if ">" in version_list[2] else "-"
+        second_version = [version_list[2].strip().split(spliter)[1], version_list[3],version_list[4]]
+
+        assert int(second_version[0]) == 4
+        assert int(second_version[1]) == 8
+        assert int(second_version[2]) <= 3
+        
     
 
 def test_check_output():
@@ -688,6 +700,106 @@ def test_prefix_in_conda():
     except Exception:
         pass
     assert os.path.exists(temp_env) == False
+
+
+def test_add_yaml_literal_block():
+    """
+    Test that the add_yaml_literal_block correctly creates a literal block 
+    """
+
+    import tempfile 
+    import shutil
+    import yaml
+
+    data = {
+        'nonliteral':(
+             'by me               ___\n'
+             '   __              /.-.\\\n'
+             '  /  )_____________\\\\  Y\n'
+             ' /_ /=== == === === =\\ _\\_\n'
+             '( /)=== == === === == Y   \\\n'
+             ' `-------------------(  o  )\n'
+             '                      \\___/\n')
+    }
+
+    data2 = {
+        'literal':utils.literal_block(
+             'by me                ___\n'
+             '   __              /.-.\\\n'
+             '  /  )_____________\\\\  Y\n'
+             ' /_ /=== == === === =\\ _\\_\n'
+             '( /)=== == === === == Y   \\\n'
+             ' `-------------------(  o  )\n'
+             '                      \\___/\n')
+    }
+
+    tempdir_name = "testing_yaml_literal"
+    tempfile_non_literal = "non_literal_yaml.yaml"
+    tempfile_literal = "literal_yaml.yaml"
+    tempdir = os.path.join(tempfile.gettempdir(), tempdir_name)
+    if not os.path.exists(tempdir):
+        os.mkdir(tempdir)
+    print(tempdir)
+
+    cwd = os.getcwd()
+    
+    ## Create yaml files
+    ## 1 non literal 
+    ## 1 literal blcok 
+    try:
+        os.chdir(tempdir)
+        with open(tempfile_non_literal, "w") as non_literal:
+            non_literal.write(yaml.dump(data, default_flow_style=False))
+        with open(tempfile_literal, "w") as literal:
+            utils.add_yaml_literal_block(yaml)
+            literal.write(yaml.dump(data2, default_flow_style=False))
+
+        ## Check non literal block yaml file
+        with open(tempfile_non_literal, "r") as non_literal:
+            for i,line in enumerate(non_literal):
+                if i == 0:
+                    assert line.rstrip() == '''nonliteral: "by me               ___\\n   __              /.-.\\\\\\n  /  )_____________\\\\\\'''
+                elif i == 1:
+                    assert line.rstrip() == '''  \\\\  Y\\n /_ /=== == === === =\\\\ _\\\\_\\n( /)=== == === === == Y   \\\\\\n `-------------------(\\'''
+                elif i == 2:
+                    assert line.rstrip() == '''  \\  o  )\\n                      \\\\___/\\n"'''
+                else:
+                    assert False
+
+        ## Check literal block yaml file
+        with open(tempfile_literal, "r") as literal:
+            for i,line in enumerate(literal):
+                if i == 0:
+                    assert line.rstrip() == '''literal: |'''
+                elif i == 1:
+                    assert line.rstrip() == '''  by me                ___'''
+                elif i == 2:
+                    assert line.rstrip() == '''     __              /.-.\\'''
+                elif i == 3:
+                    assert line.rstrip() == '''    /  )_____________\\\\  Y'''
+                elif i == 4:
+                    assert line.rstrip() == '''   /_ /=== == === === =\\ _\\_'''
+                elif i == 5:
+                    assert line.rstrip() == '''  ( /)=== == === === == Y   \\'''
+                elif i == 6:
+                    assert line.rstrip() == '''   `-------------------(  o  )'''
+                elif i == 7:
+                    assert line.rstrip() == '''                        \\___/'''
+                else:
+                    assert False
+        
+    except Exception as e: 
+        os.chdir(cwd)
+        print("\nError with yaml literal test")
+        print(str(e))
+        assert False
+
+
+    os.chdir(cwd)
+
+    ## Remove temp dir
+    if os.path.exists(tempdir):
+        shutil.rmtree(tempdir)
 
 
 def test_get_conda_package_list():
