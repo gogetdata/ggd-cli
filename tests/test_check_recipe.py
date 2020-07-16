@@ -3694,7 +3694,7 @@ def test_check_files_good_genomic_file():
 
     ## Test that unmodified files causes the system to exit(2)
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [],None,file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -3843,7 +3843,7 @@ def test_check_files_unpaired_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
