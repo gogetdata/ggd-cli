@@ -15,7 +15,7 @@ variables:
       command: bash .circleci/setup.sh 3
   macos: &macos
     macos:
-      xcode: "9.4.1" ## Using a macOS VM image (https://circleci.com/docs/2.0/executor-types/)
+      xcode: "11.4.1" ## Using a macOS VM image (https://circleci.com/docs/2.0/executor-types/)
   linux: &linux
     machine: true ## Using a dedicated Linux VM image (https://circleci.com/docs/2.0/executor-types/)
   install_ggd_cli: &install_ggd_cli
