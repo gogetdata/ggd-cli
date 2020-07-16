@@ -9,7 +9,7 @@ import sys
 import yaml
 
 from .uninstall import check_for_installation
-from .utils import check_output, conda_root
+from .utils import check_output, conda_root, literal_block, add_yaml_literal_block
 
 # ---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -342,6 +342,10 @@ def get_recipe_from_bz2(fbz2):
             exit(1)
         recipe = tf.extractfile(info)
         recipe = yaml.safe_load(recipe.read().decode())
+        ## Add literal block if needed
+        if "genome_file" in recipe["extra"]:
+            recipe["extra"]["genome_file"]["commands"] = literal_block(recipe["extra"]["genome_file"]["commands"])
+            add_yaml_literal_block(yaml)
     return recipe
 
 
@@ -406,6 +410,11 @@ def check_recipe(parser, args):
         args.dont_add_md5sum_for_checksum = True  ## If bz2, final files should have already beed added and checksum should have already been calculated.
     else:
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
+        ## Add literal block if needed
+        if "genome_file" in recipe["extra"]:
+            recipe["extra"]["genome_file"]["commands"] = literal_block(recipe["extra"]["genome_file"]["commands"])
+            add_yaml_literal_block(yaml)
+
         if args.debug:
             bz2 = _build(args.recipe_path, recipe, debug=True)
         else:
@@ -738,7 +747,11 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
         )
 
     ## Return the new version of the meta.yaml as a dict
-    return yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    yaml_dict = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    if "genome_file" in yaml_dict["extra"]:
+        yaml_dict["extra"]["genome_file"]["commands"] = literal_block(yaml_dict["extra"]["genome_file"]["commands"])
+        add_yaml_literal_block(yaml)
+    return yaml_dict
 
 
 def check_final_files(installed_dir_path, yaml_file):
