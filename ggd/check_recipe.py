@@ -844,7 +844,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     """
 
     print(
-        "\n:ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation"
+        ":ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation"
     )
 
     recipe_dict = get_recipe_from_bz2(bz2)
@@ -1079,17 +1079,28 @@ def check_files(
 
     if different_genome_file is None:
         print(":ggd:check-recipe: Checking sort order using GGD genome file\n")
+
+        ## get the .genome file
         gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(
             build=build, species=species
         )
+
     else:
         print(":ggd:check-recipe: Checking sort order using an alternative genome file specified in the meta.yaml\n")
+
+        ## Check for required keys 
         if "commands" not in different_genome_file:
-            sys.stderr.write(
+            print(
                 ":ggd:check-recipe: !!ERROR!!: An alternative genome file was requested, but the 'commands' key is missing from the meta.yaml file."
                 " Cannot check sort order with no genome file\n"
             )
-            remove_package_after_install(bz2, recipe_name, e.returncode)
+            remove_package_after_install(bz2, recipe_name, 120)
+        if "file_name" not in different_genome_file:
+            print(
+                ":ggd:check-recipe: !!ERROR!!: An alternative genome file was requested, but the 'file_name' key is missing from the meta.yaml file."
+                " Cannot check sort order with a specified genome file\n"
+            )
+            remove_package_after_install(bz2, recipe_name, 121)
 
         import tempfile 
         import shutil
@@ -1114,16 +1125,15 @@ def check_files(
             sp.check_call(["bash", temp_script_path], stderr=sys.stderr)
         except sp.CalledProcessError as e:
             os.chdir(cwd)
-            sys.stderr.write(
+            print(
                 ":ggd:check-recipe: !!ERROR!!: Unable to create alternative genome file.\n"
             )
             sys.stderr.write(str(e))
-            remove_package_after_install(bz2, recipe_name, e.returncode)
+            remove_package_after_install(bz2, recipe_name, 122)
         os.chdir(cwd)
     
         ## Get the alternative genome file
         gf = os.path.join(tempdir,different_genome_file["file_name"])
-
 
     # TODO is this just repeating the _check_build call performed in the previous function?
     _check_build(species, build)
@@ -1133,7 +1143,7 @@ def check_files(
         try:
             sp.check_call(["check-sort-order", "--genome", gf, tbx], stderr=sys.stderr)
         except sp.CalledProcessError as e:
-            sys.stderr.write(
+            print(
                 ":ggd:check-recipe: !!ERROR!!: in: %s(%s) with genome sort order compared to that specified in genome file\n"
                 % (P, tbx)
             )
