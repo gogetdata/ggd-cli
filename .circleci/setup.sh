@@ -16,6 +16,7 @@ then
     exit 1  
 fi 
 
+
 # setup conda and dependencies 
 if [[ ! -d $WORKSPACE/anaconda ]]; then
     mkdir -p $WORKSPACE
@@ -38,7 +39,12 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
     sudo chown -R $USER $WORKSPACE/anaconda/
     mkdir -p $WORKSPACE/anaconda/conda-bld/$tag-64
 
-    conda install -y "python=3.7"
+    ## Downgrade to python 3.7 if python 3
+    ### Some dependencies don't work on >=3.8
+    if (( $pythonversion == 3 ))
+    then 
+        conda install -y "python=3.7"
+    fi
 
     # step 2: setup channels
     conda config --system --add channels defaults
