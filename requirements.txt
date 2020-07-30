@@ -10,7 +10,7 @@ python-levenshtein
 htslib
 samtools
 zlib
-check-sort-order
+check-sort-order>=0.0.7
 krb5
 gsort>=0.1.4
 wget
