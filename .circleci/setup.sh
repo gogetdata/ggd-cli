@@ -38,6 +38,8 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
     sudo chown -R $USER $WORKSPACE/anaconda/
     mkdir -p $WORKSPACE/anaconda/conda-bld/$tag-64
 
+    conda install -y "python=3.7"
+
     # step 2: setup channels
     conda config --system --add channels defaults
     conda config --system --add channels bioconda
