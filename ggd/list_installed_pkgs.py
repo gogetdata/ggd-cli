@@ -115,14 +115,26 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
         ["    Name", "Pkg-Version", "Pkg-Build", "Channel", "Environment-Variables"]
     ]
 
+    missing_in_conda = False
+    missing_message = " [WARNING: Present in GGD but missing from Conda]" 
     ## Iterate over each package in pkg_names
     for pkg in pkg_names:
-        version = pkgs_dict[pkg]["version"]
-        assert version == conda_list[pkg]["version"]
-        build = conda_list[pkg]["build"]
-        channel = "ggd-" + pkgs_dict[pkg]["tags"]["ggd-channel"]
-        assert channel == conda_list[pkg]["channel"]
 
+        version = pkgs_dict[pkg]["version"]
+
+        ## If package is present in both ggd metadata and conda metadata
+        if pkg in conda_list:
+            assert version == conda_list[pkg]["version"]
+            build = conda_list[pkg]["build"]
+            channel = "ggd-" + pkgs_dict[pkg]["tags"]["ggd-channel"]
+            assert channel == conda_list[pkg]["channel"]
+
+        ## If package is missing from conda metadata
+        else:
+            missing_in_conda = True
+            build = missing_message
+            channel = ""
+            
         ## Get env_vars
         env_variables = []
         if (
@@ -180,6 +192,14 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
         print(
             "# You can see the available ggd data package environment variables by running `ggd show-env`\n"
         )
+
+    ## Print message if a package is missing from conda metadata
+    if missing_in_conda:
+        print(("#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
+              " packages is installed, but the package metadata has been removed from conda storage. This happens when"
+              " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
+              " in the same state as before the 'conda uninstall'. To fix the problem on conda's side uninstall"
+              " the package with 'ggd uninstall' and resinstall with 'ggd install'.\n").format(missing_message))
 
 
 def list_installed_packages(parser, args):

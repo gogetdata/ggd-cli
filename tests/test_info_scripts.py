@@ -1243,6 +1243,24 @@ def test_list_installed_packages():
     assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
     assert "The environment variables are only available when you are using the '{}' conda environment".format(p) in output
 
+    ## Remove "hg19-pfam-domains-ucsc-v1" from temp_env conda metadata but not ggd 
+    metadata_path = "share/ggd_info/channeldata.json"
+    full_path = os.path.join(utils.get_conda_prefix_path("temp_env"), metadata_path)
+    
+    ## Check that the package is still displayed, but a warning is provided about it is missing from conda metadata
+    sp.check_output(["conda", "uninstall", "hg19-pfam-domains-ucsc-v1", "-p", utils.get_conda_prefix_path("temp_env")])
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-pfam-domains-ucsc-v1" in output
+    assert "[WARNING: Present in GGD but missing from Conda]" in str(output)
+    assert ("NOTE: Packages with the ' [WARNING: Present in GGD but missing from Conda]' messages represent packages where the ggd"
+           " packages is installed, but the package metadata has been removed from conda storage. This happens when the packages is"
+           " uninstalled using conda rather then ggd. The package is still available for use and is in the same state as before the"
+           " 'conda uninstall'. To fix the problem on conda's side uninstall the package with 'ggd uninstall' and resinstall with"
+           " 'ggd install'.") in output
+
+
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
     try:
