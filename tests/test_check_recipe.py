@@ -643,7 +643,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
     test the _build function properly builds a ggd recipe into a ggd pocakge using conda build
     """
     pytest_enable_socket()
-    
+
     if final_files:
         if bad_files:
             ff = """final-files:
@@ -731,7 +731,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
             | bgzip -c > gaps.bed.gz
 
             tabix gaps.bed.gz 
-        
+
         post-link.sh: |
             set -eo pipefail -o nounset
 
@@ -1378,13 +1378,24 @@ def test_check_recipe_recipe_path():
             os.remove(bz2_file)
         else:
             raise e
-
+    
     ## Use the previously created ggd recipe path
     recipe_path = pytest.global_ggd_recipe_path
-    assert os.path.exists(recipe_path)
+    try: 
+        assert not os.path.exists(recipe_path)
+        assert not os.path.isdir(recipe_path)
+    except AssertionError as e:
+        if os.path.exists(recipe_path):
+            shutil.rmtree(recipe_path)
+        else:
+            raise e
+
+    ## Add recipe
+    test__build_normal_run(add_checksum=False,final_files=True)
+    recipe_path = pytest.global_ggd_recipe_path
+
     ### check that the checksum file is empty 
     assert os.path.getsize(os.path.join(recipe_path,"checksums_file.txt")) == 0
-
 
     ## SKIP md5sum process. -> This will trigger a checksum of the files, which will fail because there is none and the recipe will be uninstalled
     ### exit with 222
