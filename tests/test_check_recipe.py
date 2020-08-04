@@ -1293,7 +1293,8 @@ def test_check_recipe_bz2_file():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
+    if sys.version_info[0] >= 3:
+        assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
 
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
     assert "trial-hg38-gaps-v1" not in out
@@ -1404,7 +1405,8 @@ def test_check_recipe_recipe_path():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
+    if sys.version_info[0] >= 3:
+        assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
 
     ## Check that the recipe was uninstalled
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
