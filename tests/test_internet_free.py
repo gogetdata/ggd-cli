@@ -750,7 +750,7 @@ def test_make_bash_internet_free():
 
 def test_get_channeldata_internet_free():
     """
-    Test teh get_channeldata function in uninstall in an internet free context
+    Test the get_channeldata function in uninstall in an internet free context
         (uninstall)
     """
 
@@ -769,7 +769,7 @@ def test_get_channeldata_internet_free():
     ## Test normal run
     ggd_recipe = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     assert ggd_recipe in jdict["packages"].keys()
 
 
@@ -793,12 +793,12 @@ def test_uninstall_internet_free():
 
     ## Check non-failure uninstall command
     ggd_recipe = "hg19-gaps-ucsc-v1"
-    args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
     assert uninstall.uninstall((),args) == True
 
     #### Get jdict 
     ggd_channel = "genomics"
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     conda_root = utils.conda_root()
 
     ### Check that the files are not in the conda root
@@ -845,7 +845,7 @@ def test_list_installed_packages_internet_free():
     ### Check that there is no interent 
     assert utils.check_for_internet_connection() == False
 
-    args = Namespace(command='list', pattern=None, prefix=None)
+    args = Namespace(command='list', pattern=None, prefix=None, reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -855,7 +855,7 @@ def test_list_installed_packages_internet_free():
     assert "To use the environment variables run `source activate base" in output
     assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
 
-    args = Namespace(command='list', pattern=None, prefix=utils.conda_root())
+    args = Namespace(command='list', pattern=None, prefix=utils.conda_root(), reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
