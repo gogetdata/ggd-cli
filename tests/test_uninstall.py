@@ -91,7 +91,7 @@ def test_get_channeldata():
     ## Test normal run
     ggd_recipe = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     assert ggd_recipe in jdict["packages"].keys()
 
     ## Similar installed package
@@ -99,7 +99,7 @@ def test_get_channeldata():
     ggd_channel = "genomics"
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.get_channeldata(ggd_recipe,ggd_channel)
+        uninstall.get_channeldata([ggd_recipe],ggd_channel)
     output = temp_stdout.getvalue().strip() 
     assert "Packages installed on your system that are similar include:" in output
     assert "hg19-gaps-ucsc-v1" in output
@@ -109,7 +109,7 @@ def test_get_channeldata():
     bad_recipe = "BadRecipe"
     ggd_channel = "genomics"
     with redirect_stdout(temp_stdout):
-        uninstall.get_channeldata(bad_recipe,ggd_channel)
+        uninstall.get_channeldata([bad_recipe],ggd_channel)
     output = temp_stdout.getvalue().strip() 
     assert "Packages installed on your system that are similar include:" in output
     assert "{} is not in the ggd-{} channel".format(bad_recipe,ggd_channel)
@@ -121,7 +121,7 @@ def test_get_channeldata():
     ggd_recipe = "hg19-gaps-ucsc-v1"
     bad_channel = "BadChannel"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        uninstall.get_channeldata(ggd_recipe,bad_channel) ## Exit due to bad url from ggd.search
+        uninstall.get_channeldata([ggd_recipe],bad_channel) ## Exit due to bad url from ggd.search
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("The 'BadChannel' channel is not a ggd conda channel") ## Check that the exit code is 1
 
@@ -168,11 +168,14 @@ def test_check_conda_installation():
     """
     pytest_enable_socket()
 
+    ## Get the installed ggd data package names
+    installed_ggd_packages = utils.get_conda_package_list(conda_root())
+
     ## Test that the function properly handles not installed 
     ggd_recipe = "grch37-reference-genome-1000g-v1"
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.check_conda_installation(ggd_recipe)
+        uninstall.check_conda_installation([ggd_recipe],installed_ggd_packages)
     output = temp_stdout.getvalue().strip() 
     assert "{r} is NOT installed on your system".format(r=ggd_recipe) in output
 
@@ -181,14 +184,14 @@ def test_check_conda_installation():
     ggd_recipe = "hg19-gaps"
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        uninstall.check_conda_installation(ggd_recipe)
+        uninstall.check_conda_installation([ggd_recipe],installed_ggd_packages)
     output = temp_stdout.getvalue().strip() 
     assert "{r} is NOT installed on your system".format(r=ggd_recipe) in output
 
 
     ## test conda correctly uninstalls the hg19-gaps-ucsc-v1 package previously installed
     ggd_recipe = "hg19-gaps-ucsc-v1"
-    assert uninstall.check_conda_installation(ggd_recipe) == 0
+    assert uninstall.check_conda_installation([ggd_recipe],installed_ggd_packages) == 0
     output = sp.check_output(["conda", "list", ggd_recipe]).decode('utf8')
     assert ggd_recipe not in output
 
@@ -210,13 +213,13 @@ def test_conda_uninstall():
     sp.check_call(["ggd", "install", ggd_recipe])
 
     ## uninstall hg19-gaps-ucsc-v1
-    assert uninstall.conda_uninstall(ggd_recipe) == 0
+    assert uninstall.conda_uninstall([ggd_recipe]) == 0
     assert ggd_recipe not in str(sp.check_output(["conda", "list"]).decode("utf8"))
 
     ## Test a bad uninstall
     ggd_recipe = "Not_A_Real_GGD_Recipe"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        uninstall.conda_uninstall(ggd_recipe)
+        uninstall.conda_uninstall([ggd_recipe])
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
     
@@ -230,7 +233,7 @@ def test_check_for_installation():
     ## Test a not installed ggd recipe 
     ggd_recipe = "grch37-reference-genome-1000g-v1"
     ggd_channel = "genomics"
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         uninstall.check_for_installation([ggd_recipe],jdict)
@@ -240,7 +243,7 @@ def test_check_for_installation():
     ## Test installed package
     ggd_recipe = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         uninstall.check_for_installation([ggd_recipe],jdict)
@@ -269,7 +272,7 @@ def test_check_for_installation_different_prefix():
     ggd_channel = "genomics"
 
     ### Uninstall ggd recipe
-    uninstall_args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    uninstall_args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
     try:
         uninstall.uninstall((),uninstall_args)
     except:
@@ -283,17 +286,18 @@ def test_check_for_installation_different_prefix():
         pass
 
     ## jdict and info
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = jdict["packages"][ggd_recipe]["version"]
 
     ## Test the package in "conda_root" exists
-    args = Namespace(command='list', pattern=None, prefix=conda_root())
+    args = Namespace(command='list', pattern=None, prefix=conda_root(),reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
     output = temp_stdout.getvalue().strip()
+    assert ggd_recipe in output
     assert ggd_recipe in output
     path = os.path.join(conda_root(),"share","ggd",species,build,ggd_recipe,version,"*")
     files = glob.glob(path)
@@ -326,7 +330,7 @@ def test_check_for_installation_different_prefix():
     utils.update_installed_pkg_metadata(prefix=temp_env)
 
     ## Test the package was removed from the ggd info list
-    args = Namespace(command='list', pattern=None, prefix=temp_env)
+    args = Namespace(command='list', pattern=None, prefix=temp_env,reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -337,7 +341,7 @@ def test_check_for_installation_different_prefix():
     assert len(files) == 0
 
     ## Test the package in "conda_root" was not removed
-    args = Namespace(command='list', pattern=None, prefix=conda_root())
+    args = Namespace(command='list', pattern=None, prefix=conda_root(),reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -375,7 +379,7 @@ def test_check_for_installation_different_prefix():
     assert "hg19_pfam_domains_ucsc_v1_file" not in output
     assert "hg19_pfam_domains_ucsc_v1_dir" not in output
     
-    args = Namespace(command='list', pattern=None, prefix=conda_root())
+    args = Namespace(command='list', pattern=None, prefix=conda_root(),reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -397,7 +401,7 @@ def test_remove_from_condaroot():
     ggd_channel = "genomics"
 
     ### Uninstall ggd recipe
-    uninstall_args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    uninstall_args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
     try:
         uninstall.uninstall((),uninstall_args)
     except:
@@ -423,7 +427,7 @@ def test_remove_from_condaroot():
     assert install.install((), install_args) == True 
 
     ## jdict and info
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
     build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = jdict["packages"][ggd_recipe]["version"]
@@ -474,7 +478,7 @@ def test_remove_from_condaroot():
 
        
     ## Finish uninstalling recipe
-    args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
     uninstall.uninstall((),args)
 
     ## Remove temp_env
@@ -494,7 +498,7 @@ def test_uninstall():
 
     ## Test handling of a package not installed
     ggd_recipe = "not-a-real-recipe"
-    args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         uninstall.uninstall((),args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
@@ -516,12 +520,12 @@ def test_uninstall():
     assert ggd_recipe in pkg_info.keys()
 
     #### Test uninstall 
-    args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+    args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
     assert uninstall.uninstall((),args) == True
 
     #### Get jdict 
     ggd_channel = "genomics"
-    jdict = uninstall.get_channeldata(ggd_recipe,ggd_channel)
+    jdict = uninstall.get_channeldata([ggd_recipe],ggd_channel)
     conda_root = utils.conda_root()
 
     ### Check that the files are not in the conda root
@@ -560,5 +564,82 @@ def test_uninstall():
     with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jfile:
         channeldata = json.load(jfile)
         assert ggd_recipe not in channeldata["packages"]
+
+
+def test_uninstall_multiple_package():
+    """
+    Test that multiple packages are uninstalled using the main uninstall function 
+    """
+    recipes = ["hg19-chrom-mapping-ensembl2ucsc-ncbi-v1","hg19-chrom-mapping-refseq2ucsc-ncbi-v1"]
+
+    ## Install ggd recipe
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix = conda_root())
+    try:
+        install.install((), install_args) 
+    except:
+        pass
+
+    #### Check that the recipe are installed by conda 
+    pkg_info = get_conda_package_list(utils.conda_root())
+    for recipe in recipes:
+        assert recipe in pkg_info.keys()
+
+    #### Get jdict 
+    ggd_channel = "genomics"
+    jdict = uninstall.get_channeldata(recipes,ggd_channel)
+
+    #### Check data files exists
+    for ggd_recipe in recipes:
+        species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+        build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+        version = jdict["packages"][ggd_recipe]["version"]
+        final_files = jdict["packages"][ggd_recipe]["tags"]["final-files"]
+        path = os.path.join(conda_root(),"share","ggd",species,build,ggd_recipe,version,"*")
+        assert sorted(glob.glob(path)) == sorted([os.path.join(path.replace("*",""),x) for x in final_files])
+
+
+    #### Check that the ggd metadata channeldata file contains new recipes
+    for ggd_recipe in recipes:
+        version = pkg_info[ggd_recipe]["version"]
+        build = pkg_info[ggd_recipe]["build"]
+        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch"))
+        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch",ggd_recipe+"-{}-{}.tar.bz2".format(version,build)))
+        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json"))
+        with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jfile:
+            channeldata = json.load(jfile)
+            assert ggd_recipe in channeldata["packages"]
+
+
+    ## Test uninstall 
+    args = Namespace(channel='genomics', command='uninstall', names=recipes)
+    assert uninstall.uninstall((),args) == True
+
+    #### Check that the recipe are uninstalled by conda 
+    pkg_info = get_conda_package_list(utils.conda_root())
+    for recipe in recipes:
+        assert recipe not in pkg_info.keys()
+
+    #### Get jdict 
+    ggd_channel = "genomics"
+    jdict = uninstall.get_channeldata(recipes,ggd_channel)
+
+    #### Check data files are removed
+    for ggd_recipe in recipes:
+        species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
+        build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
+        version = jdict["packages"][ggd_recipe]["version"]
+        final_files = jdict["packages"][ggd_recipe]["tags"]["final-files"]
+        path = os.path.join(conda_root(),"share","ggd",species,build,ggd_recipe,version)
+        assert glob.glob(path) == []
+
+    #### Check that the ggd metadata channeldata file does not contain the packages
+    for ggd_recipe in recipes:
+        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch"))
+        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","noarch",ggd_recipe+"-{}-{}.tar.bz2".format(version,build))) == False
+        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json"))
+        with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jfile:
+            channeldata = json.load(jfile)
+            assert ggd_recipe not in channeldata["packages"]
+
 
 
