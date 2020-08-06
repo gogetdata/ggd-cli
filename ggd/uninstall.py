@@ -27,7 +27,11 @@ def add_uninstall(p):
         choices=get_ggd_channels(),
         help="The ggd channel of the recipe to uninstall. (Default = genomics)",
     )
-    c.add_argument("name", help="the name of the recipe to uninstall")
+    c.add_argument("names", 
+                   nargs = "+",
+                   help="the name(s) of the ggd package(s) to uninstall"
+    )
+
     c.set_defaults(func=uninstall)
 
 
@@ -36,7 +40,7 @@ def add_uninstall(p):
 # -------------------------------------------------------------------------------------------------------------
 
 
-def get_channeldata(ggd_recipe, ggd_channel):
+def get_channeldata(ggd_recipes, ggd_channel):
     """Method to get the conda channel data for the specific ggd/conda channel for the designated ggd recipe
 
     get_channeldata
@@ -71,36 +75,41 @@ def get_channeldata(ggd_recipe, ggd_channel):
 
     package_list = []
     if len(jdict["packages"].keys()) > 0:
-        package_list = search_packages(jdict, [ggd_recipe])
+        package_list = search_packages(jdict, ggd_recipes)
+    
+    uninstall_recipes = True
+    for recipe in ggd_recipes:
+        if recipe not in package_list:
+            uninstall_recipes = False
+            print(
+                "\n:ggd:uninstall: %s is not in the ggd-%s channel"
+                % (recipe, ggd_channel)
+            )
+            similar_pkgs = get_similar_pkg_installed_by_conda(recipe)
+            if len(similar_pkgs) > 0:
+                print(
+                    "\n:ggd:uninstall: Packages installed on your system that are similar include:\n\t\t Package\tChannel\n\t\t-%s"
+                    % "\n\t\t-".join([x for x in similar_pkgs.split("\n")])
+                )
+                print(
+                    "\n:ggd:uninstall: If one of these packages is the desired package to uninstall please re-run ggd uninstall with the desired package name and correct ggd channel name"
+                )
+                print(
+                    "\n:ggd:uninstall: Note: If the the package is not a part of a ggd channel run 'conda uninstall <pkg>' to uninstall"
+                )
+                print(
+                    "\n:ggd:uninstall:\t GGD channels include: %s"
+                    % ",".join(get_ggd_channels())
+                )
+            else:
+                print(
+                    "\n:ggd:uninstall: Unable to find any package similar to the package entered. Use 'ggd search' or 'conda find' to identify the right package"
+                )
+                print("\n:ggd:uninstall: This package may not be installed on your system")
 
-    if ggd_recipe in package_list:
+    if uninstall_recipes:
         return jdict
     else:
-        print(
-            "\n:ggd:uninstall: %s is not in the ggd-%s channel"
-            % (ggd_recipe, ggd_channel)
-        )
-        similar_pkgs = get_similar_pkg_installed_by_conda(ggd_recipe)
-        if len(similar_pkgs) > 0:
-            print(
-                "\n:ggd:uninstall: Packages installed on your system that are similar include:\n\t\t Package\tChannel\n\t\t-%s"
-                % "\n\t\t-".join([x for x in similar_pkgs.split("\n")])
-            )
-            print(
-                "\n:ggd:uninstall: If one of these packages is the desired package to uninstall please re-run ggd uninstall with the desired package name and correct ggd channel name"
-            )
-            print(
-                "\n:ggd:uninstall: Note: If the the package is not a part of a ggd channel run 'conda uninstall <pkg>' to uninstall"
-            )
-            print(
-                "\n:ggd:uninstall:\t GGD channels include: %s"
-                % ",".join(get_ggd_channels())
-            )
-        else:
-            print(
-                "\n:ggd:uninstall: Unable to find any package similar to the package entered. Use 'ggd search' or 'conda find' to identify the right package"
-            )
-            print("\n:ggd:uninstall: This package may not be installed on your system")
         return False
 
 
@@ -132,29 +141,26 @@ def get_similar_pkg_installed_by_conda(ggd_recipe):
     )
 
 
-def check_conda_installation(ggd_recipe):
+def check_conda_installation(ggd_recipes,installed_ggd_packages):
     """Method to check if the ggd package was installed with conda
 
     check_conda_installation
     ========================
     Method used to check if the recipe has been installed with conda. If so, it uses conda to uninstall the recipe
     """
-    from .utils import get_conda_package_list
-
-    # conda_package_set = set(sp.check_output(["conda", "list"]).decode('utf8').strip().replace("\n"," ").split(" "))
-    # if ggd_recipe in conda_package_set:
-    installed_ggd_packages = get_conda_package_list(
-        conda_root()
-    ).keys()  ## Get the installed ggd data package names
-    if ggd_recipe in installed_ggd_packages:
-        print("\n:ggd:uninstall: %s is installed by conda on your system" % ggd_recipe)
-        return conda_uninstall(ggd_recipe)
-
+    
+    ## Filter ggd recipe list to those installed by conda
+    conda_installed_recipes = [x for x in ggd_recipes if x in installed_ggd_packages]
+        
+    ## Uninstall any conda installed recipes
+    if len(conda_installed_recipes) > 0:
+        print("\n:ggd:uninstall: %s are installed by conda on your system" % ", ".join(conda_installed_recipes))
+        return(conda_uninstall(conda_installed_recipes))
     else:
-        print("\n:ggd:uninstall: %s is NOT installed on your system" % ggd_recipe)
+        print("\n:ggd:uninstall: %s is NOT installed on your system" % ", ".join(ggd_recipes))
 
 
-def conda_uninstall(ggd_recipe):
+def conda_uninstall(ggd_recipes):
     """Method use to uninstall the ggd recipe using conda
 
     conda_uninstall
@@ -162,15 +168,15 @@ def conda_uninstall(ggd_recipe):
     Method used to uninstall ggd recipe using conda
     """
 
-    print("\n:ggd:uninstall: Uninstalling %s" % ggd_recipe)
+    print("\n:ggd:uninstall: Uninstalling %s" % ", ".join(ggd_recipes))
     try:
         return sp.check_call(
-            ["conda", "uninstall", "-y", ggd_recipe],
+            ["conda", "uninstall", "-y"] + ggd_recipes,
             stderr=sys.stderr,
             stdout=sys.stdout,
         )
     except sp.CalledProcessError as e:
-        sys.stderr.write("ERROR in uninstall %s" % ggd_recipe)
+        sys.stderr.write("ERROR in uninstall %s" % ", ".join(ggd_recipes))
         sys.stderr.write(str(e))
         sys.exit(e.returncode)
 
@@ -200,7 +206,7 @@ def check_for_installation(ggd_recipes, ggd_jdict, prefix=conda_root()):
     from .show_env import remove_env_variable
     from .utils import conda_root, get_conda_prefix_path
 
-    update_needed = False
+    recipes_removed_from_conda = False
     for ggd_recipe in ggd_recipes:
         species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
         build = ggd_jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
@@ -220,10 +226,10 @@ def check_for_installation(ggd_recipes, ggd_jdict, prefix=conda_root()):
             remove_env_variable(dir_env_var, prefix)
             file_env_var = "ggd_" + ggd_recipe + "_file"
             remove_env_variable(file_env_var, prefix)
-            update_needed = True
+            recipes_removed_from_conda = True
         else:
             print("\n:ggd:uninstall: %s is not in the ggd recipe storage" % ggd_recipe)
-    return update_needed
+    return recipes_removed_from_conda
 
 
 def remove_from_condaroot(ggd_recipe, version, prefix):
@@ -232,8 +238,9 @@ def remove_from_condaroot(ggd_recipe, version, prefix):
     remove_from_condaroot
     ====================
     Method used to remove the recipe's extra files created during installation, but that are not removed 
-     when uninstalled. 
+     when conda uninstalled. 
     """
+    from .utils import update_installed_pkg_metadata
 
     ## Get a list of files for the package starting at the prefix path
     find_list = (
@@ -264,6 +271,10 @@ def remove_from_condaroot(ggd_recipe, version, prefix):
             else:
                 os.remove(path)
 
+    ## Update installed package list
+    print("\n:ggd:uninstall: Updating installed package list")
+    update_installed_pkg_metadata(prefix=prefix, exclude_pkg=ggd_recipe)
+
 
 def uninstall(parser, args):
     """Main method for uninstall command
@@ -272,24 +283,39 @@ def uninstall(parser, args):
     =========
     Main method used to check if the recipe is installed, uninstall the recipe, and remove extra recipe files
     """
-    from .utils import update_installed_pkg_metadata
+    from .utils import get_conda_package_list, get_run_deps_from_tar
 
-    print("\n:ggd:uninstall: Checking for installation of %s" % args.name)
+    ## List of packages to uninstall
+    ggd_recipes = args.names
+
     ## Get the channeldata.json file in dictionary form
-    ggd_jsonDict = get_channeldata(args.name, args.channel)
+    print("\n:ggd:uninstall: Checking for installation of: %s" % ", ".join(ggd_recipes))
+    ggd_jsonDict = get_channeldata(ggd_recipes, args.channel)
     if ggd_jsonDict == False:
         sys.exit()
+
+    ## Get the installed ggd data package names
+    installed_ggd_packages = get_conda_package_list(conda_root())
+
+    ## Check for GGD package as run deps
+    ### Add them to the uninstall list
+    ggd_info_dir = os.path.join(conda_root(), "share", "ggd_info", "noarch")
+    tars_in_info_dir = set(os.listdir(ggd_info_dir))
+    for recipe in args.names: 
+        tarballfile = "{}-{}-{}.tar.bz2".format(recipe, installed_ggd_packages[recipe]["version"], installed_ggd_packages[recipe]["build"]) if recipe in installed_ggd_packages else ""
+        if tarballfile in tars_in_info_dir:
+            tarfile_path = os.path.join(ggd_info_dir,tarballfile) 
+            ggd_recipes.extend(get_run_deps_from_tar(tarfile_path, args.channel))
+
     ## Check if insatlled through conda
-    check_conda_installation(args.name)
+    check_conda_installation(ggd_recipes,installed_ggd_packages.keys())
+
     ## Check if the recipe is in file system
     if len(ggd_jsonDict) > 0:
-        if check_for_installation([args.name], ggd_jsonDict):
+        check_for_installation(ggd_recipes, ggd_jsonDict)
 
-            ## Update installed package list
-            print("\n:ggd:uninstall: Updating installed package list")
-            update_installed_pkg_metadata(exclude_pkg=args.name)
     else:
-        print("\n:ggd:uninstall: Skipping package removal from system step")
+        print("\n:ggd:uninstall: Skipping steps for package removal from system")
 
     print("\n:ggd:uninstall: DONE")
 
