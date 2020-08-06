@@ -15,6 +15,8 @@ METADATA = "channeldata.json"
 ## Argument Parser
 # -------------------------------------------------------------------------------------------------------------
 def add_list_installed_packages(p):
+    
+    import argparse
 
     c = p.add_parser(
         "list",
@@ -30,6 +32,11 @@ def add_list_installed_packages(p):
         "--prefix",
         default=None,
         help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)",
+    )
+    c.add_argument(
+        "--reset",
+        action="store_true",
+        help=argparse.SUPPRESS
     )
     c.set_defaults(func=list_installed_packages)
 
@@ -226,6 +233,15 @@ def list_installed_packages(parser, args):
         if args.prefix != None and prefix_in_conda(args.prefix)
         else conda_root()
     )
+
+    ## If reset list 
+    if args.reset:
+        print("\n:ggd:list: The --reset flag was set. RESETTING ggd installed list metadata.")
+        update_installed_pkg_metadata(args.prefix)
+        print("\n:ggd:list: Run 'ggd list' without --reset to see a list of installed ggd data packages")
+        print("\nDONE\n")
+        sys.exit(0)
+        
     ggd_info_path = os.path.join(CONDA_ROOT, GGD_INFO)
 
     ## Check that the ggd info dir exists. If not, create it
