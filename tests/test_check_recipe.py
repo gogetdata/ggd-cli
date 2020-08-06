@@ -1439,20 +1439,20 @@ def test_check_recipe_recipe_path():
 
 
 def test_check_recipe_uninstall_local():
-   """
-   Test the main check_recipe funtion using an recipe path to install a ggd recipe and uninstalling the local recipe after checks
+    """
+    Test the main check_recipe function using an recipe path to install a ggd recipe and uninstalling the local recipe after checks
     (Using the --dont_uninstall or -du flag) (If the flag is not set, it is false)
-   """
-   pytest_enable_socket()
+    """
+    pytest_enable_socket()
 
    ## Uninstall the already installed recipe
-   try:
-       sp.check_call(["conda", "uninstall", "-y", "trial-hg38-gaps-v1"])
-   except Exception as e:
-       pass
+    try:
+        sp.check_call(["conda", "uninstall", "-y", "trial-hg38-gaps-v1"])
+    except Exception as e:
+        pass
 
    ## Remove fragment files
-   jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
                        {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
                        u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
                        u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
@@ -1460,24 +1460,29 @@ def test_check_recipe_uninstall_local():
                        u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
 
-   uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
+    uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
 
 
-   ## Uces the previously created ggd recipe path
-   recipe_path = pytest.global_ggd_recipe_path
-   assert os.path.exists(recipe_path)
+    ## Uces the previously created ggd recipe path
+    recipe_path = pytest.global_ggd_recipe_path
+    assert os.path.exists(recipe_path)
 
-   ## Set args
-   args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False)
+    ## Set args
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False)
 
-   assert check_recipe.check_recipe((),args) == True 
-  
-   out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
-   assert "trial-hg38-gaps-v1" not in out
-   out = utils.check_output(["ggd", "show-env"])
-   assert "ggd_trial_hg38_gaps_v1" not in out
-   conda_root = utils.conda_root()
-   assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+    assert check_recipe.check_recipe((),args) == True 
+
+    out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
+    assert "trial-hg38-gaps-v1" not in out
+    out = utils.check_output(["ggd", "show-env"])
+    assert "ggd_trial_hg38_gaps_v1" not in out
+    conda_root = utils.conda_root()
+    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+
+    ## Check that the ggd info metadata does not contain the recipe 
+    with open(os.path.join(conda_root,"share","ggd_info","channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert "trial-hg38-gaps-v1" not in jdict["packages"]
    
 
 def test_check_recipe_package_env_vars():
@@ -3114,6 +3119,10 @@ def test_remove_package_after_installation():
     pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial-hg38-gaps-ucsc-v1" in pkg_out ## Identify that it was installed in the conda env
 
+    ## Check that the ggd info metadata contains the recipe 
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert "trial-hg38-gaps-ucsc-v1" in jdict["packages"]
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.remove_package_after_install(tarball_file_path,"trial-hg38-gaps-ucsc-v1",2)
@@ -3122,6 +3131,11 @@ def test_remove_package_after_installation():
 
     pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial-hg38-gaps-ucsc-v1" not in pkg_out ## Identify that it was removed from the conda env
+
+    ## Check that the ggd info metadata does not contain the recipe 
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert "trial-hg38-gaps-ucsc-v1" not in jdict["packages"]
 
 
 def test_check_header():

@@ -206,7 +206,9 @@ def _install(bz2, recipe_name, debug=False):
     3) If the installation fails progam exits. ggd data handeling is initated to remove any new/updated files from the installation process
     """
     import traceback
-    from .utils import get_conda_package_list, get_required_conda_version
+    from .utils import (get_conda_package_list, 
+                       get_required_conda_version, 
+                       update_installed_pkg_metadata)
 
     conda_version, equals = get_required_conda_version()
     conda_install = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
@@ -306,6 +308,10 @@ def _install(bz2, recipe_name, debug=False):
         )
         ## Exit
         sys.exit(1)
+    
+    ## Update installed metadata
+    print("\n:ggd:check-recipe: Updating installed package list")
+    update_installed_pkg_metadata(remove_old=False, add_packages=[recipe_name], include_local=True)
 
     return True
 
@@ -549,6 +555,8 @@ def check_recipe(parser, args):
             "\n\n:ggd:check-recipe: The --dont_uninstall flag was not set \n\n Uninstalling the locally built ggd data package"
         )
 
+        from .utils import get_conda_package_list, update_installed_pkg_metadata 
+
         recipe_dict = get_recipe_from_bz2(bz2)
         species = recipe_dict["about"]["identifiers"]["species"]
         genome_build = recipe_dict["about"]["identifiers"]["genome-build"]
@@ -566,6 +574,15 @@ def check_recipe(parser, args):
             check_for_installation(
                 [name], ggd_jdict
             )  ## .uninstall method to remove extra ggd files
+
+            ## Uninstall from conda
+            if name in get_conda_package_list(conda_root(),include_local=True).keys():
+                sp.check_output(["conda","uninstall","-y", name])
+
+            ## remove package from pkg metadata
+            print("\n:ggd:check-recipe: Updating installed package list")
+            update_installed_pkg_metadata(exclude_pkg=name)
+
         except Exception as e:
             print(e)
     else:
@@ -842,6 +859,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     1) bz2: The bz2 file created during the conda build process of the data package
     2) exit_num: The exit number to exit the program with
     """
+    from .utils import get_conda_package_list, update_installed_pkg_metadata 
 
     print(
         ":ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation"
@@ -864,6 +882,15 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
         check_for_installation(
             [recipe_name], ggd_jdict
         )  ## .uninstall method to remove extra ggd files
+
+        ## Uninstall from conda
+        if name in get_conda_package_list(conda_root(),include_local=True).keys():
+            sp.check_output(["conda","uninstall","-y", name])
+
+        ## remove package from pkg metadata
+        print("\n:ggd:check-recipe: Updating installed package list")
+        update_installed_pkg_metadata(exclude_pkg=name)
+
     except Exception as e:
         print(e)
 
@@ -1128,7 +1155,7 @@ def check_files(
             print(
                 ":ggd:check-recipe: !!ERROR!!: Unable to create alternative genome file.\n"
             )
-            sys.stderr.write(str(e))
+            print(str(e))
             remove_package_after_install(bz2, recipe_name, 122)
         os.chdir(cwd)
     
