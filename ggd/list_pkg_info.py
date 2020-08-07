@@ -108,11 +108,16 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
     """
     import glob
     import yaml
+    from .utils import literal_block, add_yaml_literal_block
 
     dash = "     " + "-" * 100
     print("\n\n", dash)
 
     yaml_dict = yaml.safe_load(tarball_info_object)
+    ## Add literal block if needed
+    if "genome_file" in yaml_dict["extra"]:
+        yaml_dict["extra"]["genome_file"]["commands"] = utils.literal_block(yaml_dict["extra"]["genome_file"]["commands"])
+        utils.add_yaml_literal_block(yaml)
 
     species = yaml_dict["about"]["identifiers"]["species"]
     genome_build = yaml_dict["about"]["identifiers"]["genome-build"]

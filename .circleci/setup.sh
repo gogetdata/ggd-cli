@@ -16,6 +16,7 @@ then
     exit 1  
 fi 
 
+
 # setup conda and dependencies 
 if [[ ! -d $WORKSPACE/anaconda ]]; then
     mkdir -p $WORKSPACE
@@ -36,10 +37,14 @@ if [[ ! -d $WORKSPACE/anaconda ]]; then
     curl -L -O https://repo.continuum.io/miniconda/Miniconda$pythonversion-latest-$tag-x86_64.sh
     sudo bash Miniconda$pythonversion-latest-$tag-x86_64.sh -b -p $WORKSPACE/anaconda/
     sudo chown -R $USER $WORKSPACE/anaconda/
-    curl -Lo $WORKSPACE/anaconda/bin/check-sort-order https://github.com/gogetdata/ggd-utils/releases/download/v0.0.6/check-sort-order-$tag2\_amd64
-
-    chmod +x $WORKSPACE/anaconda/bin/check-sort-order
     mkdir -p $WORKSPACE/anaconda/conda-bld/$tag-64
+
+    ## Downgrade to python 3.7 if python 3
+    ### Some dependencies don't work on >=3.8
+    if (( $pythonversion == 3 ))
+    then 
+        conda install -y "python=3.7"
+    fi
 
     # step 2: setup channels
     conda config --system --add channels defaults

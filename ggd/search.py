@@ -143,36 +143,42 @@ def search_packages(json_dict, search_terms, score_cutoff=50):
     """
     from fuzzywuzzy import fuzz
     from fuzzywuzzy import process
+    from collections import defaultdict
 
-    pkg_score = {}
+    pkg_score = defaultdict(lambda: defaultdict(float))
+
     for term in search_terms:
         for pkg in json_dict["packages"].keys():
             ## Get match score between name and term
-            score = fuzz.partial_ratio(term.lower(), pkg.lower())
+            score = fuzz.ratio(term.lower(), pkg.lower())
             ## Get a list of match score for the keywrods
             additional_scores = process.extract(
                 term, json_dict["packages"][pkg]["keywords"]
             )
             ## Get the max score from all scores found
-            max_score = max([x[1] for x in additional_scores] + [score])
+            keyword_max_score = max([x[1] for x in additional_scores])
 
             ## Set max score in dict
-            if pkg in pkg_score:
-                pkg_score[pkg] = max(pkg_score[pkg], max_score)
-            else:
-                pkg_score[pkg] = max_score
+            if float(pkg_score[pkg]["pkg_score"]) < float(score):
+                pkg_score[pkg]["pkg_score"] = float(score)
+
+            if float(pkg_score[pkg]["keyword_score"]) < float(keyword_max_score):
+                pkg_score[pkg]["keyword_score"] = float(keyword_max_score)
 
     ## Get a final list of pkg names
-    temp_list = sorted(
+    temp_pkg_list = sorted(
         [
-            [pkg, int(max_score)]
-            for pkg, max_score in pkg_score.items()
-            if max_score >= score_cutoff
+            [pkg, float(max_scores["pkg_score"])]
+            for pkg, max_scores in pkg_score.items()
+            if float(max_scores["pkg_score"]) >= float(score_cutoff)
+            or float(max_scores["keyword_score"]) >= float(score_cutoff)
+
         ],
         key=lambda x: x[1],
         reverse=True,
     )
-    final_list = [pkg_list[0] for pkg_list in temp_list]
+
+    final_list = [pkg_list[0] for pkg_list in temp_pkg_list]
 
     return final_list
 

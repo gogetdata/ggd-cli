@@ -111,12 +111,12 @@ def test_search_package_madeup_package():
     pytest_enable_socket()
             
     name = "Madeup-package"
-    search_term = "madeup"
+    search_term = "madeup-pack"
     json_dict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'Madeup_package': {u'activate.d': False, u'version': u'1', u'tags': {u'cached': [u'uploaded_to_aws'], u'ggd-channel': u'genomics', u'data-version': u'27-Apr-2009'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/Madeup_package-1-3.tar.bz2', u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'Assembly gaps from USCS', u'text_prefix': False, u'identifiers': {u'genome-build': u'hg19', u'species': u'Homo_sapiens'}}}}
 
     ## Default match score >= 50
     assert search.search_packages(json_dict,[search_term],score_cutoff=50) == ["Madeup_package"]
-    assert search.search_packages(json_dict,[search_term],score_cutoff=90) == ["Madeup_package"]
+    assert search.search_packages(json_dict,[search_term],score_cutoff=70) == ["Madeup_package"]
 
     search_term = "maed pakacage"
     ## Default match score >= 50

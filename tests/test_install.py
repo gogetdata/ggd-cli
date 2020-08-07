@@ -84,7 +84,7 @@ def remove_pfam():
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
     if ggd_recipe in str(sp.check_output(["conda", "list"]).decode('utf8')):
         try:
-            uninstall.uninstall((),Namespace(channel='genomics', command='uninstall', name=ggd_recipe))
+            uninstall.uninstall((),Namespace(channel='genomics', command='uninstall', names=[ggd_recipe]))
             sp.check_output(["conda", "uninstall", "-y", ggd_recipe]) 
         except:
             pass
@@ -470,7 +470,7 @@ def test_install_from_cache():
         assert name in channeldata["packages"]
 
     try:
-        args = Namespace(channel='genomics', command='uninstall', name=name)
+        args = Namespace(channel='genomics', command='uninstall', names=[name])
         uninstall.uninstall((),args)
     except:
         pass
@@ -492,7 +492,7 @@ def test_install_from_cache():
             assert name in channeldata["packages"]
 
     for name in ggd_recipes:
-        args = Namespace(channel='genomics', command='uninstall', name=name)
+        args = Namespace(channel='genomics', command='uninstall', names=[name])
         assert uninstall.uninstall((),args) == True
 
 
@@ -665,7 +665,7 @@ def test_conda_install():
             assert name in channeldata["packages"]
 
     for name in ggd_recipes:
-        args = Namespace(channel='genomics', command='uninstall', name=name)
+        args = Namespace(channel='genomics', command='uninstall', names=[name])
         assert uninstall.uninstall((),args) == True
 
 
@@ -795,7 +795,7 @@ def test_get_file_location():
     assert path in output
 
     try:
-        args = Namespace(channel='genomics', command='uninstall', name=ggd_recipe)
+        args = Namespace(channel='genomics', command='uninstall', names=[ggd_recipe])
         uninstall.uninstall((),args)
     except:
         pass
@@ -1137,7 +1137,7 @@ def test_install_checksum():
 #
 #
 #    try:
-#        args = Namespace(channel='genomics', command='uninstall', name=recipe)
+#        args = Namespace(channel='genomics', command='uninstall', names=[recipe])
 #        uninstall.uninstall((),args)
 #    except:
 #        pass
@@ -1337,7 +1337,7 @@ def test_install_main_function_multiple_recipes():
 
     for name in recipes:
         try:
-            args = Namespace(channel='genomics', command='uninstall', name=name)
+            args = Namespace(channel='genomics', command='uninstall', names=[name])
             uninstall.uninstall((),args)
         except:
             pass
@@ -1398,7 +1398,7 @@ def test_install_main_function_multiple_recipes():
 
     for name in recipes:
         try:
-            args = Namespace(channel='genomics', command='uninstall', name=name)
+            args = Namespace(channel='genomics', command='uninstall', names=[name])
             uninstall.uninstall((),args)
         except:
             pass
@@ -1447,7 +1447,7 @@ def test_install_main_function_multiple_recipes():
 ##        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
 ##    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
 ##        try:
-##            args = Namespace(channel='genomics', command='uninstall', name=name)
+##            args = Namespace(channel='genomics', command='uninstall', names=[name])
 ##            uninstall.uninstall((),args)
 ##        except:
 ##            pass
@@ -1490,7 +1490,7 @@ def test_install_main_function_multiple_recipes():
 ##
 ##    for name in ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1","grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]:
 ##        try:
-##            args = Namespace(channel='genomics', command='uninstall', name=name)
+##            args = Namespace(channel='genomics', command='uninstall', names=[name])
 ##            uninstall.uninstall((),args)
 ##        except:
 ##            pass

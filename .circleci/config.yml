@@ -15,7 +15,7 @@ variables:
       command: bash .circleci/setup.sh 3
   macos: &macos
     macos:
-      xcode: "9.4.1" ## Using a macOS VM image (https://circleci.com/docs/2.0/executor-types/)
+      xcode: 11.4.1 ## Using a macOS VM image (https://circleci.com/docs/2.0/executor-types/)
   linux: &linux
     machine: true ## Using a dedicated Linux VM image (https://circleci.com/docs/2.0/executor-types/)
   install_ggd_cli: &install_ggd_cli
@@ -31,6 +31,7 @@ variables:
       name: Install md5sum ## Homebrew on CircleCI: (https://circleci.com/docs/2.0/testing-ios/#installing-custom-packages_
       command: |
         brew update-reset
+        export HOMEBREW_NO_AUTO_UPDATE=1
         brew install md5sha1sum  ## brew package from md5sum: (http://microbrew.org/tools/md5sha1sum/) (https://formulae.brew.sh/formula/md5sha1sum)
 
 

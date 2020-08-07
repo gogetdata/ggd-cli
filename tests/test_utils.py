@@ -198,11 +198,23 @@ def test_get_required_conda_version():
     assert  conda_version != -1
     assert equals == "=" or equals == ">="
     version_list = conda_version.strip().split(".")
+
     ## Test that the conda version is greater than or equal to 4.6.8. (4.6.8 is the oldest release where all tests passed and ggd was work.)
     ## As of 4/10/2019 the latest conda version that works with all tests passing is 4.6.12
     assert int(version_list[0]) == 4 ## Conda version == 4.*.*
     assert int(version_list[1]) == 8 ## Conda version == *.8.*
-    assert int(version_list[2]) >= 2 ## Conda version >= *.*.2
+    assert int(version_list[2].strip().split(",")[0]) >= 2 ## Conda version >= *.*.2
+
+    ## Check for a second version 
+    ## Example 4.8.2,<=4.8.3   -->  [4,8,3]
+    if "=" in version_list[2] or ">" in version_list[2] or "<" in version_list[2]:
+        spliter = "=" if "=" in version_list[2] else "<" if "<" in version_list[2] else ">" if ">" in version_list[2] else "-"
+        second_version = [version_list[2].strip().split(spliter)[1], version_list[3],version_list[4]]
+
+        assert int(second_version[0]) == 4
+        assert int(second_version[1]) == 8
+        assert int(second_version[2]) <= 3
+        
     
 
 def test_check_output():
@@ -343,6 +355,172 @@ def test_update_genome_metadata_files():
     assert os.path.exists(os.path.join(file_path,"ggd_channels.json"))
 
 
+def test_get_run_deps_from_tar():
+    """
+    Test the get_run_deps_from_tar function correctly returns ggd recipes that are listed as run dependencies 
+    """
+
+    from helpers import CreateRecipe
+    from ggd import check_recipe
+    
+    ## create a recipe with no ggd deps
+    recipe = CreateRecipe(
+    """
+    no-ggd-deps-hg38-gaps-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: no-ggd-deps-hg38-gaps-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                genomic-coordinate-base: 0-based-inclusive
+                data-version: 11-Mar-2019
+                data-provider: UCSC
+                ggd-channel: genomics
+                final-file-sizes:
+                  no-ggd-deps-hg38-gaps-v1.bed.gz: 9.20K
+                  no-ggd-deps-hg38-gaps-v1.bed.gz.tbi: 10.72K
+                file-type: 
+                  - bed
+                final-files:
+                  - no-ggd-deps-hg38-gaps-v1.bed.gz
+                  - no-ggd-deps-hg38-gaps-v1.bed.gz.tbi
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" '%s {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+
+    """,from_string=True)
+
+    recipe.write_recipes()
+
+    ## Get recipe dir path 
+    recipe_dir_path = recipe.recipe_dirs["no-ggd-deps-hg38-gaps-v1"] 
+    ## build file and get tarball file path
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
+
+    ## Test get_run_deps_from_tar returns an empty list when no ggd deps are present
+    assert utils.get_run_deps_from_tar(tarball_file_path, "genomics") == []
+
+    ## create a recipe with ggd deps
+    recipe = CreateRecipe(
+    """
+    ggd-deps-hg38-gaps-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: ggd-deps-hg38-gaps-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - grch38-chrom-mapping-ucsc2ensembl-ncbi-v1
+              - grch38-reference-genome-ensembl-v1
+              - gsort
+              - hg38-canonical-transcript-features-ensembl-v1
+              - hg38-pli-scores-exac-v1
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                genomic-coordinate-base: 0-based-inclusive
+                data-version: 11-Mar-2019
+                data-provider: UCSC
+                ggd-channel: genomics
+                final-file-sizes:
+                  ggd-deps-hg38-gaps-v1.bed.gz: 9.20K
+                  ggd-deps-hg38-gaps-v1.bed.gz.tbi: 10.72K
+                file-type: 
+                  - bed
+                final-files:
+                  - ggd-deps-hg38-gaps-v1.bed.gz
+                  - ggd-deps-hg38-gaps-v1.bed.gz.tbi
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" '%s {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+            
+    """,from_string=True)
+
+    recipe.write_recipes()
+
+    ## Get recipe dir path 
+    recipe_dir_path = recipe.recipe_dirs["ggd-deps-hg38-gaps-v1"] 
+    ## build file and get tarball file path
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
+
+    ## Test get_run_deps_from_tar returns an a list of ggd dpes when  ggd deps are present
+    assert utils.get_run_deps_from_tar(tarball_file_path, "genomics") == ["grch38-chrom-mapping-ucsc2ensembl-ncbi-v1", 
+                                                                          "grch38-reference-genome-ensembl-v1", 
+                                                                          "hg38-canonical-transcript-features-ensembl-v1", 
+                                                                          "hg38-pli-scores-exac-v1"]
+
+
 def test_update_installed_pkg_metadata():
     """
     Test that the update_installed_pkg_metadata method correctly updates the ggd info metadata with installed packages
@@ -433,6 +611,216 @@ def test_update_installed_pkg_metadata():
     except Exception:
         pass
     assert os.path.exists(temp_env) == False
+
+
+    ## Check the updated pkg metadata file for ggd pkgs installed as deps and not just the main ggd package
+    ### This will test the get_run_deps_from_tar() function is properly working 
+    from helpers import CreateRecipe
+    from ggd import check_recipe
+
+    ## create a recipe with ggd deps
+    recipe = CreateRecipe(
+    """
+    test-ggd-deps-hg38-gaps-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: test-ggd-deps-hg38-gaps-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - grch38-chrom-mapping-ucsc2ensembl-ncbi-v1
+              - gsort
+              - hg38-pli-scores-exac-v1
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                genomic-coordinate-base: 0-based-inclusive
+                data-version: 11-Mar-2019
+                data-provider: UCSC
+                ggd-channel: genomics
+                final-file-sizes:
+                  test-ggd-deps-hg38-gaps-v1.bed.gz: 9.20K
+                  test-ggd-deps-hg38-gaps-v1.bed.gz.tbi: 10.72K
+                file-type: 
+                  - bed
+                final-files:
+                  - test-ggd-deps-hg38-gaps-v1.bed.gz
+                  - test-ggd-deps-hg38-gaps-v1.bed.gz.tbi
+        
+        recipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > gaps.bed.gz
+
+            tabix gaps.bed.gz 
+
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            echo "1"
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/test-ggd-deps-hg38-gaps-v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-ggd-dep-shg38-gaps-v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/test-ggd-deps-hg38-gaps-v1/1
+            fi
+
+            echo "2"
+            PKG_DIR=`find "$CONDA_SOURCE_PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            echo "3"
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            echo "4"
+            mkdir -p $RECIPE_DIR
+
+            echo "5"
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            echo "6"
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "test-ggd-deps-hg38-gaps-v1.$ext")
+            done
+
+            echo "7"
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="test-ggd-deps-hg38-gaps-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="test-ggd-deps-hg38-gaps-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            echo "8"
+            #### Dir
+            recipe_env_dir_name="test-ggd-deps-hg38-gaps-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            echo "9"
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            echo "10"
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+
+        checksums_file.txt: |
+            
+    """,from_string=True)
+
+    recipe.write_recipes()
+
+    ## Get recipe dir path 
+    recipe_dir_path = recipe.recipe_dirs["test-ggd-deps-hg38-gaps-v1"] 
+    ## build file and get tarball file path
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_dir_path,yaml_file)
+    assert check_recipe._install(tarball_file_path,"test-ggd-deps-hg38-gaps-v1") == True 
+
+    ## List of new ggd recipe installed                                                                    
+    new_installed_recipes = ["test-ggd-deps-hg38-gaps-v1",
+                             "grch38-chrom-mapping-ucsc2ensembl-ncbi-v1", 
+                             "hg38-pli-scores-exac-v1"]
+
+
+    ggd_info_dir = os.path.join(utils.conda_root(),"share","ggd_info")
+
+    ## Test the installed created the ggd info metadata with new ggd packages
+    for new_ggd_package in new_installed_recipes: 
+
+        matches = [re.search(new_ggd_package+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(new_ggd_package,x) != None]
+        assert len(matches) > 0
+        with open(os.path.join(ggd_info_dir,"channeldata.json")) as jsonFile:
+            jdict = json.load(jsonFile)
+            assert new_ggd_package in jdict["packages"]
+        assert os.path.exists(ggd_info_dir) == True
+
+    ## remove extra data files
+    installed_ggd_pkgs = utils.get_conda_package_list(utils.conda_root())
+    uninstall_packages = [x for x in new_installed_recipes if x in installed_ggd_pkgs]
+    sp.check_output(["conda","uninstall","-y"] + uninstall_packages)
+
+    from ggd import uninstall
+    for recipe in new_installed_recipes:
+        uninstall.remove_from_condaroot(recipe,1,utils.conda_root())
+
+    ## Run the update with prefix set and check the prefix
+    assert utils.update_installed_pkg_metadata(prefix=utils.conda_root()) == True
+
+    ## Make sure packages are removed
+    for new_ggd_package in new_installed_recipes: 
+
+        matches = [re.search(new_ggd_package+".+",x).group() for x in os.listdir(os.path.join(ggd_info_dir,"noarch")) if re.search(new_ggd_package,x) != None]
+        assert len(matches) == 0
+        with open(os.path.join(ggd_info_dir,"channeldata.json")) as jsonFile:
+            jdict = json.load(jsonFile)
+            assert new_ggd_package not in jdict["packages"]
+        assert os.path.exists(ggd_info_dir) == True
 
 
 def test_check_conda_pkg_dir(): 
@@ -688,6 +1076,106 @@ def test_prefix_in_conda():
     except Exception:
         pass
     assert os.path.exists(temp_env) == False
+
+
+def test_add_yaml_literal_block():
+    """
+    Test that the add_yaml_literal_block correctly creates a literal block 
+    """
+
+    import tempfile 
+    import shutil
+    import yaml
+
+    data = {
+        'nonliteral':(
+             'by me               ___\n'
+             '   __              /.-.\\\n'
+             '  /  )_____________\\\\  Y\n'
+             ' /_ /=== == === === =\\ _\\_\n'
+             '( /)=== == === === == Y   \\\n'
+             ' `-------------------(  o  )\n'
+             '                      \\___/\n')
+    }
+
+    data2 = {
+        'literal':utils.literal_block(
+             'by me                ___\n'
+             '   __              /.-.\\\n'
+             '  /  )_____________\\\\  Y\n'
+             ' /_ /=== == === === =\\ _\\_\n'
+             '( /)=== == === === == Y   \\\n'
+             ' `-------------------(  o  )\n'
+             '                      \\___/\n')
+    }
+
+    tempdir_name = "testing_yaml_literal"
+    tempfile_non_literal = "non_literal_yaml.yaml"
+    tempfile_literal = "literal_yaml.yaml"
+    tempdir = os.path.join(tempfile.gettempdir(), tempdir_name)
+    if not os.path.exists(tempdir):
+        os.mkdir(tempdir)
+    print(tempdir)
+
+    cwd = os.getcwd()
+    
+    ## Create yaml files
+    ## 1 non literal 
+    ## 1 literal blcok 
+    try:
+        os.chdir(tempdir)
+        with open(tempfile_non_literal, "w") as non_literal:
+            non_literal.write(yaml.dump(data, default_flow_style=False))
+        with open(tempfile_literal, "w") as literal:
+            utils.add_yaml_literal_block(yaml)
+            literal.write(yaml.dump(data2, default_flow_style=False))
+
+        ## Check non literal block yaml file
+        with open(tempfile_non_literal, "r") as non_literal:
+            for i,line in enumerate(non_literal):
+                if i == 0:
+                    assert line.rstrip() == '''nonliteral: "by me               ___\\n   __              /.-.\\\\\\n  /  )_____________\\\\\\'''
+                elif i == 1:
+                    assert line.rstrip() == '''  \\\\  Y\\n /_ /=== == === === =\\\\ _\\\\_\\n( /)=== == === === == Y   \\\\\\n `-------------------(\\'''
+                elif i == 2:
+                    assert line.rstrip() == '''  \\  o  )\\n                      \\\\___/\\n"'''
+                else:
+                    assert False
+
+        ## Check literal block yaml file
+        with open(tempfile_literal, "r") as literal:
+            for i,line in enumerate(literal):
+                if i == 0:
+                    assert line.rstrip() == '''literal: |'''
+                elif i == 1:
+                    assert line.rstrip() == '''  by me                ___'''
+                elif i == 2:
+                    assert line.rstrip() == '''     __              /.-.\\'''
+                elif i == 3:
+                    assert line.rstrip() == '''    /  )_____________\\\\  Y'''
+                elif i == 4:
+                    assert line.rstrip() == '''   /_ /=== == === === =\\ _\\_'''
+                elif i == 5:
+                    assert line.rstrip() == '''  ( /)=== == === === == Y   \\'''
+                elif i == 6:
+                    assert line.rstrip() == '''   `-------------------(  o  )'''
+                elif i == 7:
+                    assert line.rstrip() == '''                        \\___/'''
+                else:
+                    assert False
+        
+    except Exception as e: 
+        os.chdir(cwd)
+        print("\nError with yaml literal test")
+        print(str(e))
+        assert False
+
+
+    os.chdir(cwd)
+
+    ## Remove temp dir
+    if os.path.exists(tempdir):
+        shutil.rmtree(tempdir)
 
 
 def test_get_conda_package_list():

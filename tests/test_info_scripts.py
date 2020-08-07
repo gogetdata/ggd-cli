@@ -1172,7 +1172,7 @@ def test_list_installed_packages():
     """
 
     ## Normal Run
-    args = Namespace(command='list', pattern=None, prefix=None)
+    args = Namespace(command='list', pattern=None, prefix=None, reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1183,7 +1183,7 @@ def test_list_installed_packages():
     assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
 
     ## Pattern set to exact package name
-    args = Namespace(command='list', pattern="hg19-gaps-ucsc-v1", prefix=None)
+    args = Namespace(command='list', pattern="hg19-gaps-ucsc-v1", prefix=None, reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1194,7 +1194,7 @@ def test_list_installed_packages():
     assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
 
     ## Pattern set to beginning of package name
-    args = Namespace(command='list', pattern="hg19", prefix=None)
+    args = Namespace(command='list', pattern="hg19", prefix=None, reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1205,7 +1205,7 @@ def test_list_installed_packages():
     assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
 
     ## Pattern set to middle of package name
-    args = Namespace(command='list', pattern="gaps", prefix=None)
+    args = Namespace(command='list', pattern="gaps", prefix=None, reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1216,7 +1216,7 @@ def test_list_installed_packages():
     assert "You can see the available ggd data package environment variables by running `ggd show-env" in output
 
     ## Pattern does not match an installed package
-    args = Namespace(command='list', pattern="BADPATTERN", prefix=None)
+    args = Namespace(command='list', pattern="BADPATTERN", prefix=None, reset=False)
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         list_installed_pkgs.list_installed_packages((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
@@ -1224,7 +1224,7 @@ def test_list_installed_packages():
 
     ## Package in set prefix (Not conda_root)
     p = os.path.join(utils.conda_root(), "envs", "temp_env") ## From test_get_environment_variables()
-    args = Namespace(command='list', pattern=None, prefix=p)
+    args = Namespace(command='list', pattern=None, prefix=p, reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1234,7 +1234,7 @@ def test_list_installed_packages():
     assert "The environment variables are only available when you are using the '{}' conda environment".format(p) in output
 
     ## Package in set prefix (Not conda_root) and using the prefix name rather than the prefix path
-    args = Namespace(command='list', pattern=None, prefix="temp_env")
+    args = Namespace(command='list', pattern=None, prefix="temp_env", reset=False)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         list_installed_pkgs.list_installed_packages((), args)
@@ -1242,6 +1242,23 @@ def test_list_installed_packages():
     assert "hg19-pfam-domains-ucsc-v1" in output
     assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
     assert "The environment variables are only available when you are using the '{}' conda environment".format(p) in output
+
+    ## Remove "hg19-pfam-domains-ucsc-v1" from temp_env conda metadata but not ggd 
+    metadata_path = "share/ggd_info/channeldata.json"
+    full_path = os.path.join(utils.get_conda_prefix_path("temp_env"), metadata_path)
+    
+    ## Check that the package is still displayed, but a warning is provided about it is missing from conda metadata
+    sp.check_output(["conda", "uninstall", "hg19-pfam-domains-ucsc-v1", "-p", utils.get_conda_prefix_path("temp_env")])
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "hg19-pfam-domains-ucsc-v1" in output
+    assert "[WARNING: Present in GGD but missing from Conda]" in str(output)
+    assert ("NOTE: Packages with the ' [WARNING: Present in GGD but missing from Conda]' messages represent packages where the ggd"
+           " packages is installed, but the package metadata has been removed from conda storage. This happens when the packages is"
+           " uninstalled using conda rather then ggd. The package is still available for use and is in the same state as before the"
+           " 'conda uninstall'. To fix the problem on conda's side uninstall the package with 'ggd uninstall' and resinstall with"
+           " 'ggd install'.") in output
 
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
@@ -1251,6 +1268,12 @@ def test_list_installed_packages():
         pass
     assert os.path.exists(p) == False
 
+    ## Test basic reset works
+    args = Namespace(command='list', pattern=None, prefix=None, reset=True)
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        list_installed_pkgs.list_installed_packages((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("0") ## check that the exit code is 1
 
 
 ### predict-path
@@ -1382,7 +1405,7 @@ def test_predict_path():
 
     assert str(output2) == str(output)
 
-    args = Namespace(channel='genomics', command='uninstall', name="grch37-autosomal-dominant-genes-berg-v1")
+    args = Namespace(channel='genomics', command='uninstall', names=["grch37-autosomal-dominant-genes-berg-v1"])
     uninstall.uninstall((),args)
 
 

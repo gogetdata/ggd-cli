@@ -67,11 +67,11 @@ def get_ggd_channels():
 
 
 def get_channel_data(ggd_channel):
-    """Method used to get channel meta data for a specific ggd channel
+    """Method used to get locally stored channel meta data for a specific ggd channel
 
     get_channel_data
     ================
-    This method is used to get the ggd channel's metadata json file. 
+    This method is used to get the ggd local channel's metadata json file. 
 
     Parameters:
     -----------
@@ -285,12 +285,58 @@ def update_genome_metadata_files():
     return True
 
 
+def get_run_deps_from_tar(tarfile_path, channel):
+    """Get a list of ggd packages that are run dependencies of another ggd packages
+
+    get_run_deps_from_tar
+    =====================
+    Method to extract all ggd specific run dependencies of another ggd package.
+
+    Parameters:
+    ----------
+    1) tarfile_path: Path to the package tarfile to search for deps in 
+    2) channel: The ggd chanenl the tarball file package is for
+
+    Returns:
+    +++++++
+    1) A list of all ggd sepecific package deps
+    """
+    
+    import json
+    import requests
+    import tarfile
+    import yaml
+
+    ## extract channel
+    channel = channel.strip().split("-")[-1]
+
+    ## If internet connection 
+    if check_for_internet_connection(3):
+        ggd_package_dict = requests.get(get_channeldata_url(channel)).json()
+    else:
+        with open(get_channel_data(channel)) as json_file:
+            ggd_package_dict = json.load(json_file)
+
+    ## Get a list of all ggd packages 
+    ggd_package_names = set(ggd_package_dict["packages"].keys())
+
+    ## Check for ggd packages in run requirements
+    with tarfile.open(tarfile_path, "r:bz2") as tarball_file:
+        meta_yaml = yaml.safe_load(tarball_file.extractfile(tarball_file.getmember("info/recipe/meta.yaml.template")))
+
+        ## Add any ggd packages that are requirements to the req package list
+        req_packages = [req for req in meta_yaml["requirements"]["run"] if req in ggd_package_names]
+
+    return(req_packages)
+                
+
 def update_installed_pkg_metadata(
     prefix=None,
     channel="ggd-genomics",
     remove_old=True,
     exclude_pkg=None,
     add_packages=[],
+    include_local=False
 ):
     """Method to update the local metadata file in a conda environment that contains information about the installed ggd packages
 
@@ -324,8 +370,6 @@ def update_installed_pkg_metadata(
     4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
     5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
     """
-
-
 
     ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
     if add_packages and remove_old == True:
@@ -365,9 +409,8 @@ def update_installed_pkg_metadata(
     ## Create the "noarch" dir
     if not os.path.isdir(os.path.join(ggd_info_dir, "noarch")):
         os.makedirs(os.path.join(ggd_info_dir, "noarch"))
-
-
-
+    
+    ## Check add packages
     if add_packages and remove_old == False:
         for (
             add_package
@@ -382,16 +425,25 @@ def update_installed_pkg_metadata(
             if current:
                 os.remove(os.path.join(ggd_info_dir, "noarch", current[0]))
 
+    ## Get the dir to the pkgs dir
+    pkg_dir = os.path.join(prefix, "pkgs")
+
     ## Get a list of pkgs installed in a conda environemnt (Using conda list)
     pkg_list = {}
     if add_packages:
         for add_package in add_packages:
-            pkg_list.update(get_conda_package_list(prefix, add_package))
-    else:
-        pkg_list.update(get_conda_package_list(prefix))
 
-    ## Get the dir to the pkgs dir
-    pkg_dir = os.path.join(prefix, "pkgs")
+            ## Add package to package list
+            pkg_dict = get_conda_package_list(prefix, add_package, include_local=include_local)
+            pkg_list.update(pkg_dict)
+
+            ## Check for any ggd specific run deps and add them to the package list
+            tarfile = os.path.join(pkg_dir, "{}-{}-{}.tar.bz2".format(add_package, pkg_dict[add_package]["version"], pkg_dict[add_package]["build"])) 
+            for pkg in get_run_deps_from_tar(tarfile,channel):
+                pkg_list.update(get_conda_package_list(prefix, pkg, include_local=include_local))
+
+    else:
+        pkg_list.update(get_conda_package_list(prefix, include_local=include_local))
 
     ## Remove package from list if specified and for some reason is in the conda package list
     if exclude_pkg != None and remove_old == True:
@@ -684,6 +736,7 @@ class ChecksumError(Exception):
     def __str__(self):
         return self.message
 
+
 class literal_block(str): pass
 
 def add_yaml_literal_block(yaml_object):
@@ -698,7 +751,6 @@ def add_yaml_literal_block(yaml_object):
         return(dumper.represent_scalar("tag:yaml.org,2002:str", data, style='|'))
 
     return(yaml_object.add_representer(literal_block, literal_str_representer))
-
 
 
 def get_conda_package_list(prefix, regex=None, include_local=False):

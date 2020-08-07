@@ -9,7 +9,7 @@ import sys
 import yaml
 
 from .uninstall import check_for_installation
-from .utils import check_output, conda_root
+from .utils import check_output, conda_root, literal_block, add_yaml_literal_block
 
 # ---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -206,7 +206,9 @@ def _install(bz2, recipe_name, debug=False):
     3) If the installation fails progam exits. ggd data handeling is initated to remove any new/updated files from the installation process
     """
     import traceback
-    from .utils import get_conda_package_list, get_required_conda_version
+    from .utils import (get_conda_package_list, 
+                       get_required_conda_version, 
+                       update_installed_pkg_metadata)
 
     conda_version, equals = get_required_conda_version()
     conda_install = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
@@ -306,6 +308,10 @@ def _install(bz2, recipe_name, debug=False):
         )
         ## Exit
         sys.exit(1)
+    
+    ## Update installed metadata
+    print("\n:ggd:check-recipe: Updating installed package list")
+    update_installed_pkg_metadata(remove_old=False, add_packages=[recipe_name], include_local=True)
 
     return True
 
@@ -342,6 +348,10 @@ def get_recipe_from_bz2(fbz2):
             exit(1)
         recipe = tf.extractfile(info)
         recipe = yaml.safe_load(recipe.read().decode())
+        ## Add literal block if needed
+        if "genome_file" in recipe["extra"]:
+            recipe["extra"]["genome_file"]["commands"] = literal_block(recipe["extra"]["genome_file"]["commands"])
+            add_yaml_literal_block(yaml)
     return recipe
 
 
@@ -406,6 +416,11 @@ def check_recipe(parser, args):
         args.dont_add_md5sum_for_checksum = True  ## If bz2, final files should have already beed added and checksum should have already been calculated.
     else:
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
+        ## Add literal block if needed
+        if "genome_file" in recipe["extra"]:
+            recipe["extra"]["genome_file"]["commands"] = literal_block(recipe["extra"]["genome_file"]["commands"])
+            add_yaml_literal_block(yaml)
+
         if args.debug:
             bz2 = _build(args.recipe_path, recipe, debug=True)
         else:
@@ -540,6 +555,8 @@ def check_recipe(parser, args):
             "\n\n:ggd:check-recipe: The --dont_uninstall flag was not set \n\n Uninstalling the locally built ggd data package"
         )
 
+        from .utils import get_conda_package_list, update_installed_pkg_metadata 
+
         recipe_dict = get_recipe_from_bz2(bz2)
         species = recipe_dict["about"]["identifiers"]["species"]
         genome_build = recipe_dict["about"]["identifiers"]["genome-build"]
@@ -557,6 +574,15 @@ def check_recipe(parser, args):
             check_for_installation(
                 [name], ggd_jdict
             )  ## .uninstall method to remove extra ggd files
+
+            ## Uninstall from conda
+            if name in get_conda_package_list(conda_root(),include_local=True).keys():
+                sp.check_output(["conda","uninstall","-y", name])
+
+            ## remove package from pkg metadata
+            print("\n:ggd:check-recipe: Updating installed package list")
+            update_installed_pkg_metadata(exclude_pkg=name)
+
         except Exception as e:
             print(e)
     else:
@@ -738,7 +764,11 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
         )
 
     ## Return the new version of the meta.yaml as a dict
-    return yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    yaml_dict = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    if "genome_file" in yaml_dict["extra"]:
+        yaml_dict["extra"]["genome_file"]["commands"] = literal_block(yaml_dict["extra"]["genome_file"]["commands"])
+        add_yaml_literal_block(yaml)
+    return yaml_dict
 
 
 def check_final_files(installed_dir_path, yaml_file):
@@ -829,9 +859,10 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     1) bz2: The bz2 file created during the conda build process of the data package
     2) exit_num: The exit number to exit the program with
     """
+    from .utils import get_conda_package_list, update_installed_pkg_metadata 
 
     print(
-        "\n:ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation"
+        ":ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation"
     )
 
     recipe_dict = get_recipe_from_bz2(bz2)
@@ -851,6 +882,15 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
         check_for_installation(
             [recipe_name], ggd_jdict
         )  ## .uninstall method to remove extra ggd files
+
+        ## Uninstall from conda
+        if name in get_conda_package_list(conda_root(),include_local=True).keys():
+            sp.check_output(["conda","uninstall","-y", name])
+
+        ## remove package from pkg metadata
+        print("\n:ggd:check-recipe: Updating installed package list")
+        update_installed_pkg_metadata(exclude_pkg=name)
+
     except Exception as e:
         print(e)
 
@@ -1066,17 +1106,28 @@ def check_files(
 
     if different_genome_file is None:
         print(":ggd:check-recipe: Checking sort order using GGD genome file\n")
+
+        ## get the .genome file
         gf = "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/{species}/{build}/{build}.genome".format(
             build=build, species=species
         )
+
     else:
         print(":ggd:check-recipe: Checking sort order using an alternative genome file specified in the meta.yaml\n")
+
+        ## Check for required keys 
         if "commands" not in different_genome_file:
-            sys.stderr.write(
+            print(
                 ":ggd:check-recipe: !!ERROR!!: An alternative genome file was requested, but the 'commands' key is missing from the meta.yaml file."
                 " Cannot check sort order with no genome file\n"
             )
-            remove_package_after_install(bz2, recipe_name, e.returncode)
+            remove_package_after_install(bz2, recipe_name, 120)
+        if "file_name" not in different_genome_file:
+            print(
+                ":ggd:check-recipe: !!ERROR!!: An alternative genome file was requested, but the 'file_name' key is missing from the meta.yaml file."
+                " Cannot check sort order with a specified genome file\n"
+            )
+            remove_package_after_install(bz2, recipe_name, 121)
 
         import tempfile 
         import shutil
@@ -1101,16 +1152,15 @@ def check_files(
             sp.check_call(["bash", temp_script_path], stderr=sys.stderr)
         except sp.CalledProcessError as e:
             os.chdir(cwd)
-            sys.stderr.write(
+            print(
                 ":ggd:check-recipe: !!ERROR!!: Unable to create alternative genome file.\n"
             )
-            sys.stderr.write(str(e))
-            remove_package_after_install(bz2, recipe_name, e.returncode)
+            print(str(e))
+            remove_package_after_install(bz2, recipe_name, 122)
         os.chdir(cwd)
     
         ## Get the alternative genome file
         gf = os.path.join(tempdir,different_genome_file["file_name"])
-
 
     # TODO is this just repeating the _check_build call performed in the previous function?
     _check_build(species, build)
@@ -1120,7 +1170,7 @@ def check_files(
         try:
             sp.check_call(["check-sort-order", "--genome", gf, tbx], stderr=sys.stderr)
         except sp.CalledProcessError as e:
-            sys.stderr.write(
+            print(
                 ":ggd:check-recipe: !!ERROR!!: in: %s(%s) with genome sort order compared to that specified in genome file\n"
                 % (P, tbx)
             )

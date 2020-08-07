@@ -643,7 +643,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
     test the _build function properly builds a ggd recipe into a ggd pocakge using conda build
     """
     pytest_enable_socket()
-    
+
     if final_files:
         if bad_files:
             ff = """final-files:
@@ -731,7 +731,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
             | bgzip -c > gaps.bed.gz
 
             tabix gaps.bed.gz 
-        
+
         post-link.sh: |
             set -eo pipefail -o nounset
 
@@ -1293,7 +1293,8 @@ def test_check_recipe_bz2_file():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
+    if sys.version_info[0] >= 3:
+        assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
 
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
     assert "trial-hg38-gaps-v1" not in out
@@ -1378,13 +1379,24 @@ def test_check_recipe_recipe_path():
             os.remove(bz2_file)
         else:
             raise e
-
+    
     ## Use the previously created ggd recipe path
     recipe_path = pytest.global_ggd_recipe_path
-    assert os.path.exists(recipe_path)
+    try: 
+        assert not os.path.exists(recipe_path)
+        assert not os.path.isdir(recipe_path)
+    except AssertionError as e:
+        if os.path.exists(recipe_path):
+            shutil.rmtree(recipe_path)
+        else:
+            raise e
+
+    ## Add recipe
+    test__build_normal_run(add_checksum=False,final_files=True)
+    recipe_path = pytest.global_ggd_recipe_path
+
     ### check that the checksum file is empty 
     assert os.path.getsize(os.path.join(recipe_path,"checksums_file.txt")) == 0
-
 
     ## SKIP md5sum process. -> This will trigger a checksum of the files, which will fail because there is none and the recipe will be uninstalled
     ### exit with 222
@@ -1393,7 +1405,8 @@ def test_check_recipe_recipe_path():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
+    if sys.version_info[0] >= 3:
+        assert pytest_wrapped_e.match("222") ## Check that the exit code is 1
 
     ## Check that the recipe was uninstalled
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
@@ -1426,20 +1439,20 @@ def test_check_recipe_recipe_path():
 
 
 def test_check_recipe_uninstall_local():
-   """
-   Test the main check_recipe funtion using an recipe path to install a ggd recipe and uninstalling the local recipe after checks
+    """
+    Test the main check_recipe function using an recipe path to install a ggd recipe and uninstalling the local recipe after checks
     (Using the --dont_uninstall or -du flag) (If the flag is not set, it is false)
-   """
-   pytest_enable_socket()
+    """
+    pytest_enable_socket()
 
    ## Uninstall the already installed recipe
-   try:
-       sp.check_call(["conda", "uninstall", "-y", "trial-hg38-gaps-v1"])
-   except Exception as e:
-       pass
+    try:
+        sp.check_call(["conda", "uninstall", "-y", "trial-hg38-gaps-v1"])
+    except Exception as e:
+        pass
 
    ## Remove fragment files
-   jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
                        {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
                        u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
                        u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
@@ -1447,24 +1460,29 @@ def test_check_recipe_uninstall_local():
                        u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
 
 
-   uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
+    uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
 
 
-   ## Uces the previously created ggd recipe path
-   recipe_path = pytest.global_ggd_recipe_path
-   assert os.path.exists(recipe_path)
+    ## Uces the previously created ggd recipe path
+    recipe_path = pytest.global_ggd_recipe_path
+    assert os.path.exists(recipe_path)
 
-   ## Set args
-   args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False)
+    ## Set args
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False)
 
-   assert check_recipe.check_recipe((),args) == True 
-  
-   out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
-   assert "trial-hg38-gaps-v1" not in out
-   out = utils.check_output(["ggd", "show-env"])
-   assert "ggd_trial_hg38_gaps_v1" not in out
-   conda_root = utils.conda_root()
-   assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+    assert check_recipe.check_recipe((),args) == True 
+
+    out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
+    assert "trial-hg38-gaps-v1" not in out
+    out = utils.check_output(["ggd", "show-env"])
+    assert "ggd_trial_hg38_gaps_v1" not in out
+    conda_root = utils.conda_root()
+    assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == False 
+
+    ## Check that the ggd info metadata does not contain the recipe 
+    with open(os.path.join(conda_root,"share","ggd_info","channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert "trial-hg38-gaps-v1" not in jdict["packages"]
    
 
 def test_check_recipe_package_env_vars():
@@ -3101,6 +3119,10 @@ def test_remove_package_after_installation():
     pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial-hg38-gaps-ucsc-v1" in pkg_out ## Identify that it was installed in the conda env
 
+    ## Check that the ggd info metadata contains the recipe 
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert "trial-hg38-gaps-ucsc-v1" in jdict["packages"]
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.remove_package_after_install(tarball_file_path,"trial-hg38-gaps-ucsc-v1",2)
@@ -3109,6 +3131,11 @@ def test_remove_package_after_installation():
 
     pkg_out = sp.check_output(["conda list trial-hg38-gaps-ucsc-v1"], shell=True).decode("utf8")
     assert "trial-hg38-gaps-ucsc-v1" not in pkg_out ## Identify that it was removed from the conda env
+
+    ## Check that the ggd info metadata does not contain the recipe 
+    with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jsonFile:
+        jdict = json.load(jsonFile)
+        assert "trial-hg38-gaps-ucsc-v1" not in jdict["packages"]
 
 
 def test_check_header():
@@ -3694,7 +3721,7 @@ def test_check_files_good_genomic_file():
 
     ## Test that unmodified files causes the system to exit(2)
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -3708,7 +3735,7 @@ def test_check_files_good_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     ## Check correct run of check_files. An empty list should be returned. 
-    assert check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path) == []  
+    assert check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path) == []  
 
     ## Remove the tempfile
     os.remove(hold_tarfile_path)
@@ -3788,7 +3815,7 @@ def test_check_files_good_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     ## Check correct run of check_files. An empty list should be returned. 
-    extra_file_list = check_recipe.check_files(files_path, species, build, name, [], file_tuples, tarfile_path)
+    extra_file_list = check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)
     assert len(extra_file_list) == 2
     assert "extra.file" in extra_file_list
     assert "extra.file2" in extra_file_list  
@@ -3843,7 +3870,7 @@ def test_check_files_unpaired_genomic_file():
         sp.check_output(["touch", "-m", file_tuple[0]])
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -3878,7 +3905,7 @@ def test_check_files_unpaired_genomic_file():
     tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -3915,7 +3942,7 @@ def test_check_files_unpaired_genomic_file():
     tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -3946,7 +3973,7 @@ def test_check_files_unpaired_genomic_file():
     tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -3977,7 +4004,7 @@ def test_check_files_unpaired_genomic_file():
     tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
@@ -4012,12 +4039,105 @@ def test_check_files_unpaired_genomic_file():
     tarfile_path = copy_tarfile(hold_tarfile_path, tarfile_dir_path)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        check_recipe.check_files(files_path, species, build, name, [],file_tuples, tarfile_path)  
+        check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path)  
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## Check that the exit code is 1
 
     ## Remove the tempfile
     os.remove(hold_tarfile_path)
+
+
+def test_check_files_alternative_genome_file():
+    """
+    Test check_files is able to handle an alternative genome when meta.yaml designates one
+    """
+
+    pytest_enable_socket()
+
+    files = CreateRecipe(
+    """
+    gtf_files:
+        hg19.gtf: |
+            chr1\thg19_knownGene\texon\t11874\t12227\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr1\thg19_knownGene\tstart_codon\t12190\t12192\t0.000000\t+\t.\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\tCDS\t12190\t12227\t0.000000\t+\t0\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\texon\t12595\t12721\t0.000000\t+\t.\tgene_id "uc010nxq.1"; transcript_id "uc010nxq.1"; 
+            chr1\thg19_knownGene\texon\t12613\t12721\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr1\thg19_knownGene\texon\t13221\t14409\t0.000000\t+\t.\tgene_id "uc001aaa.3"; transcript_id "uc001aaa.3"; 
+            chr2\tknownGene\t3UTR\t38814\t41607\t.\t-\t.\tgene_id "Q1W6H9"; transcript_id "uc010yim.2"; exon_number "1"; exon_id "uc010yim.2.1"; gene_name "Q1W6H9"; gene_symbol "FAM110C";
+            chr2\tknownGene\texon\t38814\t41627\t.\t-\t.\tgene_id "Q1W6H9"; transcript_id "uc010yim.2"; exon_number "1"; exon_id "uc010yim.2.1"; gene_name "Q1W6H9"; gene_symbol "FAM110C";
+            chr2\tknownGene\ttranscript\t38814\t46588\t.\t-\t.\tgene_id "Q1W6H9"; transcript_id "uc010yim.2";  gene_name "Q1W6H9"; gene_symbol "FAM110C";
+            chr2\tknownGene\tstop_codon\t41608\t41610\t.\t-\t0\tgene_id "Q1W6H9"; transcript_id "uc010yim.2"; exon_number "1"; exon_id "uc010yim.2.1"; gene_name "Q1W6H9"; gene_symbol "FAM110C";
+            chr2\tknownGene\tCDS\t41611\t41627\t.\t-\t2\tgene_id "Q1W6H9"; transcript_id "uc010yim.2"; exon_number "1"; exon_id "uc010yim.2.1"; gene_name "Q1W6H9"; gene_symbol "FAM110C";
+            chr2\tknownGene\tCDS\t45440\t46385\t.\t-\t0\tgene_id "Q1W6H9"; transcript_id "uc010yim.2"; exon_number "2"; exon_id "uc010yim.2.2"; gene_name "Q1W6H9"; gene_symbol "FAM110C";
+            chr3\tknownGene\texon\t238279\t238746\t.\t+\t.\tgene_id "O00533-2"; transcript_id "uc003bot.3"; exon_number "1"; exon_id "uc003bot.3.1"; gene_name "O00533-2"; gene_symbol "CHL1";
+            chr3\tknownGene\t5UTR\t238279\t238746\t.\t+\t.\tgene_id "O00533-2"; transcript_id "uc003bot.3"; exon_number "1"; exon_id "uc003bot.3.1"; gene_name "O00533-2"; gene_symbol "CHL1";
+            chr3\tknownGene\t5UTR\t238279\t238746\t.\t+\t.\tgene_id "O00533"; transcript_id "uc003bou.3"; exon_number "1"; exon_id "uc003bou.3.1"; gene_name "O00533"; gene_symbol "CHL1";
+            chr3\tknownGene\texon\t238279\t238746\t.\t+\t.\tgene_id "O00533"; transcript_id "uc003bou.3"; exon_number "1"; exon_id "uc003bou.3.1"; gene_name "O00533"; gene_symbol "CHL1";
+            chr3\tknownGene\ttranscript\t238279\t451097\t.\t+\t.\tgene_id "O00533"; transcript_id "uc003bou.3";  gene_name "O00533"; gene_symbol "CHL1";
+            chr3\tknownGene\ttranscript\t238279\t451097\t.\t+\t.\tgene_id "O00533-2"; transcript_id "uc003bot.3";  gene_name "O00533-2"; gene_symbol "CHL1";
+    """, from_string=True)
+    
+    files.write_recipes()
+
+    files_path = files.recipe_dirs["gtf_files"]   
+
+    ## Create a .gz and .gz.tbi file for each genomic file other than .fa
+    for f in os.listdir(files_path):
+            sp.check_output("bgzip -c "+os.path.join(files_path,f)+" > "+os.path.join(files_path,f)+".gz", shell=True)
+            out = sp.check_output("tabix "+os.path.join(files_path,f)+".gz", shell=True) ## Create a .tbi file
+            out = sp.check_output("tabix -C "+os.path.join(files_path,f)+".gz", shell=True) ## Create .csi file
+
+    species = "Homo_sapiens"
+    build = "hg19"
+    name = "testing-hg19-recipe-v1"
+    file_tuples = check_recipe.list_files(files_path)
+
+    ## Get tarfile
+    tarfile_path = get_a_tarfile()
+
+    ## Modify files
+    time.sleep(1)
+    for file_tuple in file_tuples:
+        sp.check_output(["touch", "-m", file_tuple[0]])
+
+    ## Check correct run of check_files. An empty list should be returned. 
+    assert check_recipe.check_files(files_path, species, build, name, [], None, file_tuples, tarfile_path) == []  
+
+    
+    ## Missing "commands" key 
+    different_genome_file = {"Without_Commads_Option":"no commands", "file_name":"some_file"}
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_files(files_path, species, build, name, [], different_genome_file, file_tuples, tarfile_path)  
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("120") ## Check that the exit code is 1
+
+    ## Missing "file_name" key 
+    different_genome_file = {"commands":"no commands", "no_file_name_key":"some_file"}
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_files(files_path, species, build, name, [], different_genome_file, file_tuples, tarfile_path)  
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("121") ## Check that the exit code is 1
+
+    ## Check bad commands
+    different_genome_file = {"commands":"""cat BAD Commands\ngzip no_file\ttabix nothing\n """, "file_name":"some_file"}
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_files(files_path, species, build, name, [], different_genome_file, file_tuples, tarfile_path)  
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("122") ## Check that the exit code is 1
+
+    ## Check good .genome file, but bad sort order bad sort order
+    different_genome_file = {"commands":"""echo -e "chr3\t551097" >> hg19.reverse.genome\necho -e "chr2\t55385" >> hg19.reverse.genome\necho -e "chr1\t24409" >> hg19.reverse.genome""", 
+                             "file_name":"hg19.reverse.genome"}
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        check_recipe.check_files(files_path, species, build, name, [], different_genome_file, file_tuples, tarfile_path)  
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
+
+    ## Check good .genome file and good file check 
+    different_genome_file = {"commands":"""echo -e "chr1\t551097" >> hg19.small.genome\necho -e "chr2\t551097" >> hg19.small.genome\necho -e "chr3\t551097" >> hg19.small.genome""", 
+                             "file_name":"hg19.small.genome"}
+    assert check_recipe.check_files(files_path, species, build, name, [], different_genome_file, file_tuples, tarfile_path) == []  
 
 
 def test_check_yaml():
