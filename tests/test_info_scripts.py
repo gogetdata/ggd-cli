@@ -1260,14 +1260,6 @@ def test_list_installed_packages():
            " 'conda uninstall'. To fix the problem on conda's side uninstall the package with 'ggd uninstall' and resinstall with"
            " 'ggd install'.") in output
 
-    ## Test basic reset works
-    args = Namespace(command='list', pattern=None, prefix="temp_env", reset=True)
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        list_installed_pkgs.list_installed_packages((), args)
-    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match(0)
-
-
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
     try:
@@ -1276,6 +1268,12 @@ def test_list_installed_packages():
         pass
     assert os.path.exists(p) == False
 
+    ## Test basic reset works
+    args = Namespace(command='list', pattern=None, prefix=None, reset=True)
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        list_installed_pkgs.list_installed_packages((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("0") ## check that the exit code is 1
 
 
 ### predict-path
