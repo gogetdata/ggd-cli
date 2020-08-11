@@ -226,13 +226,13 @@ def update_channel_data_files(channel):
     if channel in get_ggd_channels():
 
         if not os.path.isdir(LOCAL_REPO_DIR):
-            os.makedirs(LOCAL_REPO_DIR)
+            os.makedirs(LOCAL_REPO_DIR, mode=0o777)
         if not os.path.isdir(CHANNEL_DATA_DIR):
-            os.makedirs(CHANNEL_DATA_DIR)
+            os.makedirs(CHANNEL_DATA_DIR, mode=0o777)
 
         channel_dir = os.path.join(CHANNEL_DATA_DIR, channel)
         if not os.path.isdir(channel_dir):
-            os.makedirs(channel_dir)
+            os.makedirs(channel_dir, mode=0o777)
 
         ## Dowload json file
         channeldata_url = os.path.join(
@@ -261,9 +261,9 @@ def update_genome_metadata_files():
     """
 
     if not os.path.isdir(LOCAL_REPO_DIR):
-        os.makedirs(LOCAL_REPO_DIR)
+        os.makedirs(LOCAL_REPO_DIR, mode=0o777)
     if not os.path.isdir(GENOME_METADATA_DIR):
-        os.makedirs(GENOME_METADATA_DIR)
+        os.makedirs(GENOME_METADATA_DIR, mode=0o777)
 
     ## Download the json files
     build_url = "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/genome_metadata/build_to_species.json"
@@ -401,14 +401,14 @@ def update_installed_pkg_metadata(
 
     ## Make metadata dir if it doesn't exist
     if not os.path.isdir(ggd_info_dir):
-        os.makedirs(ggd_info_dir)
-        os.makedirs(os.path.join(ggd_info_dir, "noarch"))
+        os.makedirs(ggd_info_dir, mode=0o777)
+        os.makedirs(os.path.join(ggd_info_dir, "noarch"), mode=0o777)
         with open(os.path.join(ggd_info_dir, "channeldata.json"), "w") as f:
             f.write("{}")
 
     ## Create the "noarch" dir
     if not os.path.isdir(os.path.join(ggd_info_dir, "noarch")):
-        os.makedirs(os.path.join(ggd_info_dir, "noarch"))
+        os.makedirs(os.path.join(ggd_info_dir, "noarch"), mode=0o777)
     
     ## Check add packages
     if add_packages and remove_old == False:
