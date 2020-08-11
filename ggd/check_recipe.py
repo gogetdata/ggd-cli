@@ -838,7 +838,7 @@ def check_final_files(installed_dir_path, yaml_file):
         )
 
         ## Check the file size is roughly the same size (This may differ a bit based on the system being used)
-        assert (float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) >= bottoms_size 
+        assert (float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) >= bottom_size 
                  and 
                 float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) <= top_size
         ), ":ggd:check-recipe: The size of the data file in the metadata '{} is {}, is not contained within the approximate file size range of the actual data file: {}-{}".format(
