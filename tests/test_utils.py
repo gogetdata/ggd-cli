@@ -1795,18 +1795,18 @@ def test_get_file_size():
 
     ## Check that they are teh same 
     file_size = "{:.2f}b".format(bytes_size)
-    assert utils.get_file_size(os.path.join(bed_files_path,"cpg.bed")) == file_size
+    assert utils.get_file_size(os.path.join(bed_files_path,"cpg.bed"))[0] == file_size
     file_size2 = "{:.2f}b".format(bytes_size2)
-    assert utils.get_file_size(os.path.join(bed_files_path2,"cpg.bed")) == file_size2
+    assert utils.get_file_size(os.path.join(bed_files_path2,"cpg.bed"))[0] == file_size2
     file_size3 = "{:.2f}K".format(bytes_size3 / 1000)
-    assert utils.get_file_size(os.path.join(bed_files_path3,"cpg2.bed")) == file_size3
+    assert utils.get_file_size(os.path.join(bed_files_path3,"cpg2.bed"))[0] == file_size3
 
     ## Check that get_file_size returns the approximate size rather then the actual size
     file_size = "{:.2f}K".format(bytes_size3 / 1024)
-    assert utils.get_file_size(os.path.join(bed_files_path3,"cpg2.bed")) != file_size
+    assert utils.get_file_size(os.path.join(bed_files_path3,"cpg2.bed"))[0] != file_size
 
     ## Check that two files get different file sizes
-    assert utils.get_file_size(os.path.join(bed_files_path,"cpg.bed")) != utils.get_file_size(os.path.join(bed_files_path2,"cpg.bed"))
+    assert utils.get_file_size(os.path.join(bed_files_path,"cpg.bed"))[0] != utils.get_file_size(os.path.join(bed_files_path2,"cpg.bed"))[0]
 
 
 def test_bypass_satsolver_on_install():

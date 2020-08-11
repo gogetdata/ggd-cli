@@ -2893,7 +2893,7 @@ def test_add_final_files():
 
     ## Check that the file sizes were assigned correctly 
     for f in yaml_file["about"]["tags"]["final-files"]:
-        file_size = utils.get_file_size(os.path.join(recipe_dir_path,"installed_files",f))
+        file_size, top_size, bottoms_size = utils.get_file_size(os.path.join(recipe_dir_path,"installed_files",f))
         assert yaml_file["about"]["tags"]["final-file-sizes"][f] == file_size
         
 

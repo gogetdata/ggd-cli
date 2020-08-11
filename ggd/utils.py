@@ -983,6 +983,9 @@ def get_file_size(file_path):
     
     if os.path.exists(file_path):
         
+        ## Range size 
+        range_size = 0.05
+
         ## Get size of file in bytes
         bytes_size = os.path.getsize(file_path)
 
@@ -996,14 +999,34 @@ def get_file_size(file_path):
         ## Format the file size
         if gb_size >= 1.0:
             final_size = "{:.2f}G".format(gb_size)
+
+            ## Get top actual and bottom size range using 5% of actual size
+            top_size = (bytes_size + (bytes_size * range_size)) / (1000000000) 
+            bottom_size = (bytes_size - (bytes_size * range_size)) / (1000000000)
+
         elif mb_size >= 1.0:
             final_size = "{:.2f}M".format(mb_size)
+
+            ## Get top actual and bottom size range using 5% of actual size
+            top_size = (bytes_size + (bytes_size * range_size)) / (1000000) 
+            bottom_size = (bytes_size - (bytes_size * range_siz)) / (1000000)
+
         elif kb_size >= 1.0:
             final_size = "{:.2f}K".format(kb_size)
+
+            ## Get top actual and bottom size range using 5% of actual size
+            top_size = (bytes_size + (bytes_size * range_size)) / (1000)  
+            bottom_size = (bytes_size - (bytes_size * range_size)) / (1000) 
+
         else:
             final_size = "{:.2f}b".format(bytes_size)
 
-        return(final_size)
+            ## Get top actual and bottom size range using 5% of actual size
+            top_size = (bytes_size + (bytes_size * 0.05))  
+            bottom_size = (bytes_size - (bytes_size * 0.05)) 
+
+        ## Return final_size as a string, top of size window ,and bottom of size window
+        return(final_size, top_size, bottom_size)
 
     else:
         print("\n:ggd:utils: File does not exist: {fp}\n".format(fp = file_path))

@@ -725,7 +725,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
         yaml_dict["about"]["tags"]["final-files"].append(ffile)
 
         ## Get the size of the final file
-        file_size = get_file_size(ffile_path)
+        file_size, top_size, bottom_size = get_file_size(ffile_path)
         file_size_dict[ffile] = file_size
 
         ## the file type of the final file 
@@ -827,13 +827,25 @@ def check_final_files(installed_dir_path, yaml_file):
         ),  ":ggd:check-recipe: The file size for the '{}' data file is missing from the metadata".format(
             ffile
         )
-        file_size = get_file_size(ffile_path)
-        assert ( 
-            file_size == yaml_file["about"]["tags"]["final-file-sizes"][ffile]
+        file_size, top_size, bottom_size = get_file_size(ffile_path)
+        ## Check that the size byte compression is the same (Bytes, Kilobytes, Megatbytes, Gigabytes) 
+        assert (
+            file_size[-1] == yaml_file["about"]["tags"]["final-file-sizes"][ffile][-1] 
         ),  ":ggd:check-recipe: The size of the data file '{} is {}, which does not match the file size in metadata {}".format(
             ffile, 
             file_size, 
             yaml_file["about"]["tags"]["final-file-sizes"][ffile]
+        )
+
+        ## Check the file size is roughly the same size (This may differ a bit based on the system being used)
+        assert (float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) >= bottoms_size 
+                 and 
+                float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) <= top_size
+        ), ":ggd:check-recipe: The size of the data file in the metadata '{} is {}, is not contained within the approximate file size range of the actual data file: {}-{}".format(
+            ffile, 
+            yaml_file["about"]["tags"]["final-file-sizes"][ffile],
+            bottom_size,
+            top_size
         )  
 
     return True
