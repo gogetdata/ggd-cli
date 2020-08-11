@@ -1009,7 +1009,7 @@ def get_file_size(file_path):
 
             ## Get top actual and bottom size range using 5% of actual size
             top_size = (bytes_size + (bytes_size * range_size)) / (1000000) 
-            bottom_size = (bytes_size - (bytes_size * range_siz)) / (1000000)
+            bottom_size = (bytes_size - (bytes_size * range_size)) / (1000000)
 
         elif kb_size >= 1.0:
             final_size = "{:.2f}K".format(kb_size)
