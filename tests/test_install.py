@@ -646,8 +646,9 @@ def test_conda_install():
         channeldata = json.load(jfile)
         assert name in channeldata["packages"]
 
-    uninstall_hg19_gaps_ucsc_v1()
-
+    #### Uninstall package
+    args = Namespace(channel='genomics', command='uninstall', names=[name])
+    uninstall.uninstall((),args)
 
     ## Test with multiple in the list
     ggd_recipes = ["grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]
@@ -664,9 +665,8 @@ def test_conda_install():
             channeldata = json.load(jfile)
             assert name in channeldata["packages"]
 
-    for name in ggd_recipes:
-        args = Namespace(channel='genomics', command='uninstall', names=[name])
-        assert uninstall.uninstall((),args) == True
+    args = Namespace(channel='genomics', command='uninstall', names=ggd_recipes)
+    assert uninstall.uninstall((),args) == True
 
 
 def test_conda_install_with_prefix_set():
