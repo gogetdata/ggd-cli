@@ -980,6 +980,8 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 
 
 def get_file_size(file_path):
+
+    import math
     
     if os.path.exists(file_path):
         
@@ -1015,15 +1017,15 @@ def get_file_size(file_path):
             final_size = "{:.2f}K".format(kb_size)
 
             ## Get top actual and bottom size range using 5% of actual size
-            top_size = (bytes_size + (bytes_size * range_size)) / (1000)  
-            bottom_size = (bytes_size - (bytes_size * range_size)) / (1000) 
+            top_size = math.ceil((bytes_size + (bytes_size * range_size)) / (1000))  
+            bottom_size = math.floor((bytes_size - (bytes_size * range_size)) / (1000))
 
         else:
             final_size = "{:.2f}b".format(bytes_size)
 
             ## Get top actual and bottom size range using 5% of actual size
-            top_size = (bytes_size + (bytes_size * 0.05))  
-            bottom_size = (bytes_size - (bytes_size * 0.05)) 
+            top_size = (bytes_size + (bytes_size * range_size))  
+            bottom_size = (bytes_size - (bytes_size * range_size)) 
 
         ## Return final_size as a string, top of size window ,and bottom of size window
         return(final_size, top_size, bottom_size)
