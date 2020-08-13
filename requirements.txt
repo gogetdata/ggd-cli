@@ -8,7 +8,7 @@ ripgrep
 fuzzywuzzy
 python-levenshtein
 htslib
-samtools
+samtools>=1.10
 zlib
 check-sort-order>=0.0.7
 krb5
