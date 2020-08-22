@@ -57,7 +57,7 @@ def add_list_files(p):
     )
     c.add_argument(
         "name",
-        help="pattern to match recipe name(s)."
+        help="recipe name"
     )
     c.set_defaults(func=list_files)
 

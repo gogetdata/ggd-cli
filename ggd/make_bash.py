@@ -120,7 +120,7 @@ def add_make_bash(p):
         "-n",
         "--name",
         help="The sub-name of the recipe being created. (e.g. cpg-islands, pfam-domains, gaps, etc.)"
-        + " This will not be the final name of the recipe, but will describe what data the recipe gets",
+        + " This will not be the final name of the recipe, but will specific to the data gathered and processed by the recipe",
         required=True,
     )
     c2.add_argument(

@@ -31,7 +31,7 @@ def add_list_installed_packages(p):
     c.add_argument(
         "--prefix",
         default=None,
-        help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)",
+        help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if listing data files not in the current environment)",
     )
     c.add_argument(
         "--reset",
