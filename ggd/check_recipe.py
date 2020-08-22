@@ -1179,6 +1179,16 @@ def check_files(
 
     for tbx in tbxs:
         print(":ggd:check-recipe: > checking %s" % tbx)
+
+        ## Skip .bcf files for now. (Need to create bcf parser in golanguage for check-sort-order to use
+        if tbx.endswith(".bcf"):
+            print("\n******* WARNING *******")
+            print("*:ggd:check-recipes: Trying to check a '.bcf' file. '.bcf' files are not supported by check-sort-order."
+                  " The sort order check will be skipped. Make sure the recipe uses 'gsort' to sort the '.bcf' file\n"
+                  "*Continue with Caution")
+            print("***********************")
+            continue
+
         try:
             sp.check_call(["check-sort-order", "--genome", gf, tbx], stderr=sys.stderr)
         except sp.CalledProcessError as e:
