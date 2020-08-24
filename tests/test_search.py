@@ -657,7 +657,7 @@ def test_main_search():
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
-    assert "This pacakge is already installed on your system" in str(output)
+    assert "This package is already installed on your system" in str(output)
     assert "You can find the installed data files here" in str(output)
     try:
         uninstall_hg19_gaps_ucsc_v1

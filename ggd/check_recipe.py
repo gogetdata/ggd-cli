@@ -27,7 +27,7 @@ else:
 
 
 def add_check_recipe(p):
-    """Argument method used to add check-recipe as a module arugment/function """
+    """Argument method used to add check-recipe as a module argument/function """
     import argparse
 
     c = p.add_parser(
@@ -108,7 +108,7 @@ def _build(path, recipe, debug=False):
     _build
     ======
     This method is used to convert/build a ggd package from an existing ggd recipe. A package
-     is what will be stored on the conda clound. This method ensures that the ggd recipe can 
+     is what will be stored on the conda cloud. This method ensures that the ggd recipe can 
      be properly built into a package.
 
     Parameters:
@@ -147,7 +147,7 @@ def _build(path, recipe, debug=False):
             )
 
     except Exception:
-        ## Check all requirenments for ggd dependencies
+        ## Check all requirements for ggd dependencies
         print(":ggd:check-recipe: Rolling back ggd dependencies")
         for d in recipe["requirements"]["build"]:
             try:
@@ -175,7 +175,7 @@ def _build(path, recipe, debug=False):
 
     name = (
         result[-1].split()[1].replace(".tar.bz2", "") + ".tar.bz2"
-    )  # name of the file: exapmle = hg19-phastcons-1-0.tar.bz2
+    )  # name of the file: example = hg19-phastcons-1-0.tar.bz2
 
     platform = (
         "noarch" if "noarch" in recipe["build"] else conda_platform()
@@ -203,7 +203,7 @@ def _install(bz2, recipe_name, debug=False):
     +++++++
     1) True if the installation was successful and the package was not already installed on the system
     2) False if the package has already been installed on the system
-    3) If the installation fails progam exits. ggd data handeling is initated to remove any new/updated files from the installation process
+    3) If the installation fails program exits. ggd data handling is initiated to remove any new/updated files from the installation process
     """
     import traceback
     from .utils import (get_conda_package_list, 
@@ -322,7 +322,7 @@ def get_recipe_from_bz2(fbz2):
     get_recipe_from_bz2
     ===================
     This method is used to obtain a ggd recipe's meta.yaml file from an already built ggd package. It extracts 
-    the bz2 tarball file and identifies the meta,yaml file. 
+    the bz2 tarball file and identifies the meta.yaml file. 
 
     Parameters:
     ----------
@@ -389,7 +389,7 @@ def _check_build(species, build):
             )
             raise
         return True
-    else:  ## If no internet conection (mostly for make-recipe in an internet free context)
+    else:  ## If no internet connection (mostly for make-recipe in an internet free context)
         ## Get a dictionary with keys as species and values as genome builds
         species_build_dict = get_species(full_dict=True)
         if build in species_build_dict[species]:
@@ -403,7 +403,7 @@ def _check_build(species, build):
 
 
 def check_recipe(parser, args):
-    """Main method to check a ggd recipe for proper filing, system handeling, package building, install, etc. 
+    """Main method to check a ggd recipe for proper filing, system handling, package building, install, etc. 
 
     check_recipe
     ============
@@ -413,7 +413,7 @@ def check_recipe(parser, args):
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
         bz2 = args.recipe_path
-        args.dont_add_md5sum_for_checksum = True  ## If bz2, final files should have already beed added and checksum should have already been calculated.
+        args.dont_add_md5sum_for_checksum = True  ## If bz2, final files should have been added already, and checksum should have already been calculated.
     else:
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
         ## Add literal block if needed
@@ -534,7 +534,7 @@ def check_recipe(parser, args):
         print("\n:ggd:check-recipe: To recheck this recipe")
         if args.dont_uninstall == True:
             print(
-                ' 1) Uninstall the reicpe with: \n\t$ ggd check-recipe {} \tNOTE: Make sure the "-du" flag is NOT set'.format(
+                ' 1) Uninstall the recipe with: \n\t$ ggd check-recipe {} \tNOTE: Make sure the "-du" flag is NOT set'.format(
                     args.recipe_path
                 )
             )
@@ -777,7 +777,7 @@ def check_final_files(installed_dir_path, yaml_file):
     check_final_files
     =================
     Method to check that the final installed files from the data recipe are the same files listed in the meta.yaml file, 
-     as well as are the same size indiciated in the meta.yaml file
+     as well as are the same size indicated in the meta.yaml file
 
     Parameters:
     -----------
@@ -1068,7 +1068,7 @@ def check_header(install_path):
                     print("\n".join(body))
                     print("---------------------------\n")
                     print(":ggd:check-recipe: !!WARNING!! GGD requires that any file that can have a header should. Please either add a header or if the file cannot have a header move forward.\n")
-                    print(":ggd:check-recipe: !!WARNING!! IF you move forwared without adding a header when one should be added, this recipe will be rejected until a header is added.\n")
+                    print(":ggd:check-recipe: !!WARNING!! IF you move forward without adding a header when one should be added, this recipe will be rejected until a header is added.\n")
                     
             except IOError as e:
                 print(":ggd:check-recipe: !!ERROR!!")

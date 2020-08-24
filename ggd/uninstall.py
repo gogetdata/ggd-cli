@@ -114,20 +114,20 @@ def get_channeldata(ggd_recipes, ggd_channel):
 
 
 def get_similar_pkg_installed_by_conda(ggd_recipe):
-    """Method to get a list of similarly installed package names, refereing to package installed by conda
+    """Method to get a list of similarly installed package names, referring to package installed by conda
 
     get_similar_pkg_installed_by_conda
     ==================================
     Method to identify if there are similar packages to the one provided installed by conda that could be 
-     uninstalled. Porvides a list of potential pkg names
+     uninstalled. Provides a list of potential pkg names
      
     Parameters:
     ----------
-    1) ggd_recipe: The ggd_recipe name. (May not be an actuall ggd_recipe)
+    1) ggd_recipe: The ggd_recipe name. (May not be an actually ggd_recipe)
      
     Returns:
     +++++++
-    A string of pkgs and channels, with each pkg-channel spereated from another by a new line
+    A string of pkgs and channels, with each pkg-channel separated from another by a new line
     """
 
     conda_package_list = sp.check_output(["conda", "list"]).decode("utf8").split("\n")
@@ -260,7 +260,7 @@ def remove_from_condaroot(ggd_recipe, version, prefix):
             ):  ## If the conda env root is in the path, and conda env root/env/ is not in the path, then add it to the filtered list
                 filtered_list.append(path)
     print(
-        "\n:ggd:uninstall: Deleteing %d items of %s version %s from your conda root"
+        "\n:ggd:uninstall: Deleting %d items of %s version %s from your conda root"
         % (len(filtered_list), ggd_recipe, version)
     )
     ## Remove files
@@ -307,7 +307,7 @@ def uninstall(parser, args):
             tarfile_path = os.path.join(ggd_info_dir,tarballfile) 
             ggd_recipes.extend(get_run_deps_from_tar(tarfile_path, args.channel))
 
-    ## Check if insatlled through conda
+    ## Check if installed through conda
     check_conda_installation(ggd_recipes,installed_ggd_packages.keys())
 
     ## Check if the recipe is in file system

@@ -28,7 +28,7 @@ def add_predict_path(p):
     c.add_argument(
         "--prefix",
         default=None,
-        help="(Optional) The name or the full directory path to an conda environment. The predicted path will be based on this conda environment. When installing, the data package should also be installed in this environment. (Only needed if not predicting for a path in the current conda enviroment)",
+        help="(Optional) The name or the full directory path to an conda environment. The predicted path will be based on this conda environment. When installing, the data package should also be installed in this environment. (Only needed if not predicting for a path in the current conda environment)",
     )
     c2 = c.add_argument_group("required arguments")
     c2.add_argument(
@@ -41,7 +41,7 @@ def add_predict_path(p):
         "-fn",
         "--file-name",
         required=True,
-        help="(Required) The name of the file to predict that path for. It is best if you give the full and correct name of the file to predict the path for. If not, ggd will try to identify the right file, but won't guarantee that it is the rigth file",
+        help="(Required) The name of the file to predict that path for. It is best if you give the full and correct name of the file to predict the path for. If not, ggd will try to identify the right file, but won't guarantee that it is the right file",
     )
     c.set_defaults(func=predict_path)
 

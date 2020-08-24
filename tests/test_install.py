@@ -764,7 +764,7 @@ def test_get_file_location():
     with redirect_stdout(temp_stdout):
         install.get_file_locations([ggd_recipe],jdict)
     output = temp_stdout.getvalue().strip() 
-    assert ":ggd:install: There was an error durring installation" in output
+    assert ":ggd:install: There was an error during installation" in output
     assert ":ggd:install: Installed file locations" in output
     assert ggd_recipe in output 
     assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) not in output
@@ -842,7 +842,7 @@ def test_get_file_location_with_prefix_set():
     assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) in output
     assert "$ggd_{}_file".format(ggd_recipe.replace("-","_")) in output
     assert path in output
-    assert ":ggd:install: NOTE: These environment variables are specific to the {p} conda environment and can only be accessed from within that environmnet".format(p=temp_env) in output
+    assert ":ggd:install: NOTE: These environment variables are specific to the {p} conda environment and can only be accessed from within that environment".format(p=temp_env) in output
 
     ### Test the file exists in the correct prefix and not the current prefix
     file1 = "{}.bed12.bed.gz".format(ggd_recipe)

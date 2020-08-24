@@ -30,7 +30,7 @@ def get_species(update_files=True, full_dict=False):
     Parameters:
     ----------
     1) update_files: Default=True. Update the local files before getting species
-    2) full_dcit: Default=False. Get the full dictionary with keys as species and values as genome builds
+    2) full_dict: Default=False. Get the full dictionary with keys as species and values as genome builds
 
     Returns:
     ++++++++
@@ -51,11 +51,11 @@ def get_species(update_files=True, full_dict=False):
 
 
 def get_ggd_channels():
-    """Method used to get avaiable ggd channels
+    """Method used to get available ggd channels
     
     get_ggd_channels
     ================
-    This method is used to get all avaiable/created ggd conaa channels.
+    This method is used to get all available/created ggd conaa channels.
     This method will return a list of ggd conda channels.
 
     Run get_species() before running get_ggd_channels(). get_species triggers an update
@@ -79,7 +79,7 @@ def get_channel_data(ggd_channel):
 
     Returns:
     +++++++
-    1) The file path to the metadata file for the specifc channel
+    1) The file path to the metadata file for the specific channel
     """
 
     if check_for_internet_connection():
@@ -105,7 +105,7 @@ def get_channeldata_url(ggd_channel):
     1) The url for the metadata file
     """
 
-    ## Update local channel data file if internet connection availabe
+    ## Update local channel data file if internet connection available
     if check_for_internet_connection():
         update_channel_data_files(ggd_channel)
 
@@ -122,7 +122,7 @@ def get_required_conda_version():
     get_required_conda_version
     ==========================
     This method is used to get the required version for conda based on the version set in the 
-     requiremetns file in ggd-cli. This version can be used to mantain the correct version while 
+     requirements file in ggd-cli. This version can be used to maintain the correct version while 
      using ggd
 
     Return:
@@ -151,7 +151,7 @@ def check_output(args, **kwargs):
 
 
 def _to_str(s, enc=locale.getpreferredencoding()):
-    """Method to convert a bytes into a string based on a local prefered encoding  
+    """Method to convert a bytes into a string based on a local preferred encoding  
 
     _to_str
     =======
@@ -299,7 +299,7 @@ def get_run_deps_from_tar(tarfile_path, channel):
 
     Returns:
     +++++++
-    1) A list of all ggd sepecific package deps
+    1) A list of all ggd specific package deps
     """
     
     import json
@@ -366,12 +366,12 @@ def update_installed_pkg_metadata(
     ----------
     1) prefix: The conda environment/prefix to update. (Default = the current conda environment)
     2) channel: The conda channel the packages are from. (Default = ggd-genomics)
-    3) remove_old: whether or not to compelete remove the ggd_info dir and re-create it
+    3) remove_old: whether or not to complete remove the ggd_info dir and re-create it
     4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
     5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
     """
 
-    ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
+    ## Check that the add_package parameter is paired properly with the remove_old. If incorrectly paired, change add_package to avoid removing all metadata except for the single indicated package
     if add_packages and remove_old == True:
         add_packages = None
         print(
@@ -537,7 +537,7 @@ def check_conda_pkg_dir(prefix, exclude_pkg=None):
 
 def validate_build(build, species):
     """
-    Method to validate that a genome-build is correclty assigned based on a species.
+    Method to validate that a genome-build is correctly assigned based on a species.
     """
     if build != "*":
         builds_list = get_builds(species)
@@ -588,7 +588,7 @@ def get_conda_env(prefix=conda_root()):
     Returns:
     ++++++++
     1) The conda environment name
-    2) The path to the conda environent
+    2) The path to the conda environment
     """
 
     ## Get environment list
@@ -640,7 +640,7 @@ def get_conda_prefix_path(prefix):
 
     prefix = prefix.rstrip("/")
 
-    ## Check that the file is in the enviroment lists
+    ## Check that the file is in the environment lists
     if prefix not in env_var_names.keys() and prefix not in env_var_paths.keys():
         raise CondaEnvironmentNotFound(prefix)
 
@@ -653,7 +653,7 @@ def get_conda_prefix_path(prefix):
 
 
 def prefix_in_conda(prefix):
-    """Method to check if a perfix is a conda environment or not
+    """Method to check if a prefix is a conda environment or not
 
     prefix_in_conda
     ===============
@@ -662,7 +662,7 @@ def prefix_in_conda(prefix):
 
     Parameters:
     -----------
-    1) prefix: The conda enviroment full file path/prefix
+    1) prefix: The conda environment full file path/prefix
 
     Returns:
     ++++++++
@@ -684,7 +684,7 @@ def prefix_in_conda(prefix):
 
     prefix = prefix.rstrip("/")
 
-    ## Check that the file is in the enviroment lists
+    ## Check that the file is in the environment lists
     if prefix not in env_var_names.keys() and prefix not in env_var_paths.keys():
         raise CondaEnvironmentNotFound(prefix)
 
@@ -708,7 +708,7 @@ class CondaEnvironmentNotFound(Exception):
     """
 
     def __init__(self, location):
-        self.message = "The prefix supplied is not a conda enviroment: %s\n" % (
+        self.message = "The prefix supplied is not a conda environment: %s\n" % (
             location
         )
         sys.tracebacklimit = 0
@@ -741,7 +741,7 @@ class literal_block(str): pass
 
 def add_yaml_literal_block(yaml_object):
     """
-    Get a yaml literal block representer function to converte normal strings into yaml literals during yaml dumping
+    Get a yaml literal block representer function to convert normal strings into yaml literals during yaml dumping
 
     Convert string to yaml literal block
     yaml docs: see "Block mappings" in https://pyyaml.org/wiki/PyYAMLDocumentation
@@ -755,7 +755,7 @@ def add_yaml_literal_block(yaml_object):
 
 def get_conda_package_list(prefix, regex=None, include_local=False):
     """
-    This method is used to get the list of packages in a specifc conda environmnet (prefix). Rather then running 
+    This method is used to get the list of packages in a specific conda environment (prefix). Rather then running 
      `conda list` itself, it uses the conda module to grab the information 
 
     
@@ -776,7 +776,7 @@ def get_conda_package_list(prefix, regex=None, include_local=False):
     from conda.base.context import context
     from conda.cli.main_list import get_packages
 
-    ## Get a list of availble ggd channels
+    ## Get a list of available ggd channels
     ggd_channels = ["ggd-" + x for x in get_ggd_channels()]
 
     if include_local:
@@ -853,7 +853,7 @@ def get_checksum_dict_from_txt(txt_file_path):
     with open(txt_file_path, "r") as cs:
         for line in cs:
             line_list = str(line).strip().split("\t")
-            ## Skip emtpy lines
+            ## Skip empty lines
             if len(line_list) < 2:
                 continue
             cs_dict[line_list[0]] = line_list[1]
@@ -891,7 +891,7 @@ def get_checksum_dict_from_tar(fbz2):
         cs_dict = {}
         for line in str(checksum_file.read().decode("utf8")).strip().split("\n"):
             line_list = str(line).strip().split("\t")
-            ## Skip emtpy lines
+            ## Skip empty lines
             if len(line_list) < 2:
                 continue
             cs_dict[line_list[0]] = line_list[1]
@@ -922,7 +922,7 @@ def data_file_checksum(installed_dir_path, checksum_dict):
     ## Get a list of the installed data files
     installed_files = glob.glob(os.path.join(installed_dir_path, "*"))
 
-    ## Check that there are the same number of installed data files as files with orignial checksums
+    ## Check that there are the same number of installed data files as files with original checksums
     if len(installed_files) != len(checksum_dict):
         print(
             "\n\n:ggd:checksum: !!ERROR!!: The number of installed files does not match the number of checksum files"
@@ -1044,8 +1044,8 @@ def bypass_satsolver_on_install(
 
     bypass_satsolver_on_install
     ============================
-    This method is used to run the conda install steps to install a ggd aws cahced reicpe. The
-        intsallation will skip the sat solver step, ignore packages that may be additionaly installed
+    This method is used to run the conda install steps to install a ggd aws cached recipe. The
+        installation will skip the sat solver step, ignore packages that may be additionally installed
         or uninstalled, and performs other steps in order to install the data package without using 
         the sat solver. 
     The majority of the work is still done by conda through the use of the conda module. This method
@@ -1059,7 +1059,7 @@ def bypass_satsolver_on_install(
     """
 
     # -------------------------------------------------------------------------
-    # import statments
+    # import statements
     # -------------------------------------------------------------------------
     from conda.base.context import context
     from conda.cli import common
@@ -1109,7 +1109,7 @@ def bypass_satsolver_on_install(
         bypass_sat
         ==========
         This method is used to extract and process information that would have been done during the sat
-        solvering step, (Solving Enviroment), bypass the sat solver, and return a filtered set of packages
+        solving step, (Solving Environment), bypass the sat solver, and return a filtered set of packages
         to install.
 
         Parameters:
@@ -1218,7 +1218,7 @@ def bypass_satsolver_on_install(
         target_prefix, ssc.solution_precs, solve.specs_to_add
     )
 
-    # set unlinked to empty indexed set so we do not unlink/remove any pacakges
+    # set unlinked to empty indexed set so we do not unlink/remove any packages
     unlink_precs = IndexedSet()
 
     ## Create a PrefixSetup
@@ -1251,7 +1251,7 @@ def bypass_satsolver_on_install(
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
 
-    ## Retrun True if finished
+    ## Return True if finished
     return True
 
 

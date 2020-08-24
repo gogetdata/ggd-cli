@@ -112,9 +112,9 @@ def add_make_bash(p):
         "--coordinate-base",
         required=True,
         choices=GENOMIC_COORDINATE_LIST,
-        help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordianances start at genomic coordinate 0 or 1,"
-        + " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exlcusive (everthing up to but not including the end coordinate)"
-        + " Files that do not have coordiante basing, like fasta files, specify NA for not applicable.",
+        help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordinates start at genomic coordinate 0 or 1,"
+        + " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exclusive (everything up to but not including the end coordinate)"
+        + " Files that do not have coordinate basing, like fasta files, specify NA for not applicable.",
     )
     c2.add_argument(
         "-n",
@@ -175,7 +175,7 @@ def make_bash(parser, args):
         args.name.lower(),
         data_provider.lower(),
         args.package_version.lower(),
-    ), "The recipe name is not formated correctly. Current name: {}".format(name)
+    ), "The recipe name is not formatted correctly. Current name: {}".format(name)
 
     wildcards = [
         "?",

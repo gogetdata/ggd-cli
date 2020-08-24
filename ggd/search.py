@@ -125,7 +125,7 @@ def search_packages(json_dict, search_terms, score_cutoff=50):
     search_packages
     ===============
     Method to search for ggd packages/recipes 
-     contaning specific search terms 
+     containing specific search terms 
 
      NOTE: Both the package name and the package keywords are searched
 
@@ -134,7 +134,7 @@ def search_packages(json_dict, search_terms, score_cutoff=50):
     1) json_dict: A json file loaded into a dictionary. (The file to search)
                   the load_json_from_url() method creates the dictionary 
     2) search_terms: A list of terms representing package names or keywords to search for
-    3) score_cutoff: A number betwnee 0 and 100 that represent which matches to return
+    3) score_cutoff: A number between 0 and 100 that represent which matches to return
                         (Default = 50)
 
     Returns:
@@ -151,7 +151,7 @@ def search_packages(json_dict, search_terms, score_cutoff=50):
         for pkg in json_dict["packages"].keys():
             ## Get match score between name and term
             score = fuzz.ratio(term.lower(), pkg.lower())
-            ## Get a list of match score for the keywrods
+            ## Get a list of match score for the keywords
             additional_scores = process.extract(
                 term, json_dict["packages"][pkg]["keywords"]
             )
@@ -219,7 +219,7 @@ def filter_by_identifiers(iden_keys, json_dict, filter_terms):
     Parameters:
     ----------
     1) iden_keys: A list of he identifiers keys. Example = ["species","genome-build"] 
-    2) json_dict: The json dictionary craeted from laod_json()
+    2) json_dict: The json dictionary created from laod_json()
     3) filter_terms: A list of the term(s) to filter by. Example: ["Homo_sapiens","hg19"]
 
     NOTE: List order of iden_keys should match list order of filter_terms
@@ -401,7 +401,7 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
 
             if pkg in installed_pkgs:  ## IF installed
                 results.append(
-                    "\n\tThis pacakge is already installed on your system.\n\t  You can find the installed data files here:  %s"
+                    "\n\tThis package is already installed on your system.\n\t  You can find the installed data files here:  %s"
                     % installed_paths[pkg]
                 )
             else:

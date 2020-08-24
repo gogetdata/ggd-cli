@@ -978,7 +978,7 @@ def test_get_conda_prefix_path():
     try:
         utils.get_conda_prefix_path("BAD_ENV")
     except utils.CondaEnvironmentNotFound as e:
-        assert "The prefix supplied is not a conda enviroment: {}".format("BAD_ENV") in str(e) 
+        assert "The prefix supplied is not a conda environment: {}".format("BAD_ENV") in str(e) 
     except Exception as e:
         assert False
 
@@ -1021,21 +1021,21 @@ def test_prefix_in_conda():
     try:
         utils.prefix_in_conda(os.getcwd())
     except utils.CondaEnvironmentNotFound as e:
-        assert "The prefix supplied is not a conda enviroment: {}".format(os.getcwd()) in str(e) 
+        assert "The prefix supplied is not a conda environment: {}".format(os.getcwd()) in str(e) 
     except Exception as e:
         assert False
 
     try:
         utils.prefix_in_conda("/Not/A/Real/Location")
     except utils.CondaEnvironmentNotFound as e:
-        assert "The prefix supplied is not a conda enviroment: {}".format("/Not/A/Real/Location") in str(e) 
+        assert "The prefix supplied is not a conda environment: {}".format("/Not/A/Real/Location") in str(e) 
     except Exception as e:
         assert False
 
     try:
         utils.prefix_in_conda("current")
     except utils.CondaEnvironmentNotFound as e:
-        assert "The prefix supplied is not a conda enviroment: {}".format("current") in str(e) 
+        assert "The prefix supplied is not a conda environment: {}".format("current") in str(e) 
     except Exception as e:
         assert False
 
@@ -1049,7 +1049,7 @@ def test_prefix_in_conda():
     try:
         utils.prefix_in_conda(temp_env)
     except utils.CondaEnvironmentNotFound as e:
-        assert "The prefix supplied is not a conda enviroment: {}".format(temp_env) in str(e) 
+        assert "The prefix supplied is not a conda environment: {}".format(temp_env) in str(e) 
     except Exception as e:
         assert False
 

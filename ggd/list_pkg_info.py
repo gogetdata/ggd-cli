@@ -16,7 +16,7 @@ def add_pkg_info(p):
     c = p.add_parser(
         "pkg-info",
         help="List data package info for a specific installed ggd data package",
-        description="Get the information for a specific ggd data pacakge installed in the current conda environmnet",
+        description="Get the information for a specific ggd data package installed in the current conda environment",
     )
     c.add_argument(
         "-c",
@@ -276,7 +276,7 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
     get_pkg_info
     ===========
     Method used to get ggd pkg info. It will open the pkg's tarfile and extract the meta.yaml file and the recipe
-     script. Info from these files will be formated and sent to stdout
+     script. Info from these files will be formatted and sent to stdout
      
     Parameters:
     ----------
