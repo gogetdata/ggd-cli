@@ -529,28 +529,36 @@ def test_main_search():
     parser = ()
 
     ## Test a general search 
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_term=['reference'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_type = "both", search_term=['reference'], species=[])
+    assert search.search(parser,args)
+
+    ## Test a general search with combined-only search type 
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_type = "combined-only", search_term=['reference','genome'], species=[])
+    assert search.search(parser,args)
+
+    ## Test a general search with non-combined-only search type 
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_type = "non-combined-only", search_term=['reference','genome'], species=[])
     assert search.search(parser,args)
 
     ## Test search with genome build 
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=["GRCh37"], match_score='75', search_term=['reference'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=["GRCh37"], match_score='75', search_type = "both", search_term=['reference'], species=[])
     assert search.search(parser,args) 
 
     ## Test search with species 
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_term=['reference'], species=["Homo_sapiens"])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_type = "both", search_term=['reference'], species=["Homo_sapiens"])
     assert search.search(parser,args) 
 
     ## Test with genome build and species
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=["GRCh37"], match_score='75', search_term=['reference'], species=["Homo_sapiens"])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=["GRCh37"], match_score='75', search_type = "both", search_term=['reference'], species=["Homo_sapiens"])
     assert search.search(parser,args) 
 
     ## Test with genome build and species in search terms
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_term=['reference','grch37','homo_sapiens'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_type = "both", search_term=['reference','grch37','homo_sapiens'], species=[])
     assert search.search(parser,args) 
 
     ## Test with genome build in search terms
     temp_stdout = StringIO()
-    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_term=['reference','grch37'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_type = "both", search_term=['reference','grch37'], species=[])
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
@@ -567,7 +575,7 @@ def test_main_search():
 
     ## Test with species in search terms
     temp_stdout = StringIO()
-    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_term=['reference','homo_sapiens'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_type = "both", search_term=['reference','homo_sapiens'], species=[])
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
@@ -590,7 +598,7 @@ def test_main_search():
     ## Test with genome build and species in search terms
     ## NOTE: genome build should take precedence over species. So only genome build should be displayed, not all species
     temp_stdout = StringIO()
-    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_term=['reference','grch37','homo_sapines'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_type = "both", search_term=['reference','grch37','homo_sapines'], species=[])
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
@@ -609,7 +617,7 @@ def test_main_search():
     ## Test with genome build and other species in search terms
     ## NOTE: genome build should take precedence over species. If genome build not for provided species, species will remain 
     temp_stdout = StringIO()
-    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_term=['reference','grch37','homo_sapines','Mus_musculus'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_type = "both", search_term=['reference','grch37','homo_sapines','Mus_musculus'], species=[])
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
@@ -632,8 +640,9 @@ def test_main_search():
 
 
     ## Test that Approximate data file sizes, final file list, and other tag info are reported  
+    ## Test also that the recipe name list is added at the end of the detailed output
     temp_stdout = StringIO()
-    args = Namespace(channel='genomics', command='search', display_number=1, genome_build=[], match_score='75', search_term=['grch37','gene-features'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=1, genome_build=[], match_score='75', search_type = "both", search_term=['grch37','gene-features'], species=[])
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
     output = temp_stdout.getvalue().strip() 
@@ -647,12 +656,15 @@ def test_main_search():
     assert "\033[1m" + "Data file coordinate base:" + "\033[0m" in output
     assert "\033[1m" + "Included Data Files:" + "\033[0m" in output
     assert "\033[1m" + "Approximate Data File Sizes:" + "\033[0m" in output
+    assert "\033[1mPackage Name Results\033[0m" in output
+    assert "NOTE: Name order matches order of packages in detailed section above" in output
+    assert "\033[1m>>> Scroll up to see package details and install info <<<\033[0m" in output
 
 
 
     ## Test that a data file path is given if the package is installed
     temp_stdout = StringIO()
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=["hg19"], match_score='75', search_term=['reference','gaps','hg19-gaps-ucsc-v1'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=["hg19"], match_score='75', search_type = "both", search_term=['reference','gaps','hg19-gaps-ucsc-v1'], species=[])
     search.search(parser,args) 
     with redirect_stdout(temp_stdout):
         search.search(parser,args) 
@@ -665,7 +677,7 @@ def test_main_search():
         pass
 
     ## Test bad term search 
-    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_term=['zzzzzzzzzzzzzzzzzzzzzzz'], species=[])
+    args = Namespace(channel='genomics', command='search', display_number=5, genome_build=[], match_score='75', search_type = "both", search_term=['zzzzzzzzzzzzzzzzzzzzzzz'], species=[])
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         search.search(parser,args) 
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
