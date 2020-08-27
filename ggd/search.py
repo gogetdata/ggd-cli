@@ -31,7 +31,7 @@ def add_search(p):
         default = "both",
         choices = ["both", "combined-only", "non-combined-only"],
         help = ("(Optional) How to search for data packages with the search terms provided. Options = 'combined-only', 'non-combined-only', and 'both'."
-                " 'combined-only' will use the provided search terms as a single search term. 'non-combined-only' will use the provided search to search for"
+                " 'combined-only' will use the provided search terms as a single search term. 'non-combined-only' will use the provided search term to search for"
                 " data package that match each search term separately. 'both' will use the search terms combined and each search term separately to search"
                 " for data packages. Default = 'both'")
     )
