@@ -655,14 +655,16 @@ def install(parser, args):
     ## If no package names are provided and no file is given, exit
     if not args.name and not args.file:
         sys.exit(
-            "\n\n:ggd:install: !!ERROR!! Either a data package name, or a file name with --file, is required and was not supplied.\n"
+            "\n\n:ggd:install: !!ERROR!! Either a data package name or a file name with --file is required. Neither option was provided.\n"
         )
 
     ## Check the prefix is a real one
     from .utils import get_conda_prefix_path, prefix_in_conda
 
+    diff_prefix = False
     if args.prefix != None:
         prefix_in_conda(args.prefix)
+        diff_prefix = True
     else:
         args.prefix = conda_root()
 
@@ -693,6 +695,15 @@ def install(parser, args):
         ggd_jsonDict = check_ggd_recipe(pkg, args.channel)
         if ggd_jsonDict == None:
             sys.exit()
+
+        ## Check that the package is set up for installation into a different prefix if one is provided
+        if diff_prefix and conda_prefix != conda_root():
+            assert (
+                "final-files" in ggd_jsonDict["packages"][pkg]["tags"]
+            ), ("\n\n:ggd:install: !!ERROR!! the --prefix flag was set but the '{}' data package is not set up" 
+                " to be installed into a different prefix. GGD is unable to fulfill the install request. Remove the"
+                " --prefix flag to install this data package. Notify the ggd team if you would like this recipe"
+                " to be updated for --prefix install compatibility").format(pkg)
 
         ## Check if the recipe is already installed
         if check_if_installed(pkg, ggd_jsonDict, conda_prefix) == False:
