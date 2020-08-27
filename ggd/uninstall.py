@@ -17,7 +17,7 @@ from .utils import conda_root, get_ggd_channels
 def add_uninstall(p):
     c = p.add_parser(
         "uninstall",
-        help="Uninstall a ggd data data package",
+        help="Uninstall a ggd data package",
         description="Use ggd to uninstall a ggd data package installed in the current conda environment",
     )
     c.add_argument(
