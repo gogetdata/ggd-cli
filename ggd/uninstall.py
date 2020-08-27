@@ -171,7 +171,7 @@ def conda_uninstall(ggd_recipes):
     print("\n:ggd:uninstall: Uninstalling %s" % ", ".join(ggd_recipes))
     try:
         return sp.check_call(
-            ["conda", "uninstall", "-y"] + ggd_recipes,
+            ["conda", "remove", "-y"] + ggd_recipes,
             stderr=sys.stderr,
             stdout=sys.stdout,
         )
