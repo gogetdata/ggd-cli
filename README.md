@@ -28,7 +28,7 @@ Assuming that you have already installed an *ananconda* distribution on your sys
 
 1) Adding the required conda channels including ggd specific channels:
 
-- ggd data packages are hosted on the conda cloud through the ggd-genomics channel. You will need to add this channel to your configured conda channels. You will also need to add the channels that have the software dependencies for building these data packages. Run the following commands:
+- ggd data packages are hosted on the Anaconda cloud through the ggd-genomics channel. You will need to add this channel to your configured conda channels. You will also need to add the channels that have the software dependencies for building these data packages. Run the following commands:
 
 ```
 $ conda config --add channels defaults
@@ -95,7 +95,7 @@ The output from this command will provide the locations of where the files were 
 
 > **_NOTE:_** If you want to move the files PLEASE make a copy and move the copy. Moving the original files from the location ggd installed them will remove ggd's ability to manage those data files
 
-For more information about ggd's install tool see: [ggd docs: ggd install](https://gogetdata.github.io/ggd-install.html)
+For more information about ggd's install tool see: [ggd docs: ggd install](https://gogetdata.github.io/install.html)
 
 
 ### ggd uninstall
@@ -166,7 +166,8 @@ Two scripts are available to assist you in making and checking recipes
 
 Make a recipe from a bash script that is likely to pass the tests in ggd-recipes.
 
-Most of the arguments are required. For example, we don't want a recipe to litter
+Most of the arguments in `ggd make-recipe` are required. Any recipe created should be able to clean up 
+after it has finished processing the data fiels. For example, we don't want a recipe to litter
 the user-space with extra files so if the recipe downloads a `.zip`, and processes
 the files inside of it, it should clean-up (`rm`) the .zip file upon completion.
 
