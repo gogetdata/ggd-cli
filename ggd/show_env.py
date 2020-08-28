@@ -133,7 +133,7 @@ def activate_environment_variables():
     from argparse import Namespace
 
     conda_env, conda_path = get_conda_env()
-#    sp.check_output(["activate", "base"])
+    #    sp.check_output(["activate", "base"])
     show_env((), Namespace(command="show-env", pattern=None))
 
 

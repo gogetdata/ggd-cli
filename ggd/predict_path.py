@@ -68,8 +68,8 @@ def get_ggd_metadata(ggd_channel):
     1) GGD metadata as a dictionary
 
     """
-    from .utils import check_for_internet_connection, get_channeldata_url
     from .search import load_json_from_url
+    from .utils import check_for_internet_connection, get_channeldata_url
 
     json_dict = {"channeldata_version": 1, "packages": {}}
     if check_for_internet_connection(3):
@@ -88,6 +88,7 @@ def predict_path(parser, args):
     """ Main method. Method used to predict the installed data file path for a data file that has not bee installed yet"""
     import os
     import re
+
     from .utils import conda_root, get_conda_prefix_path, prefix_in_conda
 
     ## get prefix
@@ -166,5 +167,3 @@ def predict_path(parser, args):
         file_name,
     )
     print(path)
-
-

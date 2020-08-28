@@ -9,7 +9,7 @@ import sys
 import yaml
 
 from .uninstall import check_for_installation
-from .utils import check_output, conda_root, literal_block, add_yaml_literal_block
+from .utils import add_yaml_literal_block, check_output, conda_root, literal_block
 
 # ---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -122,7 +122,7 @@ def _build(path, recipe, debug=False):
     """
     from .install import check_ggd_recipe
 
-    ## Set CONDA_SOURCE_PREFIX environment variable for any ggd dependencies that will be installed during the build 
+    ## Set CONDA_SOURCE_PREFIX environment variable for any ggd dependencies that will be installed during the build
     os.environ["CONDA_SOURCE_PREFIX"] = conda_root()
 
     sp.check_call(["conda", "build", "purge"], stderr=sys.stderr, stdout=sys.stdout)
@@ -206,15 +206,18 @@ def _install(bz2, recipe_name, debug=False):
     3) If the installation fails program exits. ggd data handling is initiated to remove any new/updated files from the installation process
     """
     import traceback
-    from .utils import (get_conda_package_list, 
-                       get_required_conda_version, 
-                       update_installed_pkg_metadata)
+
+    from .utils import (
+        get_conda_package_list,
+        get_required_conda_version,
+        update_installed_pkg_metadata,
+    )
 
     conda_version, equals = get_required_conda_version()
-    conda_install = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
+    conda_install = "{}conda{}{}{}".format('"', equals, conda_version, '"')
 
     ## See if it is already installed
-    if recipe_name in get_conda_package_list(conda_root(),include_local=True).keys():
+    if recipe_name in get_conda_package_list(conda_root(), include_local=True).keys():
         return False
 
     ## Set CONDA_SOURCE_PREFIX environment variable
@@ -255,15 +258,7 @@ def _install(bz2, recipe_name, debug=False):
         else:
             if debug:
                 sp.check_call(
-                    [
-                        "conda",
-                        "install",
-                        "-v",
-                        "-v",
-                        "--use-local",
-                        "-y",
-                        recipe_name,
-                    ],
+                    ["conda", "install", "-v", "-v", "--use-local", "-y", recipe_name,],
                     stderr=sys.stderr,
                     stdout=sys.stdout,
                 )
@@ -308,10 +303,12 @@ def _install(bz2, recipe_name, debug=False):
         )
         ## Exit
         sys.exit(1)
-    
+
     ## Update installed metadata
     print("\n:ggd:check-recipe: Updating installed package list")
-    update_installed_pkg_metadata(remove_old=False, add_packages=[recipe_name], include_local=True)
+    update_installed_pkg_metadata(
+        remove_old=False, add_packages=[recipe_name], include_local=True
+    )
 
     return True
 
@@ -350,7 +347,9 @@ def get_recipe_from_bz2(fbz2):
         recipe = yaml.safe_load(recipe.read().decode())
         ## Add literal block if needed
         if "genome_file" in recipe["extra"]:
-            recipe["extra"]["genome_file"]["commands"] = literal_block(recipe["extra"]["genome_file"]["commands"])
+            recipe["extra"]["genome_file"]["commands"] = literal_block(
+                recipe["extra"]["genome_file"]["commands"]
+            )
             add_yaml_literal_block(yaml)
     return recipe
 
@@ -418,7 +417,9 @@ def check_recipe(parser, args):
         recipe = yaml.safe_load(open(op.join(args.recipe_path, "meta.yaml")))
         ## Add literal block if needed
         if "genome_file" in recipe["extra"]:
-            recipe["extra"]["genome_file"]["commands"] = literal_block(recipe["extra"]["genome_file"]["commands"])
+            recipe["extra"]["genome_file"]["commands"] = literal_block(
+                recipe["extra"]["genome_file"]["commands"]
+            )
             add_yaml_literal_block(yaml)
 
         if args.debug:
@@ -463,7 +464,7 @@ def check_recipe(parser, args):
                 "\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n\t! Recipe NOT ready for Pull Requests !\n\t!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"
             )
             remove_package_after_install(bz2, recipe_name, 1)
-            
+
         ## Get the extra files
         extra = check_files(
             install_path,
@@ -506,7 +507,7 @@ def check_recipe(parser, args):
                 remove_package_after_install(bz2, recipe_name, 111)
 
             ## Check that the checksum in the .bz2 file has a filled checksum file
-            from .utils import get_checksum_dict_from_tar, data_file_checksum
+            from .utils import data_file_checksum, get_checksum_dict_from_tar
 
             checksum_dict = get_checksum_dict_from_tar(bz2)
             if not data_file_checksum(install_path, checksum_dict):
@@ -555,7 +556,7 @@ def check_recipe(parser, args):
             "\n\n:ggd:check-recipe: The --dont_uninstall flag was not set \n\n Uninstalling the locally built ggd data package"
         )
 
-        from .utils import get_conda_package_list, update_installed_pkg_metadata 
+        from .utils import get_conda_package_list, update_installed_pkg_metadata
 
         recipe_dict = get_recipe_from_bz2(bz2)
         species = recipe_dict["about"]["identifiers"]["species"]
@@ -576,8 +577,8 @@ def check_recipe(parser, args):
             )  ## .uninstall method to remove extra ggd files
 
             ## Uninstall from conda
-            if name in get_conda_package_list(conda_root(),include_local=True).keys():
-                sp.check_output(["conda","uninstall","-y", name])
+            if name in get_conda_package_list(conda_root(), include_local=True).keys():
+                sp.check_output(["conda", "remove", "-y", name])
 
             ## remove package from pkg metadata
             print("\n:ggd:check-recipe: Updating installed package list")
@@ -618,6 +619,7 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
     """
     print(":ggd:check-recipe: Updating md5sums for final data files\n")
     import glob
+
     from .utils import get_file_md5sum
 
     with open(recipe_checksum_file_path, "w") as cs_file:
@@ -667,6 +669,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     """
     print("\n:ggd:check-recipe: Updating the list of final data files\n")
     import glob
+
     from .utils import get_file_size
 
     file_types = set(
@@ -728,7 +731,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
         file_size, top_size, bottom_size = get_file_size(ffile_path)
         file_size_dict[ffile] = file_size
 
-        ## the file type of the final file 
+        ## the file type of the final file
         ftype = [x for x in file_types if x in ffile.lower().split(".")]
         if ftype:
             final_file_types.update(ftype)
@@ -748,7 +751,9 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
 
     ## Add extra files if they exists
     if extra_files:
-        print(":ggd:check-recipe: Attempting to add the extra files not already added in the meta.yaml file\n")
+        print(
+            ":ggd:check-recipe: Attempting to add the extra files not already added in the meta.yaml file\n"
+        )
         yaml_dict["extra"]["extra-files"] = extra_files
 
     ## Rewrite yaml file with new tags and new final files
@@ -766,7 +771,9 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     ## Return the new version of the meta.yaml as a dict
     yaml_dict = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
     if "genome_file" in yaml_dict["extra"]:
-        yaml_dict["extra"]["genome_file"]["commands"] = literal_block(yaml_dict["extra"]["genome_file"]["commands"])
+        yaml_dict["extra"]["genome_file"]["commands"] = literal_block(
+            yaml_dict["extra"]["genome_file"]["commands"]
+        )
         add_yaml_literal_block(yaml)
     return yaml_dict
 
@@ -790,6 +797,7 @@ def check_final_files(installed_dir_path, yaml_file):
     """
     print(":ggd:check-recipe: Checking the final data files\n")
     import glob
+
     from .utils import get_file_size
 
     installed_files = glob.glob(op.join(installed_dir_path, "*"))
@@ -823,30 +831,30 @@ def check_final_files(installed_dir_path, yaml_file):
             ff=ffile
         )
         assert (
-            ffile in yaml_file["about"]["tags"]["final-file-sizes"] 
-        ),  ":ggd:check-recipe: The file size for the '{}' data file is missing from the metadata".format(
+            ffile in yaml_file["about"]["tags"]["final-file-sizes"]
+        ), ":ggd:check-recipe: The file size for the '{}' data file is missing from the metadata".format(
             ffile
         )
         file_size, top_size, bottom_size = get_file_size(ffile_path)
-        ## Check that the size byte compression is the same (Bytes, Kilobytes, Megatbytes, Gigabytes) 
+        ## Check that the size byte compression is the same (Bytes, Kilobytes, Megatbytes, Gigabytes)
         assert (
-            file_size[-1] == yaml_file["about"]["tags"]["final-file-sizes"][ffile][-1] 
-        ),  ":ggd:check-recipe: The size of the data file '{} is {}, which does not match the file size in metadata {}".format(
-            ffile, 
-            file_size, 
-            yaml_file["about"]["tags"]["final-file-sizes"][ffile]
+            file_size[-1] == yaml_file["about"]["tags"]["final-file-sizes"][ffile][-1]
+        ), ":ggd:check-recipe: The size of the data file '{} is {}, which does not match the file size in metadata {}".format(
+            ffile, file_size, yaml_file["about"]["tags"]["final-file-sizes"][ffile]
         )
 
         ## Check the file size is roughly the same size (This may differ a bit based on the system being used)
-        assert (float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) >= bottom_size 
-                 and 
-                float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1]) <= top_size
+        assert (
+            float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1])
+            >= bottom_size
+            and float(yaml_file["about"]["tags"]["final-file-sizes"][ffile][:-1])
+            <= top_size
         ), ":ggd:check-recipe: The size of the data file in the metadata '{} is {}, is not contained within the approximate file size range of the actual data file: {}-{}".format(
-            ffile, 
+            ffile,
             yaml_file["about"]["tags"]["final-file-sizes"][ffile],
             bottom_size,
-            top_size
-        )  
+            top_size,
+        )
 
     return True
 
@@ -871,7 +879,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     1) bz2: The bz2 file created during the conda build process of the data package
     2) exit_num: The exit number to exit the program with
     """
-    from .utils import get_conda_package_list, update_installed_pkg_metadata 
+    from .utils import get_conda_package_list, update_installed_pkg_metadata
 
     print(
         ":ggd:check-recipe: !!ERROR!! Post-installation checks have failed. Rolling back installation"
@@ -896,8 +904,8 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
         )  ## .uninstall method to remove extra ggd files
 
         ## Uninstall from conda
-        if name in get_conda_package_list(conda_root(),include_local=True).keys():
-            sp.check_output(["conda","uninstall","-y", name])
+        if name in get_conda_package_list(conda_root(), include_local=True).keys():
+            sp.check_output(["conda", "remove", "-y", name])
 
         ## remove package from pkg metadata
         print("\n:ggd:check-recipe: Updating installed package list")
@@ -941,88 +949,129 @@ def check_header(install_path):
 
     """
 
-    print(":ggd:check-recipe: Checking that the final files have headers if appropriate\n")
+    print(
+        ":ggd:check-recipe: Checking that the final files have headers if appropriate\n"
+    )
 
     installed_files = os.listdir(install_path)
 
-    for file_name in [x for x in installed_files if os.path.isfile(os.path.join(install_path,x))]:
+    for file_name in [
+        x for x in installed_files if os.path.isfile(os.path.join(install_path, x))
+    ]:
 
         f_path = os.path.join(install_path, file_name)
 
         ## Check for an index file
 
-        if file_name.strip().split(".")[-1] in set(["tbi","bai","crai","fai","tar","bz2","bw","csi","gzi"]):
+        if file_name.strip().split(".")[-1] in set(
+            ["tbi", "bai", "crai", "fai", "tar", "bz2", "bw", "csi", "gzi"]
+        ):
 
-            continue 
+            continue
 
         ## Skip fasta or fastq files
-        if any(x in file_name for x in [".fasta",".fa",".fastq",".fq"]):
+        if any(x in file_name for x in [".fasta", ".fa", ".fastq", ".fq"]):
             continue
 
         ## Check for sam/bam/cram files
-        if any(x in file_name for x in [".sam",".bam",".cram"]):
+        if any(x in file_name for x in [".sam", ".bam", ".cram"]):
             import pysam
 
             try:
                 samfile = pysam.AlignmentFile(f_path, check_sq=False)
                 header = samfile.header
                 if any(header.lengths):
-                    print(":ggd:check-recipe: Header found in file {name}\n".format(name=file_name))
+                    print(
+                        ":ggd:check-recipe: Header found in file {name}\n".format(
+                            name=file_name
+                        )
+                    )
                     print("Head of file:")
                     print("---------------------------")
                     print(str(header).strip())
-                    for i,read in enumerate(samfile):
+                    for i, read in enumerate(samfile):
                         print(read)
-                        if i >= 4: 
+                        if i >= 4:
                             break
                     print("---------------------------\n")
 
                 else:
-                    print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
-                    print(":ggd:check-recipe: !!ERROR!! A header is required for sam/bam/cram files\n")
-                    return(False)
+                    print(
+                        ":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(
+                            name=file_name
+                        )
+                    )
+                    print(
+                        ":ggd:check-recipe: !!ERROR!! A header is required for sam/bam/cram files\n"
+                    )
+                    return False
 
             except (ValueError, IOError, Exception) as e:
                 print(str(e))
-                print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
-                print(":ggd:check-recipe: !!ERROR!! A header is required for sam/bam/cram files\n")
-                return(False)
+                print(
+                    ":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(
+                        name=file_name
+                    )
+                )
+                print(
+                    ":ggd:check-recipe: !!ERROR!! A header is required for sam/bam/cram files\n"
+                )
+                return False
 
-    
         ## Check vcf/bcf files
-        elif any(x in file_name for x in [".vcf",".bcf"]): 
+        elif any(x in file_name for x in [".vcf", ".bcf"]):
             from cyvcf2 import VCF
+
             try:
                 vcffile = VCF(f_path)
                 header = str(vcffile.raw_header)
 
                 if header:
-                    print(":ggd:check-recipe: Header found in file {name}\n".format(name=file_name))
+                    print(
+                        ":ggd:check-recipe: Header found in file {name}\n".format(
+                            name=file_name
+                        )
+                    )
                     print("Head of file:")
                     print("---------------------------")
                     print(str(header).strip())
-                    for i,var in enumerate(vcffile):
+                    for i, var in enumerate(vcffile):
                         print(var)
-                        if i >= 4: 
+                        if i >= 4:
                             break
                     print("---------------------------\n")
 
                 else:
-                    print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
-                    print(":ggd:check-recipe: !!ERROR!! A header is required for vcf/bcf files\n")
-                    return(False)
+                    print(
+                        ":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(
+                            name=file_name
+                        )
+                    )
+                    print(
+                        ":ggd:check-recipe: !!ERROR!! A header is required for vcf/bcf files\n"
+                    )
+                    return False
 
             except IOError as e:
                 print(str(e))
-                print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
-                print(":ggd:check-recipe: !!ERROR!! A header is required for vcf/bcf files\n")
-                return(False)
+                print(
+                    ":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(
+                        name=file_name
+                    )
+                )
+                print(
+                    ":ggd:check-recipe: !!ERROR!! A header is required for vcf/bcf files\n"
+                )
+                return False
 
         ## Check other files
         else:
             import gzip
+
             try:
-                file_handler = gzip.open(f_path) if f_path.endswith(".gz") else open(f_path)
+                file_handler = (
+                    gzip.open(f_path) if f_path.endswith(".gz") else open(f_path)
+                )
                 header = []
                 body = []
                 try:
@@ -1042,44 +1091,81 @@ def check_header(install_path):
                                 break
 
                 except UnicodeDecodeError:
-                    print(":ggd:check-recipe: Cannot decode file contents into unicode.\n") 
+                    print(
+                        ":ggd:check-recipe: Cannot decode file contents into unicode.\n"
+                    )
                     pass
 
-
                 if header:
-                    print(":ggd:check-recipe: Header found in file {name}\n".format(name=file_name))
+                    print(
+                        ":ggd:check-recipe: Header found in file {name}\n".format(
+                            name=file_name
+                        )
+                    )
                     print("Head of file:")
                     print("---------------------------")
                     print("\n".join(header))
                     print("\n".join(body))
                     print("---------------------------\n")
-                elif any(x in file_name for x in [".gtf", ".gff", ".gff3", ".bed", ".bedGraph", ".csv", ".txt"]):
-                    print(":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(name=file_name))
-                    print(":ggd:check-recipe: !!ERROR!! A header is required for this type of file\n")
+                elif any(
+                    x in file_name
+                    for x in [
+                        ".gtf",
+                        ".gff",
+                        ".gff3",
+                        ".bed",
+                        ".bedGraph",
+                        ".csv",
+                        ".txt",
+                    ]
+                ):
+                    print(
+                        ":ggd:check-recipe: !!ERROR!! No header found for file {name}\n".format(
+                            name=file_name
+                        )
+                    )
+                    print(
+                        ":ggd:check-recipe: !!ERROR!! A header is required for this type of file\n"
+                    )
                     print("First 5 lines of file body:")
                     print("---------------------------")
                     print("\n".join(body))
                     print("---------------------------\n")
-                    return(False)
+                    return False
                 else:
-                    print(":ggd:check-recipe: !!WARNING!! No header found for file {name}\n".format(name=file_name))
+                    print(
+                        ":ggd:check-recipe: !!WARNING!! No header found for file {name}\n".format(
+                            name=file_name
+                        )
+                    )
                     print("First 5 lines of file body:")
                     print("---------------------------")
                     print("\n".join(body))
                     print("---------------------------\n")
-                    print(":ggd:check-recipe: !!WARNING!! GGD requires that any file that can have a header should. Please either add a header or if the file cannot have a header move forward.\n")
-                    print(":ggd:check-recipe: !!WARNING!! IF you move forward without adding a header when one should be added, this recipe will be rejected until a header is added.\n")
-                    
+                    print(
+                        ":ggd:check-recipe: !!WARNING!! GGD requires that any file that can have a header should. Please either add a header or if the file cannot have a header move forward.\n"
+                    )
+                    print(
+                        ":ggd:check-recipe: !!WARNING!! IF you move forward without adding a header when one should be added, this recipe will be rejected until a header is added.\n"
+                    )
+
             except IOError as e:
                 print(":ggd:check-recipe: !!ERROR!!")
                 print(str(e))
                 return False
 
-    return(True)
+    return True
 
 
 def check_files(
-    install_path, species, build, recipe_name, extra_files, different_genome_file, before_files, bz2
+    install_path,
+    species,
+    build,
+    recipe_name,
+    extra_files,
+    different_genome_file,
+    before_files,
+    bz2,
 ):
     """Method to check the presence of correct genomic files """
     from fnmatch import fnmatch
@@ -1095,9 +1181,9 @@ def check_files(
     print(":ggd:check-recipe: modified files:\n\t :: %s\n\n" % "\n\t :: ".join(files))
 
     tbis = [x for x in files if x.endswith(".tbi")]  # all tbi files
-    tbis = [x for x in files if x.endswith((".tbi",".csi"))]  # all tbi files
+    tbis = [x for x in files if x.endswith((".tbi", ".csi"))]  # all tbi files
 
-    nons = [x for x in files if not x.endswith((".tbi",".csi"))]  # all non tbi files
+    nons = [x for x in files if not x.endswith((".tbi", ".csi"))]  # all non tbi files
 
     tbxs = [x[:-4] for x in tbis if x[:-4] in nons]  # names of files tabixed
 
@@ -1125,9 +1211,11 @@ def check_files(
         )
 
     else:
-        print(":ggd:check-recipe: Checking sort order using an alternative genome file specified in the meta.yaml\n")
+        print(
+            ":ggd:check-recipe: Checking sort order using an alternative genome file specified in the meta.yaml\n"
+        )
 
-        ## Check for required keys 
+        ## Check for required keys
         if "commands" not in different_genome_file:
             print(
                 ":ggd:check-recipe: !!ERROR!!: An alternative genome file was requested, but the 'commands' key is missing from the meta.yaml file."
@@ -1141,9 +1229,9 @@ def check_files(
             )
             remove_package_after_install(bz2, recipe_name, 121)
 
-        import tempfile 
         import shutil
-        
+        import tempfile
+
         ## create temp dir
         temp_dir_name = "temp_genome_file"
         tempdir = os.path.join(tempfile.gettempdir(), temp_dir_name)
@@ -1170,9 +1258,9 @@ def check_files(
             print(str(e))
             remove_package_after_install(bz2, recipe_name, 122)
         os.chdir(cwd)
-    
+
         ## Get the alternative genome file
-        gf = os.path.join(tempdir,different_genome_file["file_name"])
+        gf = os.path.join(tempdir, different_genome_file["file_name"])
 
     # TODO is this just repeating the _check_build call performed in the previous function?
     _check_build(species, build)
@@ -1183,9 +1271,11 @@ def check_files(
         ## Skip .bcf files for now. (Need to create bcf parser in golanguage for check-sort-order to use
         if tbx.endswith(".bcf"):
             print("\n******* WARNING *******")
-            print("*:ggd:check-recipes: Trying to check a '.bcf' file. '.bcf' files are not supported by check-sort-order."
-                  " The sort order check will be skipped. Make sure the recipe uses 'gsort' to sort the '.bcf' file\n"
-                  "*Continue with Caution")
+            print(
+                "*:ggd:check-recipes: Trying to check a '.bcf' file. '.bcf' files are not supported by check-sort-order."
+                " The sort order check will be skipped. Make sure the recipe uses 'gsort' to sort the '.bcf' file\n"
+                "*Continue with Caution"
+            )
             print("***********************")
             continue
 
@@ -1198,7 +1288,7 @@ def check_files(
             )
             remove_package_after_install(bz2, recipe_name, e.returncode)
 
-    #@ Remove temp file if it exists
+    # @ Remove temp file if it exists
     if different_genome_file is not None:
         ## Remove temp dir
         if os.path.exists(tempdir):
@@ -1231,7 +1321,18 @@ def check_files(
                 ":ggd:check-recipe: !!ERROR!!: with: %s(%s) must be sorted, bgzipped AND tabixed.\n"
                 % (P, n)
             )
-        elif n.endswith((".fasta", ".fa", ".fasta.gz", ".fa.gz", ".fastq", ".fq", ".fastq.gz", ".fq.gz")):
+        elif n.endswith(
+            (
+                ".fasta",
+                ".fa",
+                ".fasta.gz",
+                ".fa.gz",
+                ".fastq",
+                ".fq",
+                ".fastq.gz",
+                ".fq.gz",
+            )
+        ):
             if (
                 not op.basename(n + ".fai") in fais
                 and not (re.sub("(.+).f(?:sta)?$", "\\1", op.basename(n)) + ".fai")
@@ -1245,12 +1346,12 @@ def check_files(
         elif op.basename(n) not in extra_files and not any(
             fnmatch(op.basename(n), e) for e in extra_files
         ):
-                print(
-                    "\n:ggd:check-recipe: !!WARNING!!: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n"
-                    % (P, n) 
-                )
-                add_extra_files.append(op.basename(n))           
-                add_extra = True
+            print(
+                "\n:ggd:check-recipe: !!WARNING!!: %s(%s) unknown file and not in the extra/extra-files section of the yaml\n"
+                % (P, n)
+            )
+            add_extra_files.append(op.basename(n))
+            add_extra = True
 
     if missing or not_tabixed or not_faidxed:
         print("\n".join(missing + not_tabixed + not_faidxed), file=sys.stderr)
@@ -1306,13 +1407,13 @@ def check_yaml(recipe):
     ), ":ggd:check-recipe: must specify the specific ggd channel for the recipe in the 'about:tags' section"
     assert (
         "file-type" in recipe["about"]["tags"]
-    ),  ":ggd:check-recipe: The final data file types must be specified in the 'about:tags' section"
+    ), ":ggd:check-recipe: The final data file types must be specified in the 'about:tags' section"
     assert (
         "final-files" in recipe["about"]["tags"]
-    ),  ":ggd:check-recipe: All final data file must be specified in the 'about:tags' section"
+    ), ":ggd:check-recipe: All final data file must be specified in the 'about:tags' section"
     assert (
         "final-file-sizes" in recipe["about"]["tags"]
-    ),  ":ggd:check-recipe: The size of each final data file must be specified in the 'about:tags' section"
+    ), ":ggd:check-recipe: The size of each final data file must be specified in the 'about:tags' section"
 
     species, build, version, name = (
         recipe["about"]["identifiers"]["species"],

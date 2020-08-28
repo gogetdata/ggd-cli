@@ -107,8 +107,10 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
 
     """
     import glob
+
     import yaml
-    from .utils import literal_block, add_yaml_literal_block
+
+    from .utils import add_yaml_literal_block, literal_block
 
     dash = "     " + "-" * 100
     print("\n\n", dash)
@@ -116,7 +118,9 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
     yaml_dict = yaml.safe_load(tarball_info_object)
     ## Add literal block if needed
     if "genome_file" in yaml_dict["extra"]:
-        yaml_dict["extra"]["genome_file"]["commands"] = utils.literal_block(yaml_dict["extra"]["genome_file"]["commands"])
+        yaml_dict["extra"]["genome_file"]["commands"] = utils.literal_block(
+            yaml_dict["extra"]["genome_file"]["commands"]
+        )
         utils.add_yaml_literal_block(yaml)
 
     species = yaml_dict["about"]["identifiers"]["species"]
@@ -211,7 +215,15 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
                 + "Approximate Data File Sizes:"
                 + "\033[0m"
                 + " {}".format(
-                    "\n\t\t" + "\n\t\t".join(["{}: {}".format(x,yaml_dict["about"]["tags"]["final-file-sizes"][x]) for x in yaml_dict["about"]["tags"]["final-file-sizes"]])
+                    "\n\t\t"
+                    + "\n\t\t".join(
+                        [
+                            "{}: {}".format(
+                                x, yaml_dict["about"]["tags"]["final-file-sizes"][x]
+                            )
+                            for x in yaml_dict["about"]["tags"]["final-file-sizes"]
+                        ]
+                    )
                 )
             )
 
@@ -285,6 +297,7 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
     3) show_recipe: A bool value, where if true will print the recipe.sh script
     """
     import tarfile
+
     from .utils import get_conda_package_list
 
     ## Get a list of installed ggd packages using conda list

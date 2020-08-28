@@ -90,7 +90,6 @@ def check_ggd_recipe(ggd_recipe, ggd_channel):
 
     package_list = search_packages(jdict, [ggd_recipe])
 
-
     if ggd_recipe in package_list:
         print(
             "\n:ggd:install: %s exists in the ggd-%s channel"
@@ -251,9 +250,9 @@ def install_from_cached(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix
     True if successful install
     """
     from .utils import (
+        ChecksumError,
         bypass_satsolver_on_install,
         update_installed_pkg_metadata,
-        ChecksumError,
     )
 
     conda_channel = "ggd-" + ggd_channel
@@ -339,9 +338,9 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None)
     True if successful install
     """
     from .utils import (
+        ChecksumError,
         get_required_conda_version,
         update_installed_pkg_metadata,
-        ChecksumError,
     )
 
     ## Get the target prefix
@@ -351,8 +350,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None)
     conda_version, equals = get_required_conda_version()
 
     ## create install string
-    conda_install_str = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
-
+    conda_install_str = "{}conda{}{}{}".format('"', equals, conda_version, '"')
 
     try:
         ## py3 *args. (Syntax error in py2)
@@ -529,11 +527,12 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root()):
     2) raises "ChecksumError" if fails
     """
     import tarfile
+
     from .utils import (
-        get_conda_package_list,
-        get_checksum_dict_from_tar,
-        data_file_checksum,
         ChecksumError,
+        data_file_checksum,
+        get_checksum_dict_from_tar,
+        get_conda_package_list,
     )
 
     print("\n:ggd:install: Initiating data file content validation using checksum")
@@ -698,12 +697,12 @@ def install(parser, args):
 
         ## Check that the package is set up for installation into a different prefix if one is provided
         if diff_prefix and conda_prefix != conda_root():
-            assert (
-                "final-files" in ggd_jsonDict["packages"][pkg]["tags"]
-            ), ("\n\n:ggd:install: !!ERROR!! the --prefix flag was set but the '{}' data package is not set up" 
+            assert "final-files" in ggd_jsonDict["packages"][pkg]["tags"], (
+                "\n\n:ggd:install: !!ERROR!! the --prefix flag was set but the '{}' data package is not set up"
                 " to be installed into a different prefix. GGD is unable to fulfill the install request. Remove the"
                 " --prefix flag to install this data package. Notify the ggd team if you would like this recipe"
-                " to be updated for --prefix install compatibility").format(pkg)
+                " to be updated for --prefix install compatibility"
+            ).format(pkg)
 
         ## Check if the recipe is already installed
         if check_if_installed(pkg, ggd_jsonDict, conda_prefix) == False:

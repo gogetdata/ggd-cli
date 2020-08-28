@@ -28,12 +28,14 @@ def add_search(p):
     )
     c.add_argument(
         "--search-type",
-        default = "both",
-        choices = ["both", "combined-only", "non-combined-only"],
-        help = ("(Optional) How to search for data packages with the search terms provided. Options = 'combined-only', 'non-combined-only', and 'both'."
-                " 'combined-only' will use the provided search terms as a single search term. 'non-combined-only' will use the provided search term to search for"
-                " data package that match each search term separately. 'both' will use the search terms combined and each search term separately to search"
-                " for data packages. Default = 'both'")
+        default="both",
+        choices=["both", "combined-only", "non-combined-only"],
+        help=(
+            "(Optional) How to search for data packages with the search terms provided. Options = 'combined-only', 'non-combined-only', and 'both'."
+            " 'combined-only' will use the provided search terms as a single search term. 'non-combined-only' will use the provided search term to search for"
+            " data package that match each search term separately. 'both' will use the search terms combined and each search term separately to search"
+            " for data packages. Default = 'both'"
+        ),
     )
     c.add_argument(
         "-g",
@@ -115,8 +117,9 @@ def load_json_from_url(json_url):
     1) A dictionary of a json object 
     """
     import json
-    import requests
     import traceback
+
+    import requests
 
     try:
         return requests.get(json_url).json()
@@ -153,9 +156,9 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
     ++++++++
     1) A list of pkg names who's either name or keyword match score reached the score cutoff
     """
-    from fuzzywuzzy import fuzz
-    from fuzzywuzzy import process
     from collections import defaultdict
+
+    from fuzzywuzzy import fuzz, process
 
     pkg_score = defaultdict(lambda: defaultdict(float))
 
@@ -165,7 +168,7 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
         final_search_terms.append(" ".join(search_terms))
         final_search_terms.extend(search_terms)
 
-    if search_type == "combined-only": 
+    if search_type == "combined-only":
         final_search_terms.append(" ".join(search_terms))
 
     if search_type == "non-combined-only":
@@ -180,7 +183,12 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
             score = fuzz.partial_ratio(term.lower(), pkg.lower())
 
             ## Get the max score from all keyword scores found
-            keyword_max_score = max([fuzz.ratio(term.lower(),x.lower()) for x in json_dict["packages"][pkg]["keywords"]]) 
+            keyword_max_score = max(
+                [
+                    fuzz.ratio(term.lower(), x.lower())
+                    for x in json_dict["packages"][pkg]["keywords"]
+                ]
+            )
 
             ## Skip any package that does not meet the match score
             if score < score_cutoff and keyword_max_score < score_cutoff:
@@ -200,7 +208,6 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
             for pkg, max_scores in pkg_score.items()
             if float(max_scores["pkg_score"]) >= float(score_cutoff)
             or float(max_scores["keyword_score"]) >= float(score_cutoff)
-
         ],
         key=lambda x: x[1],
         reverse=True,
@@ -220,6 +227,7 @@ def check_installed(ggd_recipe, ggd_jdict):
     """
     import glob
     import os
+
     from .utils import conda_root
 
     species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
@@ -419,8 +427,10 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                     results.append(
                         "\t{} {}".format(
                             ("\033[1m" + "Prefix Install WARNING:" + "\033[0m"),
-                            ("This package has not been set up to use the --prefix flag when running ggd install."
-                            " Once installed, this package will work with other ggd tools that use the --prefix flag.")
+                            (
+                                "This package has not been set up to use the --prefix flag when running ggd install."
+                                " Once installed, this package will work with other ggd tools that use the --prefix flag."
+                            ),
                         )
                     )
 
@@ -430,7 +440,17 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                             ("\033[1m" + "Approximate Data File Sizes:" + "\033[0m"),
                             "\n\t\t"
                             + "\n\t\t".join(
-                                ["{}: {}".format(x,json_dict["packages"][pkg]["tags"]["final-file-sizes"][x]) for x in json_dict["packages"][pkg]["tags"]["final-file-sizes"]] 
+                                [
+                                    "{}: {}".format(
+                                        x,
+                                        json_dict["packages"][pkg]["tags"][
+                                            "final-file-sizes"
+                                        ][x],
+                                    )
+                                    for x in json_dict["packages"][pkg]["tags"][
+                                        "final-file-sizes"
+                                    ]
+                                ]
                             ),
                         )
                     )
@@ -448,12 +468,12 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
     print("\n\033[1m>>> Scroll up to see package details and install info <<<\033[0m")
 
     longest_pkg_name = max(map(len, match_list)) + 2
-    print("\n\n"+ ("*" * longest_pkg_name))
+    print("\n\n" + ("*" * longest_pkg_name))
     print("\033[1mPackage Name Results\033[0m")
     print("====================\n")
     print("\n".join(match_list))
     print("\nNOTE: Name order matches order of packages in detailed section above")
-    print("*"* longest_pkg_name + "\n")
+    print("*" * longest_pkg_name + "\n")
 
     return True
 
@@ -470,7 +490,7 @@ def search(parser, args):
     1) parser  
     2) args
     """
-    from .utils import get_channeldata_url, get_builds
+    from .utils import get_builds, get_channeldata_url
 
     ## load the channeldata.json file
     j_dict = load_json_from_url(get_channeldata_url(args.channel))
@@ -511,7 +531,7 @@ def search(parser, args):
 
     ## Search pkg names and keywords
     match_results = search_packages(
-        j_dict, filtered_search_terms, args.search_type, int(args.match_score) 
+        j_dict, filtered_search_terms, args.search_type, int(args.match_score)
     )
 
     ## Get installed paths

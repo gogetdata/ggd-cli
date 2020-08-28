@@ -27,9 +27,8 @@ def add_uninstall(p):
         choices=get_ggd_channels(),
         help="The ggd channel of the recipe to uninstall. (Default = genomics)",
     )
-    c.add_argument("names", 
-                   nargs = "+",
-                   help="the name(s) of the ggd package(s) to uninstall"
+    c.add_argument(
+        "names", nargs="+", help="the name(s) of the ggd package(s) to uninstall"
     )
 
     c.set_defaults(func=uninstall)
@@ -76,7 +75,7 @@ def get_channeldata(ggd_recipes, ggd_channel):
     package_list = []
     if len(jdict["packages"].keys()) > 0:
         package_list = search_packages(jdict, ggd_recipes)
-    
+
     uninstall_recipes = True
     for recipe in ggd_recipes:
         if recipe not in package_list:
@@ -105,7 +104,9 @@ def get_channeldata(ggd_recipes, ggd_channel):
                 print(
                     "\n:ggd:uninstall: Unable to find any package similar to the package entered. Use 'ggd search' or 'conda find' to identify the right package"
                 )
-                print("\n:ggd:uninstall: This package may not be installed on your system")
+                print(
+                    "\n:ggd:uninstall: This package may not be installed on your system"
+                )
 
     if uninstall_recipes:
         return jdict
@@ -141,23 +142,29 @@ def get_similar_pkg_installed_by_conda(ggd_recipe):
     )
 
 
-def check_conda_installation(ggd_recipes,installed_ggd_packages):
+def check_conda_installation(ggd_recipes, installed_ggd_packages):
     """Method to check if the ggd package was installed with conda
 
     check_conda_installation
     ========================
     Method used to check if the recipe has been installed with conda. If so, it uses conda to uninstall the recipe
     """
-    
+
     ## Filter ggd recipe list to those installed by conda
     conda_installed_recipes = [x for x in ggd_recipes if x in installed_ggd_packages]
-        
+
     ## Uninstall any conda installed recipes
     if len(conda_installed_recipes) > 0:
-        print("\n:ggd:uninstall: %s are installed by conda on your system" % ", ".join(conda_installed_recipes))
-        return(conda_uninstall(conda_installed_recipes))
+        print(
+            "\n:ggd:uninstall: %s are installed by conda on your system"
+            % ", ".join(conda_installed_recipes)
+        )
+        return conda_uninstall(conda_installed_recipes)
     else:
-        print("\n:ggd:uninstall: %s is NOT installed on your system" % ", ".join(ggd_recipes))
+        print(
+            "\n:ggd:uninstall: %s is NOT installed on your system"
+            % ", ".join(ggd_recipes)
+        )
 
 
 def conda_uninstall(ggd_recipes):
@@ -203,6 +210,7 @@ def check_for_installation(ggd_recipes, ggd_jdict, prefix=conda_root()):
     """
 
     import glob
+
     from .show_env import remove_env_variable
     from .utils import conda_root, get_conda_prefix_path
 
@@ -301,14 +309,22 @@ def uninstall(parser, args):
     ### Add them to the uninstall list
     ggd_info_dir = os.path.join(conda_root(), "share", "ggd_info", "noarch")
     tars_in_info_dir = set(os.listdir(ggd_info_dir))
-    for recipe in args.names: 
-        tarballfile = "{}-{}-{}.tar.bz2".format(recipe, installed_ggd_packages[recipe]["version"], installed_ggd_packages[recipe]["build"]) if recipe in installed_ggd_packages else ""
+    for recipe in args.names:
+        tarballfile = (
+            "{}-{}-{}.tar.bz2".format(
+                recipe,
+                installed_ggd_packages[recipe]["version"],
+                installed_ggd_packages[recipe]["build"],
+            )
+            if recipe in installed_ggd_packages
+            else ""
+        )
         if tarballfile in tars_in_info_dir:
-            tarfile_path = os.path.join(ggd_info_dir,tarballfile) 
+            tarfile_path = os.path.join(ggd_info_dir, tarballfile)
             ggd_recipes.extend(get_run_deps_from_tar(tarfile_path, args.channel))
 
     ## Check if installed through conda
-    check_conda_installation(ggd_recipes,installed_ggd_packages.keys())
+    check_conda_installation(ggd_recipes, installed_ggd_packages.keys())
 
     ## Check if the recipe is in file system
     if len(ggd_jsonDict) > 0:

@@ -15,7 +15,7 @@ METADATA = "channeldata.json"
 ## Argument Parser
 # -------------------------------------------------------------------------------------------------------------
 def add_list_installed_packages(p):
-    
+
     import argparse
 
     c = p.add_parser(
@@ -33,11 +33,7 @@ def add_list_installed_packages(p):
         default=None,
         help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if listing data files not in the current environment)",
     )
-    c.add_argument(
-        "--reset",
-        action="store_true",
-        help=argparse.SUPPRESS
-    )
+    c.add_argument("--reset", action="store_true", help=argparse.SUPPRESS)
     c.set_defaults(func=list_installed_packages)
 
 
@@ -123,7 +119,7 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
     ]
 
     missing_in_conda = False
-    missing_message = " [WARNING: Present in GGD but missing from Conda]" 
+    missing_message = " [WARNING: Present in GGD but missing from Conda]"
     ## Iterate over each package in pkg_names
     for pkg in pkg_names:
 
@@ -141,7 +137,7 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
             missing_in_conda = True
             build = missing_message
             channel = ""
-            
+
         ## Get env_vars
         env_variables = []
         if (
@@ -202,11 +198,15 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
 
     ## Print message if a package is missing from conda metadata
     if missing_in_conda:
-        print(("#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
-              " packages is installed, but the package metadata has been removed from conda storage. This happens when"
-              " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
-              " in the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
-              " the package with 'ggd uninstall' and re-install with 'ggd install'.\n").format(missing_message))
+        print(
+            (
+                "#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
+                " packages is installed, but the package metadata has been removed from conda storage. This happens when"
+                " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
+                " in the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
+                " the package with 'ggd uninstall' and re-install with 'ggd install'.\n"
+            ).format(missing_message)
+        )
 
 
 def list_installed_packages(parser, args):
@@ -221,8 +221,8 @@ def list_installed_packages(parser, args):
 
     from .utils import (
         conda_root,
-        get_conda_prefix_path,
         get_conda_package_list,
+        get_conda_prefix_path,
         prefix_in_conda,
         update_installed_pkg_metadata,
     )
@@ -234,14 +234,18 @@ def list_installed_packages(parser, args):
         else conda_root()
     )
 
-    ## If reset list 
+    ## If reset list
     if args.reset:
-        print("\n:ggd:list: The --reset flag was set. RESETTING ggd installed list metadata.")
+        print(
+            "\n:ggd:list: The --reset flag was set. RESETTING ggd installed list metadata."
+        )
         update_installed_pkg_metadata(args.prefix)
-        print("\n:ggd:list: Run 'ggd list' without --reset to see a list of installed ggd data packages")
+        print(
+            "\n:ggd:list: Run 'ggd list' without --reset to see a list of installed ggd data packages"
+        )
         print("\nDONE\n")
         sys.exit(0)
-        
+
     ggd_info_path = os.path.join(CONDA_ROOT, GGD_INFO)
 
     ## Check that the ggd info dir exists. If not, create it
