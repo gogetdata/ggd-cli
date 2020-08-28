@@ -14,10 +14,13 @@ from .show_env import add_show_env
 from .uninstall import add_uninstall
 
 if sys.version_info[0] < 3:
-    print("\n:ggd:WARNING: Python 2 is no longer maintained by python developers."
-          " GGD will not maintain support for python 2 past December 31, 2020."
-          " Python 2 may still work, but continued maintenance and support will"
-          " be focused on python >=  3\n")
+    print(
+        "\n:ggd:WARNING: Python 2 is no longer maintained by python developers."
+        " GGD will not maintain support for python 2 past December 31, 2020."
+        " Python 2 may still work, but continued maintenance and support will"
+        " be focused on python >=  3\n"
+    )
+
 
 def main(args=None):
     if args is None:

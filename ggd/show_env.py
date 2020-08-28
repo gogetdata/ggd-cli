@@ -27,7 +27,7 @@ def show_env(parser, args):
     ========
     This method is used to show the ggd environment variables created during a ggd package installation 
      in the current conda environemnt. It will print out the active and inactive environment variables 
-     and indicate how to actiave inactive environment variables.
+     and indicate how to active inactive environment variables.
     """
     import sys
 
@@ -122,7 +122,7 @@ def remove_env_variable(env_var, prefix=None):
             new_deactive_env.write(var + "\n")
 
 
-def activate_enviroment_variables():
+def activate_environment_variables():
     """Method to activate the current environment variables
 
     acticate_environment_variables
@@ -133,7 +133,7 @@ def activate_enviroment_variables():
     from argparse import Namespace
 
     conda_env, conda_path = get_conda_env()
-#    sp.check_output(["activate", "base"])
+    #    sp.check_output(["activate", "base"])
     show_env((), Namespace(command="show-env", pattern=None))
 
 
@@ -142,7 +142,7 @@ def test_vars(env_vars):
 
     test_vars
     =========
-    This mehtod is used to get the active and inactive environment variables for a specifc conda environment
+    This mehtod is used to get the active and inactive environment variables for a specific conda environment
      created by ggd.
 
     Parameters:

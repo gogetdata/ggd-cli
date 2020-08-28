@@ -3417,7 +3417,7 @@ def test_check_header():
         check_recipe.check_header(files_path)
     output = temp_stdout.getvalue().strip()
     assert ":ggd:check-recipe: !!WARNING!! GGD requires that any file that can have a header should. Please either add a header or if the file cannot have a header move forward." in output 
-    assert ":ggd:check-recipe: !!WARNING!! IF you move forwared without adding a header when one should be added, this recipe will be rejected until a header is added." in output
+    assert ":ggd:check-recipe: !!WARNING!! IF you move forward without adding a header when one should be added, this recipe will be rejected until a header is added" in output
 
 
 def get_a_tarfile():

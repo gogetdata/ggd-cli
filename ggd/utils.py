@@ -30,7 +30,7 @@ def get_species(update_files=True, full_dict=False):
     Parameters:
     ----------
     1) update_files: Default=True. Update the local files before getting species
-    2) full_dcit: Default=False. Get the full dictionary with keys as species and values as genome builds
+    2) full_dict: Default=False. Get the full dictionary with keys as species and values as genome builds
 
     Returns:
     ++++++++
@@ -51,11 +51,11 @@ def get_species(update_files=True, full_dict=False):
 
 
 def get_ggd_channels():
-    """Method used to get avaiable ggd channels
+    """Method used to get available ggd channels
     
     get_ggd_channels
     ================
-    This method is used to get all avaiable/created ggd conaa channels.
+    This method is used to get all available/created ggd conaa channels.
     This method will return a list of ggd conda channels.
 
     Run get_species() before running get_ggd_channels(). get_species triggers an update
@@ -79,7 +79,7 @@ def get_channel_data(ggd_channel):
 
     Returns:
     +++++++
-    1) The file path to the metadata file for the specifc channel
+    1) The file path to the metadata file for the specific channel
     """
 
     if check_for_internet_connection():
@@ -105,7 +105,7 @@ def get_channeldata_url(ggd_channel):
     1) The url for the metadata file
     """
 
-    ## Update local channel data file if internet connection availabe
+    ## Update local channel data file if internet connection available
     if check_for_internet_connection():
         update_channel_data_files(ggd_channel)
 
@@ -122,7 +122,7 @@ def get_required_conda_version():
     get_required_conda_version
     ==========================
     This method is used to get the required version for conda based on the version set in the 
-     requiremetns file in ggd-cli. This version can be used to mantain the correct version while 
+     requirements file in ggd-cli. This version can be used to maintain the correct version while 
      using ggd
 
     Return:
@@ -141,7 +141,7 @@ def get_required_conda_version():
         elif "conda>=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split(">=")[1]
             equals = ">="
-    return conda_version, equals 
+    return conda_version, equals
 
 
 def check_output(args, **kwargs):
@@ -151,7 +151,7 @@ def check_output(args, **kwargs):
 
 
 def _to_str(s, enc=locale.getpreferredencoding()):
-    """Method to convert a bytes into a string based on a local prefered encoding  
+    """Method to convert a bytes into a string based on a local preferred encoding  
 
     _to_str
     =======
@@ -299,36 +299,43 @@ def get_run_deps_from_tar(tarfile_path, channel):
 
     Returns:
     +++++++
-    1) A list of all ggd sepecific package deps
+    1) A list of all ggd specific package deps
     """
-    
+
     import json
-    import requests
     import tarfile
+
+    import requests
     import yaml
 
     ## extract channel
     channel = channel.strip().split("-")[-1]
 
-    ## If internet connection 
+    ## If internet connection
     if check_for_internet_connection(3):
         ggd_package_dict = requests.get(get_channeldata_url(channel)).json()
     else:
         with open(get_channel_data(channel)) as json_file:
             ggd_package_dict = json.load(json_file)
 
-    ## Get a list of all ggd packages 
+    ## Get a list of all ggd packages
     ggd_package_names = set(ggd_package_dict["packages"].keys())
 
     ## Check for ggd packages in run requirements
     with tarfile.open(tarfile_path, "r:bz2") as tarball_file:
-        meta_yaml = yaml.safe_load(tarball_file.extractfile(tarball_file.getmember("info/recipe/meta.yaml.template")))
+        meta_yaml = yaml.safe_load(
+            tarball_file.extractfile(
+                tarball_file.getmember("info/recipe/meta.yaml.template")
+            )
+        )
 
         ## Add any ggd packages that are requirements to the req package list
-        req_packages = [req for req in meta_yaml["requirements"]["run"] if req in ggd_package_names]
+        req_packages = [
+            req for req in meta_yaml["requirements"]["run"] if req in ggd_package_names
+        ]
 
-    return(req_packages)
-                
+    return req_packages
+
 
 def update_installed_pkg_metadata(
     prefix=None,
@@ -336,7 +343,7 @@ def update_installed_pkg_metadata(
     remove_old=True,
     exclude_pkg=None,
     add_packages=[],
-    include_local=False
+    include_local=False,
 ):
     """Method to update the local metadata file in a conda environment that contains information about the installed ggd packages
 
@@ -366,12 +373,12 @@ def update_installed_pkg_metadata(
     ----------
     1) prefix: The conda environment/prefix to update. (Default = the current conda environment)
     2) channel: The conda channel the packages are from. (Default = ggd-genomics)
-    3) remove_old: whether or not to compelete remove the ggd_info dir and re-create it
+    3) remove_old: whether or not to complete remove the ggd_info dir and re-create it
     4) exclude_pkg: The name of a package to exclude during a rebuild. (The remove_old parameter must be set to True) (Default = None)
     5) add_package: A ggd package name to add to the the ggd info metadata. This should be paired with remove_old = False. Only this package will be added to the metadata.
     """
 
-    ## Check that the add_package parameter is paried properly with the remove_old. If incorectly paired, change add_package to avoid removing all metadata except for the single indicated package
+    ## Check that the add_package parameter is paired properly with the remove_old. If incorrectly paired, change add_package to avoid removing all metadata except for the single indicated package
     if add_packages and remove_old == True:
         add_packages = None
         print(
@@ -409,7 +416,7 @@ def update_installed_pkg_metadata(
     ## Create the "noarch" dir
     if not os.path.isdir(os.path.join(ggd_info_dir, "noarch")):
         os.makedirs(os.path.join(ggd_info_dir, "noarch"), mode=0o777)
-    
+
     ## Check add packages
     if add_packages and remove_old == False:
         for (
@@ -434,13 +441,24 @@ def update_installed_pkg_metadata(
         for add_package in add_packages:
 
             ## Add package to package list
-            pkg_dict = get_conda_package_list(prefix, add_package, include_local=include_local)
+            pkg_dict = get_conda_package_list(
+                prefix, add_package, include_local=include_local
+            )
             pkg_list.update(pkg_dict)
 
             ## Check for any ggd specific run deps and add them to the package list
-            tarfile = os.path.join(pkg_dir, "{}-{}-{}.tar.bz2".format(add_package, pkg_dict[add_package]["version"], pkg_dict[add_package]["build"])) 
-            for pkg in get_run_deps_from_tar(tarfile,channel):
-                pkg_list.update(get_conda_package_list(prefix, pkg, include_local=include_local))
+            tarfile = os.path.join(
+                pkg_dir,
+                "{}-{}-{}.tar.bz2".format(
+                    add_package,
+                    pkg_dict[add_package]["version"],
+                    pkg_dict[add_package]["build"],
+                ),
+            )
+            for pkg in get_run_deps_from_tar(tarfile, channel):
+                pkg_list.update(
+                    get_conda_package_list(prefix, pkg, include_local=include_local)
+                )
 
     else:
         pkg_list.update(get_conda_package_list(prefix, include_local=include_local))
@@ -515,7 +533,13 @@ def check_conda_pkg_dir(prefix, exclude_pkg=None):
     conda_pkg_files = set(os.listdir(pkg_dir))
 
     ## Conda list for ggd recipes. IF exclude_pkg is set, the key will be removed from this set
-    installed_pkgs = set([key+"-"+value["version"]+"-"+value["build"]+".tar.bz2" for key,value in get_conda_package_list(prefix).items() if key != exclude_pkg])
+    installed_pkgs = set(
+        [
+            key + "-" + value["version"] + "-" + value["build"] + ".tar.bz2"
+            for key, value in get_conda_package_list(prefix).items()
+            if key != exclude_pkg
+        ]
+    )
 
     ## Check if the .tar.bz2 files are in the conda pkg dir or not, and fix if not
     for f in os.listdir(os.path.join(ggd_info_dir, "noarch")):
@@ -526,18 +550,18 @@ def check_conda_pkg_dir(prefix, exclude_pkg=None):
 
         ## IF file is installed but not present in the conda_pkg_files, copy it to the conda_pkg_files
         if f in installed_pkgs and f not in conda_pkg_files:
-            print("ggd:utils: Fixing the {t} file in the conda pkg dir\n".format(t = f))
+            print("ggd:utils: Fixing the {t} file in the conda pkg dir\n".format(t=f))
             try:
-                shutil.copy2(os.path.join(ggd_info_dir,"noarch",f), pkg_dir)
+                shutil.copy2(os.path.join(ggd_info_dir, "noarch", f), pkg_dir)
             except OSError as e:
-                return(False)
+                return False
 
-    return(True)
-        
+    return True
+
 
 def validate_build(build, species):
     """
-    Method to validate that a genome-build is correclty assigned based on a species.
+    Method to validate that a genome-build is correctly assigned based on a species.
     """
     if build != "*":
         builds_list = get_builds(species)
@@ -588,7 +612,7 @@ def get_conda_env(prefix=conda_root()):
     Returns:
     ++++++++
     1) The conda environment name
-    2) The path to the conda environent
+    2) The path to the conda environment
     """
 
     ## Get environment list
@@ -640,7 +664,7 @@ def get_conda_prefix_path(prefix):
 
     prefix = prefix.rstrip("/")
 
-    ## Check that the file is in the enviroment lists
+    ## Check that the file is in the environment lists
     if prefix not in env_var_names.keys() and prefix not in env_var_paths.keys():
         raise CondaEnvironmentNotFound(prefix)
 
@@ -653,7 +677,7 @@ def get_conda_prefix_path(prefix):
 
 
 def prefix_in_conda(prefix):
-    """Method to check if a perfix is a conda environment or not
+    """Method to check if a prefix is a conda environment or not
 
     prefix_in_conda
     ===============
@@ -662,7 +686,7 @@ def prefix_in_conda(prefix):
 
     Parameters:
     -----------
-    1) prefix: The conda enviroment full file path/prefix
+    1) prefix: The conda environment full file path/prefix
 
     Returns:
     ++++++++
@@ -684,7 +708,7 @@ def prefix_in_conda(prefix):
 
     prefix = prefix.rstrip("/")
 
-    ## Check that the file is in the enviroment lists
+    ## Check that the file is in the environment lists
     if prefix not in env_var_names.keys() and prefix not in env_var_paths.keys():
         raise CondaEnvironmentNotFound(prefix)
 
@@ -708,7 +732,7 @@ class CondaEnvironmentNotFound(Exception):
     """
 
     def __init__(self, location):
-        self.message = "The prefix supplied is not a conda enviroment: %s\n" % (
+        self.message = "The prefix supplied is not a conda environment: %s\n" % (
             location
         )
         sys.tracebacklimit = 0
@@ -737,25 +761,27 @@ class ChecksumError(Exception):
         return self.message
 
 
-class literal_block(str): pass
+class literal_block(str):
+    pass
+
 
 def add_yaml_literal_block(yaml_object):
     """
-    Get a yaml literal block representer function to converte normal strings into yaml literals during yaml dumping
+    Get a yaml literal block representer function to convert normal strings into yaml literals during yaml dumping
 
     Convert string to yaml literal block
     yaml docs: see "Block mappings" in https://pyyaml.org/wiki/PyYAMLDocumentation
     """
 
     def literal_str_representer(dumper, data):
-        return(dumper.represent_scalar("tag:yaml.org,2002:str", data, style='|'))
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
 
-    return(yaml_object.add_representer(literal_block, literal_str_representer))
+    return yaml_object.add_representer(literal_block, literal_str_representer)
 
 
 def get_conda_package_list(prefix, regex=None, include_local=False):
     """
-    This method is used to get the list of packages in a specifc conda environmnet (prefix). Rather then running 
+    This method is used to get the list of packages in a specific conda environment (prefix). Rather then running 
      `conda list` itself, it uses the conda module to grab the information 
 
     
@@ -771,12 +797,13 @@ def get_conda_package_list(prefix, regex=None, include_local=False):
     """
 
     from logging import getLogger
-    from conda.gateways import logging
-    from conda.core.prefix_data import PrefixData
+
     from conda.base.context import context
     from conda.cli.main_list import get_packages
+    from conda.core.prefix_data import PrefixData
+    from conda.gateways import logging
 
-    ## Get a list of availble ggd channels
+    ## Get a list of available ggd channels
     ggd_channels = ["ggd-" + x for x in get_ggd_channels()]
 
     if include_local:
@@ -853,7 +880,7 @@ def get_checksum_dict_from_txt(txt_file_path):
     with open(txt_file_path, "r") as cs:
         for line in cs:
             line_list = str(line).strip().split("\t")
-            ## Skip emtpy lines
+            ## Skip empty lines
             if len(line_list) < 2:
                 continue
             cs_dict[line_list[0]] = line_list[1]
@@ -891,7 +918,7 @@ def get_checksum_dict_from_tar(fbz2):
         cs_dict = {}
         for line in str(checksum_file.read().decode("utf8")).strip().split("\n"):
             line_list = str(line).strip().split("\t")
-            ## Skip emtpy lines
+            ## Skip empty lines
             if len(line_list) < 2:
                 continue
             cs_dict[line_list[0]] = line_list[1]
@@ -922,7 +949,7 @@ def data_file_checksum(installed_dir_path, checksum_dict):
     ## Get a list of the installed data files
     installed_files = glob.glob(os.path.join(installed_dir_path, "*"))
 
-    ## Check that there are the same number of installed data files as files with orignial checksums
+    ## Check that there are the same number of installed data files as files with original checksums
     if len(installed_files) != len(checksum_dict):
         print(
             "\n\n:ggd:checksum: !!ERROR!!: The number of installed files does not match the number of checksum files"
@@ -982,10 +1009,10 @@ def data_file_checksum(installed_dir_path, checksum_dict):
 def get_file_size(file_path):
 
     import math
-    
+
     if os.path.exists(file_path):
-        
-        ## Range size 
+
+        ## Range size
         range_size = 0.05
 
         ## Get size of file in bytes
@@ -993,9 +1020,13 @@ def get_file_size(file_path):
 
         ## Convert size to gb, mb, kb
         ## Use the rough equal numbers. (Over estimate rather than under estimate)
-        gb_size = bytes_size / (1000000000)# (1073741824) ## bytes in a GB = (1024 * 1024 * 1024) = 1073741824 ~~ 1000000000  
-        mb_size = bytes_size / (1000000) #(1048576) ## Bytes in a MB = (1024*1024) = 1048576 ~~ 1000000
-        kb_size = bytes_size / (1000)  #(1024) ## Bytes in a KB = (1024) ~~ 1000
+        gb_size = bytes_size / (
+            1000000000
+        )  # (1073741824) ## bytes in a GB = (1024 * 1024 * 1024) = 1073741824 ~~ 1000000000
+        mb_size = bytes_size / (
+            1000000
+        )  # (1048576) ## Bytes in a MB = (1024*1024) = 1048576 ~~ 1000000
+        kb_size = bytes_size / (1000)  # (1024) ## Bytes in a KB = (1024) ~~ 1000
 
         final_size = ""
         ## Format the file size
@@ -1003,38 +1034,37 @@ def get_file_size(file_path):
             final_size = "{:.2f}G".format(gb_size)
 
             ## Get top actual and bottom size range using 5% of actual size
-            top_size = (bytes_size + (bytes_size * range_size)) / (1000000000) 
+            top_size = (bytes_size + (bytes_size * range_size)) / (1000000000)
             bottom_size = (bytes_size - (bytes_size * range_size)) / (1000000000)
 
         elif mb_size >= 1.0:
             final_size = "{:.2f}M".format(mb_size)
 
             ## Get top actual and bottom size range using 5% of actual size
-            top_size = (bytes_size + (bytes_size * range_size)) / (1000000) 
+            top_size = (bytes_size + (bytes_size * range_size)) / (1000000)
             bottom_size = (bytes_size - (bytes_size * range_size)) / (1000000)
 
         elif kb_size >= 1.0:
             final_size = "{:.2f}K".format(kb_size)
 
             ## Get top actual and bottom size range using 5% of actual size
-            top_size = math.ceil((bytes_size + (bytes_size * range_size)) / (1000))  
+            top_size = math.ceil((bytes_size + (bytes_size * range_size)) / (1000))
             bottom_size = math.floor((bytes_size - (bytes_size * range_size)) / (1000))
 
         else:
             final_size = "{:.2f}b".format(bytes_size)
 
             ## Get top actual and bottom size range using 5% of actual size
-            top_size = (bytes_size + (bytes_size * range_size))  
-            bottom_size = (bytes_size - (bytes_size * range_size)) 
+            top_size = bytes_size + (bytes_size * range_size)
+            bottom_size = bytes_size - (bytes_size * range_size)
 
         ## Return final_size as a string, top of size window ,and bottom of size window
-        return(final_size, top_size, bottom_size)
+        return (final_size, top_size, bottom_size)
 
     else:
-        print("\n:ggd:utils: File does not exist: {fp}\n".format(fp = file_path))
+        print("\n:ggd:utils: File does not exist: {fp}\n".format(fp=file_path))
 
-        return(None)
-
+        return None
 
 
 def bypass_satsolver_on_install(
@@ -1044,8 +1074,8 @@ def bypass_satsolver_on_install(
 
     bypass_satsolver_on_install
     ============================
-    This method is used to run the conda install steps to install a ggd aws cahced reicpe. The
-        intsallation will skip the sat solver step, ignore packages that may be additionaly installed
+    This method is used to run the conda install steps to install a ggd aws cached recipe. The
+        installation will skip the sat solver step, ignore packages that may be additionally installed
         or uninstalled, and performs other steps in order to install the data package without using 
         the sat solver. 
     The majority of the work is still done by conda through the use of the conda module. This method
@@ -1059,40 +1089,43 @@ def bypass_satsolver_on_install(
     """
 
     # -------------------------------------------------------------------------
-    # import statments
+    # import statements
     # -------------------------------------------------------------------------
-    from conda.base.context import context
-    from conda.cli import common
-    from conda.cli import install
-    from conda.core.solve import Solver
-    from conda.core.solve import SolverStateContainer
-    from conda.common.io import Spinner
-    from conda.core.link import PrefixSetup
-    from conda.core.link import UnlinkLinkTransaction
+    import sys
     from argparse import Namespace
-    from conda._vendor.boltons.setutils import IndexedSet
-    from conda.models.prefix_graph import PrefixGraph
-    from conda.core.solve import diff_for_unlink_link_precs
-    from conda.common.compat import iteritems, itervalues, odict, text_type
-    from conda._vendor.toolz import concat, concatv
-    from conda.resolve import Resolve
-    from conda.models.match_spec import MatchSpec
-    from conda.base.constants import UpdateModifier
-    from conda.common.io import ProgressBar
-    from conda.gateways.logging import set_all_logger_level, set_conda_log_level
-    from conda.gateways.logging import VERBOSITY_LEVELS
-    from conda.gateways.logging import log
     from logging import (
         DEBUG,
         ERROR,
+        INFO,
+        WARN,
         Filter,
         Formatter,
-        INFO,
         StreamHandler,
-        WARN,
         getLogger,
     )
-    import sys
+
+    from conda._vendor.boltons.setutils import IndexedSet
+    from conda._vendor.toolz import concat, concatv
+    from conda.base.constants import UpdateModifier
+    from conda.base.context import context
+    from conda.cli import common, install
+    from conda.common.compat import iteritems, itervalues, odict, text_type
+    from conda.common.io import ProgressBar, Spinner
+    from conda.core.link import PrefixSetup, UnlinkLinkTransaction
+    from conda.core.solve import (
+        Solver,
+        SolverStateContainer,
+        diff_for_unlink_link_precs,
+    )
+    from conda.gateways.logging import (
+        VERBOSITY_LEVELS,
+        log,
+        set_all_logger_level,
+        set_conda_log_level,
+    )
+    from conda.models.match_spec import MatchSpec
+    from conda.models.prefix_graph import PrefixGraph
+    from conda.resolve import Resolve
 
     print(
         "\n:ggd:utils:bypass: Installing %s from the %s conda channel\n"
@@ -1109,7 +1142,7 @@ def bypass_satsolver_on_install(
         bypass_sat
         ==========
         This method is used to extract and process information that would have been done during the sat
-        solvering step, (Solving Enviroment), bypass the sat solver, and return a filtered set of packages
+        solving step, (Solving Environment), bypass the sat solver, and return a filtered set of packages
         to install.
 
         Parameters:
@@ -1218,7 +1251,7 @@ def bypass_satsolver_on_install(
         target_prefix, ssc.solution_precs, solve.specs_to_add
     )
 
-    # set unlinked to empty indexed set so we do not unlink/remove any pacakges
+    # set unlinked to empty indexed set so we do not unlink/remove any packages
     unlink_precs = IndexedSet()
 
     ## Create a PrefixSetup
@@ -1251,7 +1284,7 @@ def bypass_satsolver_on_install(
     ## Install package
     install.handle_txn(unlink_link_transaction, solve.prefix, args, False)
 
-    ## Retrun True if finished
+    ## Return True if finished
     return True
 
 

@@ -53,12 +53,9 @@ def add_list_files(p):
     c.add_argument(
         "--prefix",
         default=None,
-        help="(Optional) The name or the full directory path to an conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda enviroment)",
+        help="(Optional) The name or the full directory path to an conda environment where a ggd recipe is stored. (Only needed if not getting file paths for files in the current conda environment)",
     )
-    c.add_argument(
-        "name",
-        help="recipe name"
-    )
+    c.add_argument("name", help="recipe name")
     c.set_defaults(func=list_files)
 
 
@@ -72,7 +69,7 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
 
     in_ggd_channel
     ==============
-    Method used to identify in the desired pacakge is in the ggd-<channel>.
+    Method used to identify in the desired package is in the ggd-<channel>.
      If it is the the species, build, and version is returned. 
      If it is not, then a few alternative package names are provided
      
@@ -117,7 +114,6 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
     if len(json_dict["packages"].keys()) > 0:
         package_list = search_packages(json_dict, [ggd_recipe])
 
-
     if ggd_recipe in package_list:
         species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
         build = json_dict["packages"][ggd_recipe]["identifiers"]["genome-build"]
@@ -140,6 +136,7 @@ def list_files(parser, args):
     """Main method. Method used to list files for an installed ggd-recipe"""
 
     import glob
+
     from .utils import (
         conda_root,
         get_conda_prefix_path,

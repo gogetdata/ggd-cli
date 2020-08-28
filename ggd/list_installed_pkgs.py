@@ -15,7 +15,7 @@ METADATA = "channeldata.json"
 ## Argument Parser
 # -------------------------------------------------------------------------------------------------------------
 def add_list_installed_packages(p):
-    
+
     import argparse
 
     c = p.add_parser(
@@ -33,11 +33,7 @@ def add_list_installed_packages(p):
         default=None,
         help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if listing data files not in the current environment)",
     )
-    c.add_argument(
-        "--reset",
-        action="store_true",
-        help=argparse.SUPPRESS
-    )
+    c.add_argument("--reset", action="store_true", help=argparse.SUPPRESS)
     c.set_defaults(func=list_installed_packages)
 
 
@@ -70,7 +66,7 @@ def get_environment_variables(prefix):
 
     get_environment_variables
     =========================
-    Method to get the environment variables for each installed data package in a spefic conda environment
+    Method to get the environment variables for each installed data package in a specific conda environment
 
     Parameters:
     -----------
@@ -78,7 +74,7 @@ def get_environment_variables(prefix):
 
     Returns:
     ++++++++
-    1) A dicionary with each key == env_var, and values == the path the environment variable is for
+    1) A dictionary with each key == env_var, and values == the path the environment variable is for
     """
 
     env_var_path = os.path.join(prefix, "etc", "conda", "activate.d", "env_vars.sh")
@@ -99,18 +95,18 @@ def get_environment_variables(prefix):
 
 
 def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set=False):
-    """Method to identify and display available data packages in a specific conda environmnet
+    """Method to identify and display available data packages in a specific conda environment
 
     list_pkg_info
     =============
-    Method to display the ggd data packages installed in a specific conda environemnt. If the 
-     prefix is not set, the packages in the current environment will be dispalyed. If the --pattern
+    Method to display the ggd data packages installed in a specific conda environment. If the 
+     prefix is not set, the packages in the current environment will be displayed. If the --pattern
      flag is set, the package names will be filtered prior to this method.
 
     Parameters:
     -----------
-    1) pkg_names: A list of package names to show. (List conmes from ggd_info metadata file)
-    2) pks_dict: The ggd_info metadata file as a dictionary (To get verision and channel info)
+    1) pkg_names: A list of package names to show. (List comes from ggd_info metadata file)
+    2) pks_dict: The ggd_info metadata file as a dictionary (To get version and channel info)
     3) env_vars: A dictionary of environment variables. (Key = env_var name, value = path to file/dir)
     4) conda_list: A dictionary representing conda list output (from utils.get_conda_package_list())
     5) prefix: The prefix/conda environment to display information for. 
@@ -118,12 +114,12 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
     """
 
     ## Create a 2d list for string formatting
-    formated_list = [
+    formatted_list = [
         ["    Name", "Pkg-Version", "Pkg-Build", "Channel", "Environment-Variables"]
     ]
 
     missing_in_conda = False
-    missing_message = " [WARNING: Present in GGD but missing from Conda]" 
+    missing_message = " [WARNING: Present in GGD but missing from Conda]"
     ## Iterate over each package in pkg_names
     for pkg in pkg_names:
 
@@ -141,7 +137,7 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
             missing_in_conda = True
             build = missing_message
             channel = ""
-            
+
         ## Get env_vars
         env_variables = []
         if (
@@ -157,33 +153,33 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
                 " $ggd_" + pkg.replace("-", "_").replace(".", "_") + "_file"
             )
 
-        formated_list.append([pkg, version, build, channel, ",".join(env_variables)])
+        formatted_list.append([pkg, version, build, channel, ",".join(env_variables)])
 
     ## Print data pkg list
     print("\n\n# Packages in environment: {p}\n#".format(p=prefix))
 
     dash = "-" * 120
-    for i in range(len(formated_list)):
+    for i in range(len(formatted_list)):
         if i == 0:
             print(dash)
             print(
                 "{:<40s}{:>5s}{:>10s}{:>10s}{:>30s}".format(
-                    formated_list[i][0],
-                    formated_list[i][1],
-                    formated_list[i][2],
-                    formated_list[i][3],
-                    formated_list[i][4],
+                    formatted_list[i][0],
+                    formatted_list[i][1],
+                    formatted_list[i][2],
+                    formatted_list[i][3],
+                    formatted_list[i][4],
                 )
             )
             print(dash)
         else:
             print(
                 "-> {:<40s}{:>5s}{:>10s}{:>15s}{:^60s}\n".format(
-                    formated_list[i][0],
-                    formated_list[i][1],
-                    formated_list[i][2],
-                    formated_list[i][3],
-                    formated_list[i][4],
+                    formatted_list[i][0],
+                    formatted_list[i][1],
+                    formatted_list[i][2],
+                    formatted_list[i][3],
+                    formatted_list[i][4],
                 )
             )
 
@@ -202,11 +198,15 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
 
     ## Print message if a package is missing from conda metadata
     if missing_in_conda:
-        print(("#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
-              " packages is installed, but the package metadata has been removed from conda storage. This happens when"
-              " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
-              " in the same state as before the 'conda uninstall'. To fix the problem on conda's side uninstall"
-              " the package with 'ggd uninstall' and resinstall with 'ggd install'.\n").format(missing_message))
+        print(
+            (
+                "#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
+                " packages is installed, but the package metadata has been removed from conda storage. This happens when"
+                " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
+                " in the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
+                " the package with 'ggd uninstall' and re-install with 'ggd install'.\n"
+            ).format(missing_message)
+        )
 
 
 def list_installed_packages(parser, args):
@@ -215,14 +215,14 @@ def list_installed_packages(parser, args):
     list_installed_packages
     =======================
     Main method of ggd list. This method will check and set the conda environment/prefix, check the ggd info metdata file
-     get environmnet variables for ggd data packages in the user specified conda prefix, get the installed data packages 
+     get environment variables for ggd data packages in the user specified conda prefix, get the installed data packages 
      from conda info, filter results based on user specified pattern, and provide the information to the display function.
     """
 
     from .utils import (
         conda_root,
-        get_conda_prefix_path,
         get_conda_package_list,
+        get_conda_prefix_path,
         prefix_in_conda,
         update_installed_pkg_metadata,
     )
@@ -234,14 +234,18 @@ def list_installed_packages(parser, args):
         else conda_root()
     )
 
-    ## If reset list 
+    ## If reset list
     if args.reset:
-        print("\n:ggd:list: The --reset flag was set. RESETTING ggd installed list metadata.")
+        print(
+            "\n:ggd:list: The --reset flag was set. RESETTING ggd installed list metadata."
+        )
         update_installed_pkg_metadata(args.prefix)
-        print("\n:ggd:list: Run 'ggd list' without --reset to see a list of installed ggd data packages")
+        print(
+            "\n:ggd:list: Run 'ggd list' without --reset to see a list of installed ggd data packages"
+        )
         print("\nDONE\n")
         sys.exit(0)
-        
+
     ggd_info_path = os.path.join(CONDA_ROOT, GGD_INFO)
 
     ## Check that the ggd info dir exists. If not, create it

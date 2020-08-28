@@ -27,6 +27,17 @@ def add_search(p):
         help="**Required** The term(s) to search for. Multiple terms can be used. Example: 'ggd search reference genome'",
     )
     c.add_argument(
+        "--search-type",
+        default="both",
+        choices=["both", "combined-only", "non-combined-only"],
+        help=(
+            "(Optional) How to search for data packages with the search terms provided. Options = 'combined-only', 'non-combined-only', and 'both'."
+            " 'combined-only' will use the provided search terms as a single search term. 'non-combined-only' will use the provided search term to search for"
+            " data package that match each search term separately. 'both' will use the search terms combined and each search term separately to search"
+            " for data packages. Default = 'both'"
+        ),
+    )
+    c.add_argument(
         "-g",
         "--genome-build",
         default=[],
@@ -106,8 +117,9 @@ def load_json_from_url(json_url):
     1) A dictionary of a json object 
     """
     import json
-    import requests
     import traceback
+
+    import requests
 
     try:
         return requests.get(json_url).json()
@@ -119,13 +131,13 @@ def load_json_from_url(json_url):
         sys.exit(1)
 
 
-def search_packages(json_dict, search_terms, score_cutoff=50):
+def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50):
     """Method to search for ggd packages in the ggd channeldata.json metadata file based on user provided search terms
 
     search_packages
     ===============
     Method to search for ggd packages/recipes 
-     contaning specific search terms 
+     containing specific search terms 
 
      NOTE: Both the package name and the package keywords are searched
 
@@ -134,29 +146,53 @@ def search_packages(json_dict, search_terms, score_cutoff=50):
     1) json_dict: A json file loaded into a dictionary. (The file to search)
                   the load_json_from_url() method creates the dictionary 
     2) search_terms: A list of terms representing package names or keywords to search for
-    3) score_cutoff: A number betwnee 0 and 100 that represent which matches to return
+    3) search_type: A string matching either 'both', 'combined-only', or 'non-combined-only',
+                     representing how to use the search terms.
+    4) score_cutoff: A number between 0 and 100 that represent which matches to return
                         (Default = 50)
+
 
     Returns:
     ++++++++
     1) A list of pkg names who's either name or keyword match score reached the score cutoff
     """
-    from fuzzywuzzy import fuzz
-    from fuzzywuzzy import process
     from collections import defaultdict
+
+    from fuzzywuzzy import fuzz, process
 
     pkg_score = defaultdict(lambda: defaultdict(float))
 
-    for term in search_terms:
+    ## Get final search terms based on search type
+    final_search_terms = []
+    if search_type == "both":
+        final_search_terms.append(" ".join(search_terms))
+        final_search_terms.extend(search_terms)
+
+    if search_type == "combined-only":
+        final_search_terms.append(" ".join(search_terms))
+
+    if search_type == "non-combined-only":
+        final_search_terms = search_terms
+
+    ## Search for data packages
+    for term in final_search_terms:
+
         for pkg in json_dict["packages"].keys():
+
             ## Get match score between name and term
-            score = fuzz.ratio(term.lower(), pkg.lower())
-            ## Get a list of match score for the keywrods
-            additional_scores = process.extract(
-                term, json_dict["packages"][pkg]["keywords"]
+            score = fuzz.partial_ratio(term.lower(), pkg.lower())
+
+            ## Get the max score from all keyword scores found
+            keyword_max_score = max(
+                [
+                    fuzz.ratio(term.lower(), x.lower())
+                    for x in json_dict["packages"][pkg]["keywords"]
+                ]
             )
-            ## Get the max score from all scores found
-            keyword_max_score = max([x[1] for x in additional_scores])
+
+            ## Skip any package that does not meet the match score
+            if score < score_cutoff and keyword_max_score < score_cutoff:
+                continue
 
             ## Set max score in dict
             if float(pkg_score[pkg]["pkg_score"]) < float(score):
@@ -172,7 +208,6 @@ def search_packages(json_dict, search_terms, score_cutoff=50):
             for pkg, max_scores in pkg_score.items()
             if float(max_scores["pkg_score"]) >= float(score_cutoff)
             or float(max_scores["keyword_score"]) >= float(score_cutoff)
-
         ],
         key=lambda x: x[1],
         reverse=True,
@@ -192,6 +227,7 @@ def check_installed(ggd_recipe, ggd_jdict):
     """
     import glob
     import os
+
     from .utils import conda_root
 
     species = ggd_jdict["packages"][ggd_recipe]["identifiers"]["species"]
@@ -219,7 +255,7 @@ def filter_by_identifiers(iden_keys, json_dict, filter_terms):
     Parameters:
     ----------
     1) iden_keys: A list of he identifiers keys. Example = ["species","genome-build"] 
-    2) json_dict: The json dictionary craeted from laod_json()
+    2) json_dict: The json dictionary created from laod_json()
     3) filter_terms: A list of the term(s) to filter by. Example: ["Homo_sapiens","hg19"]
 
     NOTE: List order of iden_keys should match list order of filter_terms
@@ -387,6 +423,16 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                             ),
                         )
                     )
+                else:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Prefix Install WARNING:" + "\033[0m"),
+                            (
+                                "This package has not been set up to use the --prefix flag when running ggd install."
+                                " Once installed, this package will work with other ggd tools that use the --prefix flag."
+                            ),
+                        )
+                    )
 
                 if "final-file-sizes" in json_dict["packages"][pkg]["tags"]:
                     results.append(
@@ -394,20 +440,40 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                             ("\033[1m" + "Approximate Data File Sizes:" + "\033[0m"),
                             "\n\t\t"
                             + "\n\t\t".join(
-                                ["{}: {}".format(x,json_dict["packages"][pkg]["tags"]["final-file-sizes"][x]) for x in json_dict["packages"][pkg]["tags"]["final-file-sizes"]] 
+                                [
+                                    "{}: {}".format(
+                                        x,
+                                        json_dict["packages"][pkg]["tags"][
+                                            "final-file-sizes"
+                                        ][x],
+                                    )
+                                    for x in json_dict["packages"][pkg]["tags"][
+                                        "final-file-sizes"
+                                    ]
+                                ]
                             ),
                         )
                     )
 
             if pkg in installed_pkgs:  ## IF installed
                 results.append(
-                    "\n\tThis pacakge is already installed on your system.\n\t  You can find the installed data files here:  %s"
+                    "\n\tThis package is already installed on your system.\n\t  You can find the installed data files here:  %s"
                     % installed_paths[pkg]
                 )
             else:
                 results.append("\n\tTo install run:\n\t\tggd install %s" % pkg)
         print("\n\n".join(results))
         print("\n", dash)
+
+    print("\n\033[1m>>> Scroll up to see package details and install info <<<\033[0m")
+
+    longest_pkg_name = max(map(len, match_list)) + 2
+    print("\n\n" + ("*" * longest_pkg_name))
+    print("\033[1mPackage Name Results\033[0m")
+    print("====================\n")
+    print("\n".join(match_list))
+    print("\nNOTE: Name order matches order of packages in detailed section above")
+    print("*" * longest_pkg_name + "\n")
 
     return True
 
@@ -424,7 +490,7 @@ def search(parser, args):
     1) parser  
     2) args
     """
-    from .utils import get_channeldata_url, get_builds
+    from .utils import get_builds, get_channeldata_url
 
     ## load the channeldata.json file
     j_dict = load_json_from_url(get_channeldata_url(args.channel))
@@ -465,7 +531,7 @@ def search(parser, args):
 
     ## Search pkg names and keywords
     match_results = search_packages(
-        j_dict, filtered_search_terms, int(args.match_score)
+        j_dict, filtered_search_terms, args.search_type, int(args.match_score)
     )
 
     ## Get installed paths
@@ -492,7 +558,7 @@ def search(parser, args):
     ## Add a comment if a subset of search results are provided
     if int(match_result_num) > int(args.display_number):
         print(
-            "\n\n:ggd:search: NOTE  Only showing results for top {d} of {m} matches.".format(
+            "\n\n:ggd:search: NOTE: Only showing results for top {d} of {m} matches.".format(
                 d=str(args.display_number), m=match_result_num
             )
         )

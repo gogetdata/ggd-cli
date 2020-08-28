@@ -50,7 +50,7 @@ def add_install(p):
     c.add_argument(
         "--prefix",
         default=None,
-        help="(Optional) The name or the full directory path to an existing conda environment where you want to install a ggd data pacakge. (Only needed if you want to install the data package into a different conda environment then the one you are currently in)",
+        help="(Optional) The name or the full directory path to an existing conda environment where you want to install a ggd data package. (Only needed if you want to install the data package into a different conda environment then the one you are currently in)",
     )
     c.set_defaults(func=install)
 
@@ -67,9 +67,9 @@ def check_ggd_recipe(ggd_recipe, ggd_channel):
     ================
     Method to check if the ggd recipe exists. Uses search_packages from search.py to 
      search the ggd-channel json file. If the recipe exists within the json file,
-     the installation proceeds. If not, the instalation stops
+     the installation proceeds. If not, the installation stops
 
-    Parmaters:
+    Parameters:
     ----------
     1) ggd_recipe: The name of a ggd-recipe:
     2) ggd_channel: The name of a ggd channel (specific for metadata)
@@ -89,7 +89,6 @@ def check_ggd_recipe(ggd_recipe, ggd_channel):
     ggd_key = jdict["packages"].pop("ggd", None)
 
     package_list = search_packages(jdict, [ggd_recipe])
-
 
     if ggd_recipe in package_list:
         print(
@@ -165,7 +164,7 @@ def check_conda_installation(ggd_recipe, prefix=None):
     ++++++++
     1) False if it has not been installed
     2) sys.exit() if it has been installed. (Which means it hasn't been installed by ggd and needs to be uninstalled before
-           proceding)
+           proceeding)
     """
     from .utils import get_conda_package_list
 
@@ -184,7 +183,7 @@ def check_conda_installation(ggd_recipe, prefix=None):
             % ggd_recipe
         )
         print(
-            ":ggd:install:\t To reinstall run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s"
+            ":ggd:install:\t To re-install run:\n\t\t $ ggd uninstall %s \n\t\t $ ggd install %s"
             % (ggd_recipe, ggd_recipe)
         )
         if prefix != conda_root():
@@ -244,16 +243,16 @@ def install_from_cached(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix
     2) ggd_channel: The ggd channel for the recipes
     3) ggd_jdict: The metadata json dictionary for the ggd recipes
     4) debug: Whether to show debug output or not
-    5) prefix: THe prefix/conda environment to install into
+    5) prefix: The prefix/conda environment to install into
 
     Returns:
     +++++++
     True if successful install
     """
     from .utils import (
+        ChecksumError,
         bypass_satsolver_on_install,
         update_installed_pkg_metadata,
-        ChecksumError,
     )
 
     conda_channel = "ggd-" + ggd_channel
@@ -332,16 +331,16 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None)
     2) ggd_channel: The ggd channel for the recipes
     3) ggd_jdict: The metadata json dictionary for the ggd recipes
     4) debug: Whether to show debug output or not
-    5) prefix: THe prefix/conda environment to install into
+    5) prefix: The prefix/conda environment to install into
 
     Returns:
     +++++++
     True if successful install
     """
     from .utils import (
+        ChecksumError,
         get_required_conda_version,
         update_installed_pkg_metadata,
-        ChecksumError,
     )
 
     ## Get the target prefix
@@ -351,8 +350,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None)
     conda_version, equals = get_required_conda_version()
 
     ## create install string
-    conda_install_str = "{}conda{}{}{}".format("\"", equals, conda_version, "\"")
-
+    conda_install_str = "{}conda{}{}{}".format('"', equals, conda_version, '"')
 
     try:
         ## py3 *args. (Syntax error in py2)
@@ -460,7 +458,7 @@ def get_file_locations(ggd_recipes, ggd_jdict, prefix=None):
         except AssertionError:
             print(dash)
             print("-> {:>18s}".format(ggd_recipe))
-            print("\n:ggd:install: There was an error durring installation")
+            print("\n:ggd:install: There was an error during installation")
             continue
 
         dir_var = "$ggd_%s_dir" % ggd_recipe.replace("-", "_")
@@ -496,11 +494,11 @@ def get_file_locations(ggd_recipes, ggd_jdict, prefix=None):
 
     print(dash, "\n")
     print(
-        ":ggd:install: To activate environment variables run `source activate base` in the environmnet the packages were installed in\n"
+        ":ggd:install: To activate environment variables run `source activate base` in the environment the packages were installed in\n"
     )
     if prefix != None:
         print(
-            ":ggd:install: NOTE: These environment variables are specific to the %s conda environment and can only be accessed from within that environmnet"
+            ":ggd:install: NOTE: These environment variables are specific to the %s conda environment and can only be accessed from within that environment"
             % prefix
         )
     print(
@@ -523,17 +521,18 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root()):
     2) ggd_jdict: ggd channel metadata as a dictionary 
     3) prefix: The prefix the packages were installed into
 
-    Retunrs:
+    Returns:
     +++++++
     1) True if checksum passes
     2) raises "ChecksumError" if fails
     """
     import tarfile
+
     from .utils import (
-        get_conda_package_list,
-        get_checksum_dict_from_tar,
-        data_file_checksum,
         ChecksumError,
+        data_file_checksum,
+        get_checksum_dict_from_tar,
+        get_conda_package_list,
     )
 
     print("\n:ggd:install: Initiating data file content validation using checksum")
@@ -572,7 +571,7 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root()):
             assert os.path.exists(install_path)
         except AssertionError:
             print(
-                "\n:ggd:install: !!ERROR!! There was an error durring the installation of {} and the files weren't installed correctly".format(
+                "\n:ggd:install: !!ERROR!! There was an error during the installation of {} and the files weren't installed correctly".format(
                     pkg_name
                 )
             )
@@ -594,7 +593,7 @@ def copy_pkg_files_to_prefix(prefix, pkg_names):
     copy_pkg_files_to_prefix
     ========================
     This method is used to copy the tarball file and the pkg file from the current conda envrionment to the 
-     target prefix if the prefix flag is set. This will support pkg info lookup for data managment when installing
+     target prefix if the prefix flag is set. This will support pkg info lookup for data management when installing
      a package using the prefix flag
 
     Parameters:
@@ -602,7 +601,7 @@ def copy_pkg_files_to_prefix(prefix, pkg_names):
     1) prefix: The user set prefix 
     2) pkg_names: A list of he names of the packages being installed
 
-    Returs:
+    Returns:
     +++++++
     True: If files have been copied 
     False: If files were not copied (due to the prefix being the same as the current conda environment)
@@ -649,20 +648,22 @@ def install(parser, args):
     install
     =======
     This method is the main method for running ggd install. It controls the different levels of install
-    and file handeling. 
+    and file handling. 
     """
 
     ## If no package names are provided and no file is given, exit
     if not args.name and not args.file:
         sys.exit(
-            "\n\n:ggd:install: !!ERROR!! Either a data package name, or a file name with --file, is required and was not supplied.\n"
+            "\n\n:ggd:install: !!ERROR!! Either a data package name or a file name with --file is required. Neither option was provided.\n"
         )
 
     ## Check the prefix is a real one
     from .utils import get_conda_prefix_path, prefix_in_conda
 
+    diff_prefix = False
     if args.prefix != None:
         prefix_in_conda(args.prefix)
+        diff_prefix = True
     else:
         args.prefix = conda_root()
 
@@ -694,6 +695,15 @@ def install(parser, args):
         if ggd_jsonDict == None:
             sys.exit()
 
+        ## Check that the package is set up for installation into a different prefix if one is provided
+        if diff_prefix and conda_prefix != conda_root():
+            assert "final-files" in ggd_jsonDict["packages"][pkg]["tags"], (
+                "\n\n:ggd:install: !!ERROR!! the --prefix flag was set but the '{}' data package is not set up"
+                " to be installed into a different prefix. GGD is unable to fulfill the install request. Remove the"
+                " --prefix flag to install this data package. Notify the ggd team if you would like this recipe"
+                " to be updated for --prefix install compatibility"
+            ).format(pkg)
+
         ## Check if the recipe is already installed
         if check_if_installed(pkg, ggd_jsonDict, conda_prefix) == False:
             install_list.append(pkg)
@@ -714,7 +724,7 @@ def install(parser, args):
         else:
             non_cached.append(pkg)
 
-    ## If there is a non-cached recipe, set all recipes to non-cahced (Controll for install errors)
+    ## If there is a non-cached recipe, set all recipes to non-cached (Control for install errors)
     ### This won't happen very often  (Most if not all packages are cached)
     if non_cached:
         non_cached.extend(cached)
@@ -757,10 +767,10 @@ def install(parser, args):
         if conda_prefix == None or os.path.normpath(conda_prefix) == os.path.normpath(
             conda_root()
         ):
-            from .show_env import activate_enviroment_variables
+            from .show_env import activate_environment_variables
 
             print("\n:ggd:install: Environment Variables")
-            activate_enviroment_variables()
+            activate_environment_variables()
 
     print("\n:ggd:install: DONE")
 

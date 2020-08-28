@@ -396,7 +396,7 @@ def test_activate_environment_variables():
     file_env_var_name = "$ggd_hg19_gaps_ucsc_v1_file"
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        show_env.activate_enviroment_variables()
+        show_env.activate_environment_variables()
     output = temp_stdout.getvalue().strip() 
     newout = ""
     active = False
@@ -1257,8 +1257,8 @@ def test_list_installed_packages():
     assert ("NOTE: Packages with the ' [WARNING: Present in GGD but missing from Conda]' messages represent packages where the ggd"
            " packages is installed, but the package metadata has been removed from conda storage. This happens when the packages is"
            " uninstalled using conda rather then ggd. The package is still available for use and is in the same state as before the"
-           " 'conda uninstall'. To fix the problem on conda's side uninstall the package with 'ggd uninstall' and resinstall with"
-           " 'ggd install'.") in output
+           " 'conda uninstall'. To fix the problem on conda's side, uninstall the package with 'ggd uninstall' and re-install with" 
+           " 'ggd install'") in output
 
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])

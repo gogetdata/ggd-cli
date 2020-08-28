@@ -80,9 +80,9 @@ def add_make_bash(p):
     c2.add_argument(
         "-dv",
         "--data-version",
-        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)" +
-        " If there is no data version apparent we recommend you use the date associated with the files" +
-        " or something else that can uniquely identify the 'version' of the data",
+        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)"
+        + " If there is no data version apparent we recommend you use the date associated with the files"
+        + " or something else that can uniquely identify the 'version' of the data",
         required=True,
     )
     c2.add_argument(
@@ -112,9 +112,9 @@ def add_make_bash(p):
         "--coordinate-base",
         required=True,
         choices=GENOMIC_COORDINATE_LIST,
-        help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordianances start at genomic coordinate 0 or 1,"
-        + " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exlcusive (everthing up to but not including the end coordinate)"
-        + " Files that do not have coordiante basing, like fasta files, specify NA for not applicable.",
+        help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordinates start at genomic coordinate 0 or 1,"
+        + " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exclusive (everything up to but not including the end coordinate)"
+        + " Files that do not have coordinate basing, like fasta files, specify NA for not applicable.",
     )
     c2.add_argument(
         "-n",
@@ -135,6 +135,7 @@ def make_bash(parser, args):
 
     import shutil
     import sys
+
     import yaml
 
     name = (
@@ -163,7 +164,8 @@ def make_bash(parser, args):
     assert (
         args.summary.strip() != ""
     ), "Please provide a thorough summary of the data package"
-    print("\n:ggd:make-recipe: Name of recipe: {0}-{1}-{2}-v{3}\n".format(
+    print(
+        "\n:ggd:make-recipe: Name of recipe: {0}-{1}-{2}-v{3}\n".format(
             args.genome_build.lower(),
             args.name.lower(),
             data_provider.lower(),
@@ -175,7 +177,7 @@ def make_bash(parser, args):
         args.name.lower(),
         data_provider.lower(),
         args.package_version.lower(),
-    ), "The recipe name is not formated correctly. Current name: {}".format(name)
+    ), "The recipe name is not formatted correctly. Current name: {}".format(name)
 
     wildcards = [
         "?",
@@ -237,21 +239,18 @@ def make_bash(parser, args):
         )
     )
 
-
-
     from .search import load_json
     from .utils import get_channel_data
 
     ## Get a list of ggd packages
     ggd_packages = set()
     for channel in CHANNEL_LIST:
-        channel = channel.decode("utf-8") if not isinstance(channel,str) else channel
+        channel = channel.decode("utf-8") if not isinstance(channel, str) else channel
         json_dict = load_json(get_channel_data(channel))
         ggd_packages.update(json_dict["packages"].keys())
 
-    ## Get non-ggd dependencies 
+    ## Get non-ggd dependencies
     non_ggd_deps = [x for x in deps if x not in ggd_packages]
-
 
     extra_files = []
     for f in args.extra_file:
@@ -262,9 +261,7 @@ def make_bash(parser, args):
     ## Check coordinates
     assert (
         args.coordinate_base in GENOMIC_COORDINATE_LIST
-    ), "{c} is not an acceptable genomic coordinate base".format(
-        c=args.coordinate_base
-    )
+    ), "{c} is not an acceptable genomic coordinate base".format(c=args.coordinate_base)
     # ("Please provide a genomic coordinate base from the follow list: {}".format(", ".join(GENOMIC_COORDINATE_LIST)))
 
     ## Check data version

@@ -764,7 +764,7 @@ def test_get_file_location():
     with redirect_stdout(temp_stdout):
         install.get_file_locations([ggd_recipe],jdict)
     output = temp_stdout.getvalue().strip() 
-    assert ":ggd:install: There was an error durring installation" in output
+    assert ":ggd:install: There was an error during installation" in output
     assert ":ggd:install: Installed file locations" in output
     assert ggd_recipe in output 
     assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) not in output
@@ -842,7 +842,7 @@ def test_get_file_location_with_prefix_set():
     assert "$ggd_{}_dir".format(ggd_recipe.replace("-","_")) in output
     assert "$ggd_{}_file".format(ggd_recipe.replace("-","_")) in output
     assert path in output
-    assert ":ggd:install: NOTE: These environment variables are specific to the {p} conda environment and can only be accessed from within that environmnet".format(p=temp_env) in output
+    assert ":ggd:install: NOTE: These environment variables are specific to the {p} conda environment and can only be accessed from within that environment".format(p=temp_env) in output
 
     ### Test the file exists in the correct prefix and not the current prefix
     file1 = "{}.bed12.bed.gz".format(ggd_recipe)
@@ -1206,6 +1206,40 @@ def test_copy_pkg_files_to_prefix():
     except Exception:
         pass
     assert os.path.exists(temp_env) == False
+
+
+def test_non_prefix_capable_package():
+    """
+    Test a package that is not able to be installed with --prefix is proper handled
+    """
+    pytest_enable_socket()
+
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "non_prefix_capable")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "non_prefix_capable"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+
+    ## Test a good install into a designated prefix
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "non_prefix_capable"])
+
+    ## Test a package that is not set up to be installed with the --prefix flag
+    args = Namespace(channel='genomics', command='install', debug=False, name=["danrer10-gtf-ensembl-v1"], file=[] ,prefix=temp_env)
+    with pytest.raises(AssertionError) as pytest_wrapped_e:
+        install.install((), args)
+    assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! the --prefix flag was set but the 'danrer10-gtf-ensembl-v1' data package is not set up to be installed into a different prefix. GGD is unable to fulfill the install request. Remove the --prefix flag to install this data package. Notify the ggd team if you would like this recipe to be updated for --prefix install compatibility")
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "non_prefix_capable"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
     
 
 def test_install_main_function():
@@ -1224,7 +1258,7 @@ def test_install_main_function():
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! Either a data package name, or a file name with --file, is required and was not supplied") ## Check that the exit code is 1
+    assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! Either a data package name or a file name with --file is required. Neither option was provided.") ## Check that the exit code is 1
 
     ## Test bad --file  parametres
     args = Namespace(channel='genomics', command='install', debug=False, name=[], file=["FaKe_FilE.Txt"] ,prefix=None)
