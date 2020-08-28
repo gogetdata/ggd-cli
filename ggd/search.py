@@ -415,6 +415,14 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                             ),
                         )
                     )
+                else:
+                    results.append(
+                        "\t{} {}".format(
+                            ("\033[1m" + "Prefix Install WARNING:" + "\033[0m"),
+                            ("This package has not been set up to use the --prefix flag when running ggd install."
+                            " Once installed, this package will work with other ggd tools that use the --prefix flag.")
+                        )
+                    )
 
                 if "final-file-sizes" in json_dict["packages"][pkg]["tags"]:
                     results.append(

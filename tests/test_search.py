@@ -660,6 +660,16 @@ def test_main_search():
     assert "NOTE: Name order matches order of packages in detailed section above" in output
     assert "\033[1m>>> Scroll up to see package details and install info <<<\033[0m" in output
 
+    
+    ## Test the Prefix install WARNING when a data package is not set up to install using the --prefix flag
+    temp_stdout = StringIO()
+    args = Namespace(channel='genomics', command='search', display_number=1, genome_build=[], match_score='75', search_type = "both", search_term=['danrer10-gtf-ensembl-v1', "danrer10"], species=[])
+    with redirect_stdout(temp_stdout):
+        search.search(parser,args) 
+    output = temp_stdout.getvalue().strip() 
+    assert ("\033[1mPrefix Install WARNING:\033[0m"
+            " This package has not been set up to use the --prefix flag when running ggd install."
+            " Once installed, this package will work with other ggd tools that use the --prefix flag.") in output
 
 
     ## Test that a data file path is given if the package is installed
