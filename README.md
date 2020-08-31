@@ -6,6 +6,9 @@ ggd-cli: The command line interface for gogetdata
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/ggd/badges/installer/conda.svg)](https://anaconda.org/bioconda/ggd/)
 [![CircleCI](https://circleci.com/gh/gogetdata/ggd-cli/tree/master.svg?style=shield)](https://circleci.com/gh/gogetdata/ggd-cli/tree/master)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/ggd/badges/downloads.svg)](https://anaconda.org/bioconda/ggd)
+![Anaconda-Server Badge](https://anaconda.org/bioconda/ggd/badges/license.svg)
+![latest-Release Badge](https://img.shields.io/github/v/release/gogetdata/ggd-cli?label=latest%20release%2Fversion)
+
 
 
 The command-line interface to Go Get Data (GGD). 
