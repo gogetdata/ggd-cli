@@ -703,9 +703,6 @@ def prefix_in_conda(prefix):
         env_var_names[name] = env_path.rstrip("/")
         env_var_paths[env_path.rstrip("/")] = name
 
-    ## Get the base/first conda environment
-    cbase = min(env_var_paths.keys())
-
     prefix = prefix.rstrip("/")
 
     ## Check that the file is in the environment lists
@@ -714,6 +711,9 @@ def prefix_in_conda(prefix):
 
     ## Get the prefix path dd
     prefix_path = get_conda_prefix_path(prefix)
+
+    ## Get the base/first conda environment for all environments that are subdirs of the specified prefix
+    cbase = min([x for x in env_var_paths.keys() if x in prefix_path])
 
     ## Check that the file path includes the conda base directory
     if cbase not in prefix_path:
