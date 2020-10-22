@@ -142,7 +142,7 @@ def get_required_conda_version():
             conda_version = str(line.decode()).strip().split(">=")[1]
             equals = ">="
     #return conda_version, equals
-    return "4.8.5", equals
+    return "4.8.2,<=4.9.0", equals
 
 
 def check_output(args, **kwargs):
