@@ -212,8 +212,8 @@ def test_get_required_conda_version():
         second_version = [version_list[2].strip().split(spliter)[1], version_list[3],version_list[4]]
 
         assert int(second_version[0]) == 4
-        assert int(second_version[1]) == 8
-        assert int(second_version[2]) <= 3
+        assert int(second_version[1]) == 9
+        assert int(second_version[2]) <= 0
         
     
 
