@@ -141,8 +141,7 @@ def get_required_conda_version():
         elif "conda>=" in str(line.decode()):
             conda_version = str(line.decode()).strip().split(">=")[1]
             equals = ">="
-    #return conda_version, equals
-    return "4.8.2,<=4.9.0", equals
+    return conda_version, equals
 
 
 def check_output(args, **kwargs):
