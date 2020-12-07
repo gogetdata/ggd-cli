@@ -683,6 +683,8 @@ def install(parser, args):
                     [x.strip() for x in f if len(x.strip().split(" ")) == 1]
                 )
 
+    pkg_list = list(filter(None, pkg_list))
+
     ## Check each package
     install_list = []
     for pkg in sorted(pkg_list):
