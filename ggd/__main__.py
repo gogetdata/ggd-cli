@@ -8,6 +8,7 @@ from .list_files import add_list_files
 from .list_installed_pkgs import add_list_installed_packages
 from .list_pkg_info import add_pkg_info
 from .make_bash import add_make_bash
+from .make_meta_recipe import add_make_metarecipe
 from .predict_path import add_predict_path
 from .search import add_search
 from .show_env import add_show_env
@@ -56,6 +57,8 @@ def main(args=None):
     add_show_env(sub)
 
     add_make_bash(sub)
+
+    add_make_metarecipe(sub)
 
     add_check_recipe(sub)
 
