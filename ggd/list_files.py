@@ -7,6 +7,7 @@ import os
 import sys
 
 from .utils import get_builds, get_ggd_channels, get_species
+from .list_installed_pkgs import  get_metadata, GGD_INFO, METADATA
 
 SPECIES_LIST = sorted(get_species())
 GENOME_BUILDS = sorted(get_builds("*"))
@@ -64,26 +65,37 @@ def add_list_files(p):
 # -------------------------------------------------------------------------------------------------------------
 
 
-def in_ggd_channel(ggd_recipe, ggd_channel):
+def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_list = False):
     """Method to check if the desired ggd recipe is in the ggd channel
 
     in_ggd_channel
     ==============
     Method used to identify in the desired package is in the ggd-<channel>.
      If it is the the species, build, and version is returned. 
-     If it is not, then a few alternative package names are provided
+    
+     Mutliple ggd recipes can be checked, but if the return_pkg_list parameter is set to false only the 
+      species, genome build, and version of the first ggd recipe are returned.  
      
     Parameters:
     ----------
-    1) ggd_recipe: The name of the ggd recipe
-    2) ggd_channel: The name of the ggd-channel to look in
+    1) ggd_recipes:     (str)  A list of the names of the ggd recipe to check. (Usually only a single recipe is used)
+    2) ggd_channel:     (str)  The name of the ggd-channel to look in
+    3) C_ROOT:          (str)  The file path to the conda root/prefix
+    4) reporting:       (bool) Whether or not to provide a stdout when no pkg is found 
+    5) return_pkg_list: (bool) Whether or not to return the pkg list. If True the pkg list and the jdict will be returned.
+                                if False, the species, genome build, and version will be returned.
+                                Default = False
      
     Return:
     +++++++
-    1) species: The species for the ggd-recipe
-    2) build: The genome build for the ggd-recipe
-    3) version: The version of the ggd-recipe
-
+    If return_pkg_list is False:
+        1) species: The species for the ggd-recipe
+        2) build: The genome build for the ggd-recipe
+        3) version: The version of the ggd-recipe
+      NOTE: Only the species, genome build, and version for the first recipe be returned.
+    if return_pkg_list is True:
+        1) the pkg list
+        2) the channel specific dicitionary of packages
     """
 
     from .search import load_json, load_json_from_url, search_packages
@@ -92,6 +104,49 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
         get_channel_data,
         get_channeldata_url,
     )
+
+    def get_local_pkg_dict():
+        """
+        get_local_pkg_dict
+        ==================
+        Load the local install ggd packages from a json file into a dict.
+        """
+    
+        ## Get local install list
+        local_json_dict = get_metadata(C_ROOT, GGD_INFO, METADATA)
+
+        ## rm any packages not in the specific channel
+        rm_pkgs = []
+        for pkg, value in local_json_dict["packages"].items():
+            if value["tags"]["ggd-channel"] != ggd_channel:
+                rm_pkgs.append(pkg)
+
+        [local_json_dict["packages"].pop(key) for key in rm_pkgs] 
+
+        return local_json_dict
+
+
+    def get_package_list(j_dict):
+        """
+        get_package_list
+        ================
+        Get a list of pkgs that match the search parameters of the query package name(s)
+
+        Parameters:
+        ===========
+        1) j_dict: (dict) A json dictionary of the packages in a ggd channel
+
+        Returns:
+        ++++++++
+        1) (list) The pckages that were found
+        """
+
+        package_list = []
+        if len(json_dict["packages"].keys()) > 0:
+            package_list = search_packages(j_dict, ggd_recipes)
+
+        return(package_list)
+
 
     json_dict = {"channeldata_version": 1, "packages": {}}
     if check_for_internet_connection(3):
@@ -110,25 +165,33 @@ def in_ggd_channel(ggd_recipe, ggd_channel):
         except:
             pass
 
-    package_list = []
-    if len(json_dict["packages"].keys()) > 0:
-        package_list = search_packages(json_dict, [ggd_recipe])
+    ## Get a list of pkgs from the json dict
+    package_list = get_package_list(json_dict)
 
-    if ggd_recipe in package_list:
-        species = json_dict["packages"][ggd_recipe]["identifiers"]["species"]
-        build = json_dict["packages"][ggd_recipe]["identifiers"]["genome-build"]
-        version = json_dict["packages"][ggd_recipe]["version"]
-        return (species, build, version)
+    ## If no pkgs, check the local installed files
+    if not all(True if recipe in package_list else False for recipe in ggd_recipes ):
+        json_dict["packages"].update(get_local_pkg_dict()["packages"])
+        package_list = get_package_list(json_dict)
+
+    if all(True if recipe in package_list else False for recipe in ggd_recipes ):
+        if return_pkg_list:
+            return (package_list, json_dict)
+        else:
+            species = json_dict["packages"][ggd_recipes[0]]["identifiers"]["species"]
+            build = json_dict["packages"][ggd_recipes[0]]["identifiers"]["genome-build"]
+            version = json_dict["packages"][ggd_recipes[0]]["version"]
+            return (species, build, version)
     else:
-        print(
-            "\n:ggd:get-files: %s is not in the ggd-%s channel"
-            % (ggd_recipe, ggd_channel)
-        )
-        print(
-            "\n:ggd:get-files:\t Similar recipes include: \n\t- {recipe}".format(
-                recipe="\n\t- ".join(package_list[0:5])
+        if reporting:
+            print(
+                "\n:ggd:get-files: %s is not in the ggd-%s channel"
+                % (ggd_recipes[0], ggd_channel)
             )
-        )
+            print(
+                "\n:ggd:get-files:\t Similar recipes include: \n\t- {recipe}".format(
+                    recipe="\n\t- ".join(package_list[0:5])
+                )
+            )
         sys.exit(2)
 
 
@@ -152,7 +215,7 @@ def list_files(parser, args):
 
     name = args.name
     channeldata_species, channeldata_build, channeldata_version = in_ggd_channel(
-        args.name, args.channel
+        [args.name], args.channel, CONDA_ROOT
     )
     species = args.species if args.species else channeldata_species
     build = args.genome_build if args.genome_build else channeldata_build

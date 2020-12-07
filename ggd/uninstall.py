@@ -50,31 +50,14 @@ def get_channeldata(ggd_recipes, ggd_channel):
      check_for_installation() method if it is found within the channeldata.json file
 
     """
-    from .search import load_json, load_json_from_url, search_packages
-    from .utils import (
-        check_for_internet_connection,
-        get_channel_data,
-        get_channeldata_url,
-    )
+    
+    from .list_files import in_ggd_channel
 
-    jdict = {"channeldata_version": 1, "packages": {}}
-    if check_for_internet_connection():
-        CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
-        jdict = load_json_from_url(CHANNEL_DATA_URL)
-        ## Remove the ggd key if it exists
-        ggd_key = jdict["packages"].pop("ggd", None)
-    else:
-        try:
-            ## If no internet connection just load from the local file
-            jdict = load_json(get_channel_data(ggd_channel))
-            ## Remove the ggd key if it exists
-            ggd_key = jdict["packages"].pop("ggd", None)
-        except:
-            pass
-
-    package_list = []
-    if len(jdict["packages"].keys()) > 0:
-        package_list = search_packages(jdict, ggd_recipes)
+    ## Check if recipe is in the ggd channel
+    try:
+        package_list, jdict = in_ggd_channel(ggd_recipes, ggd_channel, conda_root(), reporting = False, return_pkg_list = True)
+    except SystemExit:
+        pass
 
     uninstall_recipes = True
     for recipe in ggd_recipes:

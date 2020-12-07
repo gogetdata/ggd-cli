@@ -52,35 +52,17 @@ def check_if_ggd_recipe(ggd_recipe, ggd_channel):
     1) ggd_recipe: The ggd recipe name
     2) ggd_channel: The ggd channel to look at
     """
-    from .search import load_json, load_json_from_url, search_packages
-    from .utils import (
-        check_for_internet_connection,
-        get_channel_data,
-        get_channeldata_url,
-    )
 
-    jdict = {"channeldata_version": 1, "packages": {}}
-    if check_for_internet_connection(3):
-        CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
-        jdict = load_json_from_url(CHANNEL_DATA_URL)
-        ## Remove the ggd key if it exists
-        ggd_key = jdict["packages"].pop("ggd", None)
-    else:
-        try:
-            ## If no internet connection just load from the local file
-            jdict = load_json(get_channel_data(ggd_channel))
-            ## Remove the ggd key if it exists
-            ggd_key = jdict["packages"].pop("ggd", None)
-        except:
-            pass
+    from .list_files import in_ggd_channel
+    from .utils import conda_root
 
-    package_list = []
-    if len(jdict["packages"].keys()) > 0:
-        package_list = search_packages(jdict, [ggd_recipe])
-
-    if ggd_recipe in package_list:
-        return True
-    else:
+    ## Check if recipe is in the ggd channel
+    try:
+        if in_ggd_channel([ggd_recipe], ggd_channel, conda_root(), reporting=False):
+            return True
+        else:
+            return False
+    except SystemExit as e:
         print(
             "\n:ggd:pkg-info: The %s package is not in the ggd-%s channel. You can use 'ggd list', 'ggd get-files', 'ggd install', or 'conda list' to identify"
             % (ggd_recipe, ggd_channel),
@@ -301,7 +283,7 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
     from .utils import get_conda_package_list
 
     ## Get a list of installed ggd packages using conda list
-    conda_package_list = get_conda_package_list(conda_root())
+    conda_package_list = get_conda_package_list(conda_root(), include_local = True)
 
     ## Check if ggd recipe in the list
     if ggd_recipe in conda_package_list.keys():
