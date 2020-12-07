@@ -779,6 +779,231 @@ def add_yaml_literal_block(yaml_object):
     return yaml_object.add_representer(literal_block, literal_str_representer)
 
 
+def extract_metarecipe_recipe_from_bz2(metarecipe_name,new_name,bz2_file_path):
+    """
+    extract_metarecipe_recipe_from_bz2
+    ===================================
+    Method to update a recipe from a .tar.bz2 package file when installing a metarecipe. The name of the main 
+     metarecipe will be changed to the ID specific recipe name. (Example meta-recipe-geo-accession-geo-v1 => GSE123-geo-v1)
+
+    The recipe will be a normal recipe directory and will be hosted in the tmp dir
+
+    Once finished with the recipe it is advicesed to delete the tmp dir
+
+    Parameters:
+    -----------
+    1) metarecipe_name: (str) The main name of the metarecipe
+    2) new_name:        (str) The new/specific name of the ID specific recipe (The ID used when installing the metarecipe)
+    3) bz2_file_path:   (str) THe file path of the metarecipe main tar.bz2 file
+
+    Returns:
+    ++++++++
+    1) (Bool) True if successfully create the recipe dir else False
+    2) (str)  The file path of the tmp dir recipe
+    """
+    
+    print("\n:ggd:meta-recipe: Updating meta-recie with ID info")
+
+    import tempfile
+    import tarfile
+
+    ## create tmp directory
+    tmp_dir = tempfile.mkdtemp()
+
+    try:
+        ## Extract all files in the tarfile to "ggd_tmp"
+        with tarfile.open(bz2_file_path) as archive:
+            archive.extractall(tmp_dir)
+    except Exception as e:
+        print("\nggd:ERROR: Unable to read {} as a tarfile".format(bz2_file_path))
+        print(str(e))
+        return(False, None)
+
+
+    ## New/Update ID specific recipe path
+    new_recipe_path = os.path.join(tmp_dir,new_name)
+    if os.path.exists(new_recipe_path):
+        shutil.rmtree(new_recipe_path)
+    os.makedirs(new_recipe_path)
+
+
+    ## Walk through a directory structure and extract the recipe
+    for dir_path, dir_names, file_names in os.walk(tmp_dir):
+        if "recipe" in dir_path:
+            for name in file_names:
+                ## SKip the conda build confg
+                if name != "conda_build_config.yaml" and name != "meta.yaml":
+                    shutil.move(os.path.join(dir_path,name), os.path.join(new_recipe_path,name.replace(".template","")))
+
+
+    ## Walk through new recipe and rename files and content
+    for dir_path, dir_names, file_names in os.walk(new_recipe_path):
+        if file_names:
+            for name in file_names:
+
+                ## Get file path
+                file_path = os.path.join(dir_path, name)
+
+                ## Check file contents
+                update_file = False
+                file_contents = []
+                if os.path.isfile(file_path):
+                    try:
+                        with open(file_path) as fh: 
+                            for line in fh: 
+
+                                if metarecipe_name in line:
+                                    update_file = True
+                                    file_contents.append(line.replace(metarecipe_name,new_name))
+                                else:
+                                    file_contents.append(line)
+                    except IOError as e:
+                        print("\n:ggd:ERROR: Unable to open archive file: {}".format(file_path))
+                        print(str(e))
+                        return(False, None)
+
+                if update_file:
+                    #print("Update file: {}".format(file_path))
+                    try:
+                        with open(file_path, "w") as fh: 
+                            for line in file_contents:
+                                fh.write(line)
+                    except IOError as e:
+                        print("\n:ggd:ERROR: Unable to open archive file: {}".format(file_path))
+                        print(str(e))
+                        return(False, None)
+
+                ## Check file name
+                if metarecipe_name in name:
+                    #print("Change file name of {} to {}".format(file_path, file_path.replace(metarecipe_name,new_name)))
+                    os.rename(file_path, file_path.replace(metarecipe_name,new_name))
+        
+    return(True, new_recipe_path, tmp_dir)
+
+
+def update_bz2_of_metarecipe(metarecipe_name,new_name,bz2_file_path):
+    """
+    update_bz2_of_metarecipe
+    ========================
+    Method to update a tar .bz2 package file when installing a metarecipe. The name of the main 
+     metarecipe will be changed to the ID specific recipe name. (Example meta-recipe-geo-accession-geo-v1 => GSE123-geo-v1)
+
+    The bz2 file will be creating th the tmp direcotry and be moved to the same directory path as the original bz2 file.
+
+    the tmpdir of the file system will be used to create the new bz2 file
+
+    Parameters:
+    -----------
+    1) metarecipe_name: (str) The main name of the metarecipe
+    2) new_name:        (str) The new/specific name of the ID specific recipe (The ID used when installing the metarecipe)
+    3) bz2_file_path:   (str) THe file path of the metarecipe main tar.bz2 file
+
+    Returns:
+    ++++++++
+    1) (Bool) True if successfully create the .tar.bz2 file else False
+    2) (str)  The file path of the new bz2 file
+    """
+    
+    print("\n:ggd:meta-recipe: Updating meta-recie package with ID info")
+
+    import tempfile
+    import tarfile
+
+    ## create tmp directory
+    tmp_dir = tempfile.mkdtemp()
+
+    try:
+        ## Extract all files in the tarfile to "ggd_tmp"
+        with tarfile.open(bz2_file_path) as archive:
+            archive.extractall(tmp_dir)
+    except Exception as e:
+        print("\nggd:ERROR: Unable to read {} as a tarfile".format(bz2_file_path))
+        print(str(e))
+        return(False, None)
+
+
+    ## Walk through a directory structure
+    for dir_path, dir_names, file_names in os.walk(tmp_dir):
+        if file_names:
+            for name in file_names:
+
+                ## Get file path
+                file_path = os.path.join(dir_path, name)
+
+                ## Check file contents
+                update_file = False
+                file_contents = []
+                if os.path.isfile(file_path):
+                    try:
+                        with open(file_path) as fh: 
+                            for line in fh: 
+
+                                if metarecipe_name in line:
+                                    update_file = True
+                                    file_contents.append(line.replace(metarecipe_name,new_name))
+                                else:
+                                    file_contents.append(line)
+                    except IOError as e:
+                        print("\n:ggd:ERROR: Unable to open archive file: {}".format(file_path))
+                        print(str(e))
+                        return(False, None)
+
+                if update_file:
+                    #print("Update file: {}".format(file_path))
+                    try:
+                        with open(file_path, "w") as fh: 
+                            for line in file_contents:
+                                fh.write(line)
+                    except IOError as e:
+                        print("\n:ggd:ERROR: Unable to open archive file: {}".format(file_path))
+                        print(str(e))
+                        return(False, None)
+
+                ## Check file name
+                if metarecipe_name in name:
+                    #print("Change file name of {} to {}".format(file_path, file_path.replace(metarecipe_name,new_name)))
+                    os.rename(file_path, file_path.replace(metarecipe_name,new_name))
+        
+
+    cwd = os.getcwd()
+    os.chdir(tmp_dir)
+
+    ## create new tarfile with updated name
+    #print("Creating new tarfile")
+    try:
+        with tarfile.open(bz2_file_path.replace(metarecipe_name,new_name), "w:bz2") as archive:
+
+            for dir_path, dir_names, file_names in os.walk("./"):
+                if file_names:
+                    for name in file_names:
+
+                        file_path = os.path.join(dir_path, name).replace("./","")
+
+                        archive.add(file_path)
+    except Exception as e:
+        print("\n:ggd:ERROR: Unable to create .tar.bz2 file: {}".format(bz2_file_path.replace(metarecipe_name,new_name)))
+        print(str(e))
+        return(False, None)
+
+    os.chdir(cwd)
+        
+    ## Move new tar file to new location
+    new_bz2_path = os.path.join(os.path.dirname(os.path.abspath(bz2_file_path)),bz2_file_path.replace(metarecipe_name,new_name))
+    try:
+        shutil.move(os.path.join(tmp_dir,bz2_file_path.replace(metarecipe_name,new_name)), 
+                    new_bz2_path)
+
+    except Exception as e:
+        print("\n:ggd:ERROR: Unable to move new tar file to bz2 location")
+        print(str(e))
+        return(False, None)
+
+    ## Remove tmp dir
+    shutil.rmtree(tmp_dir)
+
+    return(True, new_bz2_path)
+
+
 def get_conda_package_list(prefix, regex=None, include_local=False):
     """
     This method is used to get the list of packages in a specific conda environment (prefix). Rather then running 
