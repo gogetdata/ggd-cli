@@ -4,7 +4,7 @@ import os
 
 from shutil import copyfile
 
-from .utils import get_builds, get_ggd_channels, get_species
+from .utils import get_builds, get_ggd_channels, get_species 
 
 SPECIES_LIST = sorted(get_species())
 GENOME_BUILDS = sorted(get_builds("*"))
@@ -361,7 +361,9 @@ fi
 
 mkdir -p $RECIPE_DIR
 
-(cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/metarecipe.sh $GGD_METARECIPE_ID)
+SCRIPTS_PATH="$PKG_DIR/info/recipe/"
+
+(cd $RECIPE_DIR && bash $SCRIPTS_PATH/metarecipe.sh $GGD_METARECIPE_ID $SCRIPTS_PATH "$GGD_METARECIPE_ENV_VAR_FILE" "$GGD_METARECIPE_FINAL_COMMANDS_FILE")
 
 cd $RECIPE_DIR
 
