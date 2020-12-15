@@ -14,7 +14,8 @@ from .utils import (add_yaml_literal_block,
                     conda_root, 
                     extract_metarecipe_recipe_from_bz2, 
                     literal_block, 
-                    update_bz2_of_metarecipe)
+                    update_bz2_of_metarecipe,
+                    create_tmp_meta_recipe_env_file)
 
 # ---------------------------------------------------------------------------------------------------
 # urlib setup based on system version
@@ -69,7 +70,8 @@ def add_check_recipe(p):
     c.add_argument(
         "--id",
         metavar="Meta-recipe ID",
-        help = "If checking a meta-recipe the associated meta-recipe id needs to be supplied. (Example: for a geo meta-recipe use something like --id GSE123)"
+        help = ("If checking a meta-recipe the associated meta-recipe id needs to be supplied. (Example: for a geo meta-recipe use something like --id GSE123)"
+                " NOTE: GGD does not try to correct the ID. Please provide the correct case sensitive ID.")
     )
 
     c.set_defaults(func=check_recipe)
@@ -128,12 +130,13 @@ def _build(path, recipe, debug=False):
 
     Parameters:
     ----------
-    1) path: The path to the ggd recipe 
-    2) recipe: The meta.yaml from the ggd recipe loaded as a dictionary 
+    1) path:   (str)  The path to the ggd recipe 
+    2) recipe: (str)  The meta.yaml from the ggd recipe loaded as a dictionary 
+    3) debug:  (bool) Whether or not to set the logging to debug or not
 
     Returns:
     ++++++++
-    1) The absolute path to the bz2 file, the new ggd data package file, created by conda build
+    1) (str) The absolute path to the bz2 file, the new ggd data package file, created by conda build
     """
     from .install import check_ggd_recipe
 
@@ -200,7 +203,7 @@ def _build(path, recipe, debug=False):
     return os.path.join(path, name)
 
 
-def _install(bz2, recipe_name, debug=False):
+def _install(bz2, recipe_name, debug=False, meta_recipe=False, env_var_dir = "", env_var_file = "", parent_name = "", commands_file = ""):
     """Method to install a local pre-built package to ensure package installs correctly 
 
     _install
@@ -211,8 +214,14 @@ def _install(bz2, recipe_name, debug=False):
 
     Parameters:
     -----------
-    1) bz2: The bz2 tarball package file created from the conda build
-    2) recipe_name: The name of the ggd recipe/package
+    1) bz2:           (str)  The bz2 tarball package file created from the conda build
+    2) recipe_name:   (str)  The name of the ggd recipe/package
+    3) debug:         (bool) Whether or not to set logging level to debug 
+    4) meta_recipe:   (bool) Whether or not the recipe is a meta recipe
+    5) env_var_dir:   (str)  The path to the meta-recipe tmp env var 
+    6) env_var_file:  (str)  The file path to the meta-recipe tmp env var json file
+    7) parent_name:   (str)  If a meta-recipe, the name of the parent meta-recipe
+    8) commands_file: (str)  THe path to the subseted commands used for the specific Meta-Recipe ID if meta-recipe 
 
     Returns:
     +++++++
@@ -225,6 +234,7 @@ def _install(bz2, recipe_name, debug=False):
     from .utils import (
         get_conda_package_list,
         get_required_conda_version,
+        update_metarecipe_metadata,
         update_installed_pkg_metadata,
     )
 
@@ -259,6 +269,34 @@ def _install(bz2, recipe_name, debug=False):
     ## Install the new recipe
     try:
         sp.check_call(install_command, stderr=sys.stderr, stdout=sys.stdout)
+
+        ## Update meta-recipe bz2 if meta-recipe
+        if meta_recipe:
+
+            import shutil
+            import json
+
+            ## Check for meta-recipe environment variables
+            if op.exists(env_var_file):
+                print("\n:ggd:check-recipe: Loading Meta-Recipe ID specific environmnet variables")
+
+                ## Load environment variables from json file
+                meta_env_vars = json.load(open(env_var_file))
+                
+                commands_str = "\n".join([x.strip() for x in open(commands_file, "r")]) if op.exists(commands_file) else ""
+
+                ## Remove temp dir with json file
+                shutil.rmtree(env_var_dir)
+
+                ## Update bz2 file
+                success, new_bz2_path =  update_metarecipe_metadata(pkg_name = recipe_name, 
+                                                                    env_var_dict = meta_env_vars, 
+                                                                    parent_name = parent_name, 
+                                                                    final_file_list = [], 
+                                                                    final_file_size_dict = {},
+                                                                    commands_str = commands_str)  
+
+                assert success, ":ggd:check-recipe: !!ERROR!! There was a problem updating the meta-recipe metadata"
 
     except Exception as e:
         print(e)
@@ -295,6 +333,7 @@ def _install(bz2, recipe_name, debug=False):
         ## Exit
         sys.exit(1)
 
+    
     ## Update installed metadata
     print("\n:ggd:check-recipe: Updating installed package list")
     update_installed_pkg_metadata(
@@ -415,11 +454,6 @@ def check_recipe(parser, args):
 
     tmpdir = []
 
-    ## Set GGD_METARECIPE_ID  environment variable for meta-recipe if supplied 
-    if args.id:
-        os.environ["GGD_METARECIPE_ID"] = args.id
-   #     os.environ["GGD_NAME_ID"] = args.id.lower()
-
     if args.recipe_path.endswith(".bz2"):
         recipe = get_recipe_from_bz2(args.recipe_path)
         bz2 = args.recipe_path
@@ -433,13 +467,23 @@ def check_recipe(parser, args):
             )
             add_yaml_literal_block(yaml)
 
-        if args.debug:
-            bz2 = _build(args.recipe_path, recipe, debug=True)
-        else:
-            bz2 = _build(args.recipe_path, recipe)
+        ## Build package
+        bz2 = _build(args.recipe_path, recipe, debug = True if args.debug else False)
 
     ## check if the recipe is a meta recipe
+    is_metarecipe = False 
+    parent_recipe_name = ""
     if recipe["about"]["identifiers"]["species"] == "meta-recipe" and recipe["about"]["identifiers"]["genome-build"] == "meta-recipe":  
+
+        is_metarecipe = True
+        parent_recipe_name = recipe["package"]["name"] 
+
+        ## Check that there is an id provided
+        if not args.id:
+            print("\n:ggd:check-recipe: !!ERROR!! Cannot check a meta-recipe without an associated test id. Please use the '--id' parameter and try again.\n")
+            sys.exit(1)
+        else:
+            print("\n:ggd:check-recipe: Using ID '{}' for meta-recipe '{}'".format(args.id, recipe["package"]["name"])) 
 
         meta_recipe_id = args.id.lower()
         ## Get params
@@ -452,21 +496,26 @@ def check_recipe(parser, args):
         print("\n:ggd:check-recipe: Updating meta-recipe '{}' to recipe '{}'".format(meta_recipe_name, new_recipe_name))
 
         ## Update bz2 with new Recipe name 
-        #success, bz2  = update_bz2_of_metarecipe(meta_recipe_name, new_recipe_name, old_bz2)  
         success, new_recipe_path, tmpdir = extract_metarecipe_recipe_from_bz2(meta_recipe_name, new_recipe_name, old_bz2)  
-        assert (success), ":ggd:check-recipe: !!ERROR!! There was a problem updating the meta-recipe to the ID specific recipe" 
+        assert (success), "\n:ggd:check-recipe: !!ERROR!! There was a problem updating the meta-recipe to the ID specific recipe" 
 
         ## Get the recipe of the new file
-        #recipe = get_recipe_from_bz2(bz2)
         recipe = yaml.safe_load(open(op.join(new_recipe_path, "meta.yaml")))
 
-        if args.debug:
-            bz2 = _build(new_recipe_path, recipe, debug=True)
-        else:
-            bz2 = _build(new_recipe_path, recipe)
+        ## Create a tmp dir to store environment variables too. 
+        env_var_tmp_dir, env_var_file_path, final_commands_files = create_tmp_meta_recipe_env_file()
+        
+        ## Set meta-recipe specifc env vars
+        os.environ["GGD_METARECIPE_ID"] = args.id
+        os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path
+        os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
 
-        print(tmpdir)
-    
+        ## Build package
+        bz2 = _build(new_recipe_path, recipe, debug = True if args.debug else False)
+
+    ## Check for id but no meta-recipe 
+    if args.id and is_metarecipe == False:
+        print("\n:ggd:check-recipe: WARNING: The '--id' argument was set for a non meta-recipe recipe. ID {} will not be used".format(args.id)) 
 
     ## If skipping md5sum and final file creation, check the yaml file
     if args.dont_add_md5sum_for_checksum:
@@ -487,14 +536,25 @@ def check_recipe(parser, args):
 
     before = list_files(install_path)
 
-    if args.debug:
-        new_installed = _install(bz2, str(recipe["package"]["name"]), debug=True)
-    else:
-        new_installed = _install(bz2, str(recipe["package"]["name"]))
+    ## Install package
+    new_installed = _install(bz2, 
+                             str(recipe["package"]["name"]), 
+                             debug = True if args.debug else False, 
+                             meta_recipe = True if is_metarecipe else False,
+                             env_var_dir = env_var_tmp_dir if env_var_tmp_dir is not None else "",
+                             env_var_file = env_var_file_path if env_var_file_path is not None else "",
+                             commands_file = final_commands_files if final_commands_files is not None else"",
+                             parent_name = parent_recipe_name)
 
     ## Check if previous package is already installed or it is a new installation
     if new_installed:
 
+        import shutil 
+
+        ## Remove temp dir env var path
+        if env_var_tmp_dir is not None and op.exists(env_var_tmp_dir):
+            shutil.rmtree(env_var_tmp_dir)
+            
         ## Skip header check on meta recipe files
         #if species != "meta-recipe" and build != "meta-recipe":
         ## Check that the file has a header
