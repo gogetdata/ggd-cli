@@ -201,11 +201,14 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
         print(
             (
                 "#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
-                " packages is installed, but the package metadata has been removed from conda storage. This happens when"
-                " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
-                " in the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
+                " package(s) are installed, but the package metadata has been removed from conda storage. This" 
+                " happens when one of the following happen: \n 1) The package represents an ID specific meta-"
+                "recipe intsalled by GGD. \n 2) When the recipe is built locally using 'ggd check-recipe' and"
+                " has not been uninstalled. (Commonly for private data packages).\n  Or \n 3) The package is" 
+                " uninstalled using conda rather then ggd. The package is still available for use and is in"
+                " the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
                 " the package with 'ggd uninstall' and re-install with 'ggd install'.\n"
-            ).format(missing_message)
+            ).format(missing_message.strip())
         )
 
 
