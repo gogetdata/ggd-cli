@@ -268,7 +268,7 @@ def test_check_conda_installation_pacakge_is_installed():
 
     ## Install hg19-gaps-ucsc-v1
     recipe = "hg19-gaps-ucsc-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=[recipe], file=[] , prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[recipe], file=[] , prefix=None, id = None)
     try:
         install.install((), args)
     except SystemExit:
@@ -1228,7 +1228,7 @@ def test_non_prefix_capable_package():
     sp.check_output(["conda", "create", "--name", "non_prefix_capable"])
 
     ## Test a package that is not set up to be installed with the --prefix flag
-    args = Namespace(channel='genomics', command='install', debug=False, name=["danrer10-gtf-ensembl-v1"], file=[] ,prefix=temp_env)
+    args = Namespace(channel='genomics', command='install', debug=False, name=["danrer10-gtf-ensembl-v1"], file=[] ,prefix=temp_env, id = None)
     with pytest.raises(AssertionError) as pytest_wrapped_e:
         install.install((), args)
     assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! the --prefix flag was set but the 'danrer10-gtf-ensembl-v1' data package is not set up to be installed into a different prefix. GGD is unable to fulfill the install request. Remove the --prefix flag to install this data package. Notify the ggd team if you would like this recipe to be updated for --prefix install compatibility")
@@ -1253,7 +1253,7 @@ def test_install_main_function():
     CONDA_ROOT = utils.conda_root()
 
     ## Test empty name and file parametres
-    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[] ,prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[] ,prefix=None, id = None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
@@ -1261,7 +1261,7 @@ def test_install_main_function():
     assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! Either a data package name or a file name with --file is required. Neither option was provided.") ## Check that the exit code is 1
 
     ## Test bad --file  parametres
-    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=["FaKe_FilE.Txt"] ,prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=["FaKe_FilE.Txt"] ,prefix=None, id = None)
 
     try:
         install.install((), args)
@@ -1274,7 +1274,7 @@ def test_install_main_function():
 
     ## Test a non ggd recipe
     ggd_recipe1 = "Fake-hg19-gaps"
-    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe1], file=[] ,prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe1], file=[] ,prefix=None, id = None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         install.install((), args)
@@ -1282,7 +1282,7 @@ def test_install_main_function():
 
     ## Install pfam
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None, id = None)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         install.install((), args)
@@ -1298,7 +1298,7 @@ def test_install_main_function():
     assert ":ggd:install: Environment Variables" in output
 
     ## Test an already installed ggd recipe
-    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None, id = None)
     
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -1310,7 +1310,7 @@ def test_install_main_function():
 
     ## Test a previously installed recipe, but the recipe path is broken 
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
-    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None, id = None)
 
     jdict = install.check_ggd_recipe(ggd_recipe,"genomics")
     species = jdict["packages"][ggd_recipe]["identifiers"]["species"]
@@ -1342,7 +1342,7 @@ def test_install_main_function_multiple_recipes():
 
     ## Test install with mutliple packages
     recipes = ["grch37-chromsizes-ggd-v1","hg19-chromsizes-ggd-v1"]
-    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=None, id = None)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         install.install((), args)
@@ -1379,7 +1379,7 @@ def test_install_main_function_multiple_recipes():
 
     ## Test install with mutliple packages with --files
     recipes = ["grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]
-    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=recipes, prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=recipes, prefix=None, id = None)
     
     ## Catch bad file 
     try:
@@ -1402,7 +1402,7 @@ def test_install_main_function_multiple_recipes():
     install_file.write_recipes()
     install_file_dir_path = install_file.recipe_dirs["install_path"]   
     install_file_path = os.path.join(install_file_dir_path,"install.txt")
-    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[install_file_path], prefix=None)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[install_file_path], prefix=None, id = None)
     ## Try good file
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -1547,7 +1547,7 @@ def test_install_main_function_with_prefix_set():
 
     ggd_recipe = "hg19-pfam-domains-ucsc-v1"
     ggd_channel="genomics"
-    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=temp_env)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=temp_env, id = None)
 
     ## Test that an environemnt that doesn't exist is probably handeld
     try:
@@ -1623,7 +1623,7 @@ def test_install_main_function_with_prefix_set():
     build = jdict["packages"][ggd_recipe]["identifiers"]["genome-build"]
     version = jdict["packages"][ggd_recipe]["version"]
 
-    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=env_name)
+    args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=env_name, id = None)
     assert install.install((), args) == True
 
     ### Test the file exists in the correct prefix and not the current prefix

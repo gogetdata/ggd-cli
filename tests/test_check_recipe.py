@@ -832,7 +832,7 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
         recipe_name = "trial-hg38-gaps-v1"
         assert check_recipe._install(tarball_file_path, recipe_name) == True
         recipe_yaml = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml"))) 
-        species, build, version, recipe_name = check_recipe.check_yaml(recipe_yaml)
+        species, build, version, recipe_name, dp = check_recipe.check_yaml(recipe_yaml)
         install_path = os.path.join(utils.conda_root(), "share", "ggd", species, build, recipe_name, version)
         recipe_yaml = check_recipe.add_final_files(install_path, recipe_yaml, recipe_dir_path,[])
         check_recipe.add_to_checksum_md5sums(install_path, recipe_yaml, os.path.join(recipe_dir_path,"checksums_file.txt"))
@@ -1102,10 +1102,10 @@ def test_get_recipe_from_bz2():
 
     metafile = check_recipe.get_recipe_from_bz2(bz2_file)
     assert metafile["build"]["noarch"] == "generic"
-    assert metafile["build"]["number"] == "0"
+    assert str(metafile["build"]["number"]) == "0"
     assert metafile["extra"]["authors"] == "mjc"
     assert metafile["package"]["name"] == "trial-hg38-gaps-v1"
-    assert metafile["package"]["version"] == "1"
+    assert str(metafile["package"]["version"]) == "1"
     assert "gsort" in ",".join(metafile["requirements"]["build"]) 
     assert "htslib" in ",".join(metafile["requirements"]["build"]) 
     assert "zlib" in ",".join(metafile["requirements"]["build"]) 
@@ -1221,7 +1221,7 @@ def test_check_recipe_bz2_file():
     assert os.path.isfile(bz2_file)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
 
     try:
         check_recipe.check_recipe((),args) 
@@ -1243,7 +1243,7 @@ def test_check_recipe_bz2_file():
     assert os.path.isfile(bz2_file)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
@@ -1269,7 +1269,7 @@ def test_check_recipe_bz2_file():
     assert os.path.isfile(bz2_file)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
@@ -1288,7 +1288,7 @@ def test_check_recipe_bz2_file():
     assert os.path.isfile(bz2_file)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
@@ -1314,7 +1314,7 @@ def test_check_recipe_bz2_file():
     assert os.path.exists(bz2_file2)
     assert os.path.isfile(bz2_file2)
    
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file2, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file2, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
     assert check_recipe.check_recipe((),args) == True 
 
     out = utils.check_output(["conda", "list", "trial-hg38-gaps-v1"])
@@ -1336,7 +1336,7 @@ def test_check_recipe_bz2_file():
     ## Reset
     test__build_normal_run(add_checksum=False,final_files=True)
     bz2_file = pytest.global_tarball_testing_file
-    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, dont_add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, dont_add_md5sum_for_checksum=True, id=None)
     check_recipe.check_recipe((),args) == True
     
     uninstall.check_for_installation(["trial-hg38-gaps-v1"], jdict)
@@ -1400,7 +1400,7 @@ def test_check_recipe_recipe_path():
 
     ## SKIP md5sum process. -> This will trigger a checksum of the files, which will fail because there is none and the recipe will be uninstalled
     ### exit with 222
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=True)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=True, id=None)
    
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         check_recipe.check_recipe((),args)
@@ -1426,7 +1426,7 @@ def test_check_recipe_recipe_path():
 
 
     ## Add md5sum. No errors should happend, and the package should not be uninstalled because the dont_uninstall flag is set to True
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
    
     assert check_recipe.check_recipe((),args) == True 
 
@@ -1468,7 +1468,7 @@ def test_check_recipe_uninstall_local():
     assert os.path.exists(recipe_path)
 
     ## Set args
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=False, dont_add_md5sum_for_checksum=False, id=None)
 
     assert check_recipe.check_recipe((),args) == True 
 
@@ -1632,7 +1632,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["one_file_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1817,7 +1817,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["two_files_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -1992,7 +1992,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["two_files_noindex_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -2169,7 +2169,7 @@ def test_check_recipe_package_env_vars():
 
     recipe.write_recipes()
     recipe_dir_path = recipe.recipe_dirs["three_files_v1"] 
-    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False)
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_dir_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id=None)
     assert check_recipe.check_recipe((),args) == True
     ## Test dir and file env_var
     conda_root = utils.conda_root()
@@ -3135,7 +3135,10 @@ def test_remove_package_after_installation():
     ## Check that the ggd info metadata does not contain the recipe 
     with open(os.path.join(utils.conda_root(),"share","ggd_info","channeldata.json")) as jsonFile:
         jdict = json.load(jsonFile)
-        assert "trial-hg38-gaps-ucsc-v1" not in jdict["packages"]
+        if "packages" in jdict:
+            assert "trial-hg38-gaps-ucsc-v1" not in jdict["packages"]
+        else:
+            assert jdict == {}
 
 
 def test_check_header():
@@ -4202,7 +4205,7 @@ def test_check_yaml():
     yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
 
     ## Test a good run of check_yaml
-    species, build, version, name = check_recipe.check_yaml(yaml_file)
+    species, build, version, name, dp = check_recipe.check_yaml(yaml_file)
     assert species == "Homo_sapiens"
     assert build == "hg38"
     assert version == "1"

@@ -85,7 +85,8 @@ def test_get_species():
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
-    assert len(species) == 5
+    assert "meta-recipe" in species 
+    assert len(species) == 6
 
     ## Test not_updating repo
     species = utils.get_species(update_files=False)
@@ -95,7 +96,8 @@ def test_get_species():
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
-    assert len(species) == 5
+    assert "meta-recipe" in species 
+    assert len(species) == 6
 
     ## Test that the full dictionary with species as keys and build as values is returned
     species_dict = utils.get_species(update_files=False,full_dict=True)
@@ -105,7 +107,8 @@ def test_get_species():
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
-    assert len(species) == 5
+    assert "meta-recipe" in species 
+    assert len(species) == 6
 
     for key in species:
         assert len(species_dict[key]) > 0
@@ -115,6 +118,7 @@ def test_get_species():
     assert "hg38" in species_dict["Homo_sapiens"]
     assert "GRCh37" in species_dict["Homo_sapiens"]
     assert "GRCh38" in species_dict["Homo_sapiens"]
+    assert "meta-recipe" in species_dict["meta-recipe"]
 
     ## Test genomic metadata file path
     assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/species_to_build.json"))
@@ -279,14 +283,17 @@ def test_get_build():
             assert "danRer11" in builds
             assert "GRCz10" in builds
             assert "GRCz11" in builds
+        elif species == "meta-recipe":
+            assert len(builds) == 1
+            assert "meta-recipe" in builds
         else:
             assert False
 
     builds2 = utils.get_builds("*")
     assert "hg19" in builds2 and "hg38" in builds2 and "GRCh37" in builds2 and "GRCh38" in builds2 and "mm10" in builds2 and \
     "mm9" in builds2 and "dm3" in builds2 and "dm6" in builds2 and "canFam3" in builds2 and "danRer10" in builds2 and \
-    "danRer11" in builds2 and "GRCz10" in builds2 and "GRCz11" in builds2
-    assert len(builds2) == 13
+    "danRer11" in builds2 and "GRCz10" in builds2 and "GRCz11" in builds2 and "meta-recipe" in builds2
+    assert len(builds2) == 14
 
     ## Test genomic metadata file path
     assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/build_to_species.json"))
@@ -577,7 +584,7 @@ def test_update_installed_pkg_metadata():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package2 = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     ggd_info_dir2 = os.path.join(temp_env,"share","ggd_info")
@@ -848,7 +855,7 @@ def test_check_conda_pkg_dir():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     ## Check that there is no errors
@@ -1652,7 +1659,7 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict2)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The number of installed files does not match the number of checksum files" in output)
+    assert ("!!ERROR!! The number of installed files does not match the number of checksum files" in output)
 
 
     ## Test bad md5sums
@@ -1675,8 +1682,8 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict3)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz") in output) or \
-           ("!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz.tbi") in output)
+    assert ("!!ERROR!! The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz") in output) or \
+           ("!!ERROR!! The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz.tbi") in output)
 
 
     ## Test differint names within checksum_file and installed files
@@ -1698,7 +1705,7 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict4)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
+    assert ("!!ERROR!! The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
 
 
 def test_get_file_size():

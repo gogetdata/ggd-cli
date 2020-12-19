@@ -103,27 +103,29 @@ def test_get_channeldata():
     output = temp_stdout.getvalue().strip() 
     assert "Packages installed on your system that are similar include:" in output
     assert "hg19-gaps-ucsc-v1" in output
-    assert uninstall.get_channeldata(ggd_recipe,ggd_channel) == False
+    assert uninstall.get_channeldata([ggd_recipe],ggd_channel) == False
 
     ## Test bad recipe 
     bad_recipe = "BadRecipe"
     ggd_channel = "genomics"
+    temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         uninstall.get_channeldata([bad_recipe],ggd_channel)
     output = temp_stdout.getvalue().strip() 
-    assert "Packages installed on your system that are similar include:" in output
+    print("OUTPUT: '''", output, "''''")
     assert "{} is not in the ggd-{} channel".format(bad_recipe,ggd_channel)
     assert "Unable to find any package similar to the package entered. Use 'ggd search' or 'conda find' to identify the right package" in output
     assert "This package may not be installed on your system" in output
-    assert uninstall.get_channeldata(bad_recipe,ggd_channel) == False
+    assert uninstall.get_channeldata([bad_recipe],ggd_channel) == False
 
     ## Test bad channel 
     ggd_recipe = "hg19-gaps-ucsc-v1"
     bad_channel = "BadChannel"
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        uninstall.get_channeldata([ggd_recipe],bad_channel) ## Exit due to bad url from ggd.search
-    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("The 'BadChannel' channel is not a ggd conda channel") ## Check that the exit code is 1
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        uninstall.get_channeldata([ggd_recipe],bad_channel) 
+    output = temp_stdout.getvalue().strip() 
+    assert "The 'BadChannel' channel is not a ggd conda channel" in output
 
 
 def test_get_similar_pkg_installed_by_conda():
@@ -279,7 +281,7 @@ def test_check_for_installation_different_prefix():
         pass
 
     ### Install ggd recipe
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix = conda_root())
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix = conda_root(), id = None)
     try:
         install.install((), install_args) 
     except:
@@ -316,7 +318,7 @@ def test_check_for_installation_different_prefix():
     
     ## Test prefix 
     ### Install ggd recipe using conda into temp_env
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe],file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe],file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     ## Test that the files are removed
@@ -423,7 +425,7 @@ def test_remove_from_condaroot():
     
     ## Test prefix 
     ### Install ggd recipe using conda into temp_env
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     ## jdict and info
@@ -573,7 +575,7 @@ def test_uninstall_multiple_package():
     recipes = ["hg19-chrom-mapping-ensembl2ucsc-ncbi-v1","hg19-chrom-mapping-refseq2ucsc-ncbi-v1"]
 
     ## Install ggd recipe
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix = conda_root())
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix = conda_root(), id = None)
     try:
         install.install((), install_args) 
     except:
