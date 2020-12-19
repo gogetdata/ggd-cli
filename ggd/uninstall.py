@@ -64,10 +64,14 @@ def get_channeldata(ggd_recipes, ggd_channel):
     for recipe in ggd_recipes:
         if recipe not in package_list:
             uninstall_recipes = False
-            print(
-                "\n:ggd:uninstall: %s is not in the ggd-%s channel"
-                % (recipe, ggd_channel)
-            )
+            if ggd_channel in get_ggd_channels():
+                print(
+                    "\n:ggd:uninstall: %s is not in the ggd-%s channel"
+                    % (recipe, ggd_channel)
+                )
+            else:
+                print("\n:ggd:uninstall: The '{}' channel is not a ggd conda channel".format(ggd_channel))
+
             similar_pkgs = get_similar_pkg_installed_by_conda(recipe)
             if len(similar_pkgs) > 0:
                 print(
