@@ -78,7 +78,7 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
      
     Parameters:
     ----------
-    1) ggd_recipes:     (str)  A list of the names of the ggd recipe to check. (Usually only a single recipe is used)
+    1) ggd_recipes:     (list) A list of the names of the ggd recipe to check. (Usually only a single recipe is used)
     2) ggd_channel:     (str)  The name of the ggd-channel to look in
     3) C_ROOT:          (str)  The file path to the conda root/prefix
     4) reporting:       (bool) Whether or not to provide a stdout when no pkg is found 

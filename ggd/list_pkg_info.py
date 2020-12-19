@@ -115,7 +115,7 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel, prefix = co
     genome_build = yaml_dict["about"]["identifiers"]["genome-build"] 
 
     report_species = yaml_dict["about"]["identifiers"]["species"] if "updated-species" not in yaml_dict["about"]["identifiers"] else "(Updated) " +  yaml_dict["about"]["identifiers"]["updated-species"] 
-    report_genome_build = yaml_dict["about"]["identifiers"]["genome-build"] if "updated-genome-build" not in yaml_dict["about"]["identifiers"] else "(Uupdated) " + yaml_dict["about"]["identifiers"]["updated-genome-build"]
+    report_genome_build = yaml_dict["about"]["identifiers"]["genome-build"] if "updated-genome-build" not in yaml_dict["about"]["identifiers"] else "(Updated) " + yaml_dict["about"]["identifiers"]["updated-genome-build"]
 
     version = yaml_dict["package"]["version"]
 

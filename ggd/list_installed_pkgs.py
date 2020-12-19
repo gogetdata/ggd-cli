@@ -229,7 +229,13 @@ def get_metadata(C_ROOT,GGD_INFO_DIR, METADATA_FILE):
     1) (dict) Metadata json file loaded as a dictionary
     """
     
-    return(load_json(os.path.join(C_ROOT, GGD_INFO_DIR, METADATA_FILE)))
+    try:
+        metadata_dict = load_json(os.path.join(C_ROOT, GGD_INFO_DIR, METADATA_FILE))
+    except IOError as e:
+        print(str(e))
+        sys.exit("\n:ggd:list: !!ERROR!! Unable to load the local metadata")
+
+    return(metadata_dict)
 
 
 def list_installed_packages(parser, args):
