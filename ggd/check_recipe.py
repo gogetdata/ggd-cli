@@ -473,6 +473,9 @@ def check_recipe(parser, args):
     ## check if the recipe is a meta recipe
     is_metarecipe = False 
     parent_recipe_name = ""
+    env_var_tmp_dir = None
+    env_var_file_path = None
+    final_commands_files = None
     if recipe["about"]["identifiers"]["species"] == "meta-recipe" and recipe["about"]["identifiers"]["genome-build"] == "meta-recipe":  
 
         is_metarecipe = True
