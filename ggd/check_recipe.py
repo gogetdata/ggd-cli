@@ -14,7 +14,6 @@ from .utils import (add_yaml_literal_block,
                     conda_root, 
                     extract_metarecipe_recipe_from_bz2, 
                     literal_block, 
-                    update_bz2_of_metarecipe,
                     create_tmp_meta_recipe_env_file)
 
 # ---------------------------------------------------------------------------------------------------

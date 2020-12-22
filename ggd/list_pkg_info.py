@@ -34,7 +34,7 @@ def add_pkg_info(p):
     c.add_argument(
         "--prefix",
         default=None,
-        help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if listing data files not in the current environment)",
+        help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if listing pkg data info for a pkg not installed in the current environment)",
     )
     c.add_argument("name", help="the name of the recipe to get info about")
     c.set_defaults(func=info)
