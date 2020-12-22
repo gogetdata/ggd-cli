@@ -75,6 +75,7 @@ def add_make_metarecipe(p):
     c.add_argument(
         "-cb",
         "--coordinate-base",
+        choices=GENOMIC_COORDINATE_LIST,
         help="The genomic coordinate basing for the file(s) in the recipe. Use 'NA' for a metarecipe",
         default = "NA"
     )
@@ -442,7 +443,7 @@ echo 'Recipe successfully built!'
 
     ## Copy all extra scripts to the meta recipe directory
     for f in args.extra_scripts:
-        copyfile(f, os.path.join(os.getcwd(), name, f))
+        copyfile(f, os.path.join(os.getcwd(), name, os.path.basename(f)))
         
 
     return True
