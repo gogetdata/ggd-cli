@@ -1161,6 +1161,69 @@ def test_info_main():
     assert ":ggd:pkg-info: The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
 
 
+def test_info_main_in_different_prefix():
+
+    ## Test using a different prefix
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_pkg_info_env")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_pkg_info_env"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "temp_pkg_info_env"])
+
+    ### Install ggd recipe using conda into temp_env
+    ggd_package = "hg19-gaps-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id = None)
+    assert install.install((), install_args) == True 
+
+
+    ## Test different prefix 
+
+    ggd_channel = "genomics"
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False, prefix = temp_env)
+    assert list_pkg_info.info((),args) == True
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_pkg_info.info((),args)
+    output = temp_stdout.getvalue().strip() 
+    ## Include checks for meta yaml tag keys like final files and approximate file sizes
+    assert "\t\x1b[1mGGD-Package:\x1b[0m hg19-gaps-ucsc-v1" in output 
+    assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics" in output
+    assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed fromat. Scaffoldings that are not contained in the hg19.genome file are removed" in output
+    assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+    assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+    assert "\t\x1b[1mKeywords:\x1b[0m gaps, regions, gap-locations, Assembly-Gaps, clone-gaps, contig-gaps, centromere-gaps, telomere-gaps, heterochromatin-gaps, short-arm-gaps" in output
+    assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
+
+    assert "\t\x1b[1mData Provider:\x1b[0m UCSC" in output
+    assert "\t\x1b[1mData Version:\x1b[0m 22-Mar-2020" in output
+    assert "\t\x1b[1mFile type(s):\x1b[0m bed" in output
+    assert "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive" in output
+    assert "\t\x1b[1mIncluded Data Files:\x1b[0m" in output
+    assert "\t\x1b[1mApproximate Data File Sizes:\x1b[0m" in output
+
+    conda_root = temp_env
+    assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) in output 
+    assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
+    assert "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz.tbi".format(conda_root) in output
+    assert "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz".format(conda_root) in output
+
+
+    ## Remove temp env created in test_get_environment_variables()
+    sp.check_output(["conda", "env", "remove", "--name", "temp_pkg_info_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
 ### list (List installed packages)
 
 def test_load_json():  
