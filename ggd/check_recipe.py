@@ -520,7 +520,8 @@ def check_recipe(parser, args):
         print("\n:ggd:check-recipe: WARNING: The '--id' argument was set for a non meta-recipe recipe. ID {} will not be used".format(args.id)) 
 
     ## If skipping md5sum and final file creation, check the yaml file
-    if args.dont_add_md5sum_for_checksum:
+    ## If a meta-recipe, don't check for md5 sum or final files. These won't be added until an ID specific recipe is installed
+    if args.dont_add_md5sum_for_checksum and not is_metarecipe:
         assert (
             len(recipe["about"]["tags"].get("final-files", [])) > 0
         ), ":ggd:check-recipe: final-files are missing from the meta.yaml file and is required if md5sum is being skipped. Please run 'ggd check-recipe <recipe>' with the NON tar.bz2 recipe and WITHOUT the --dont-add-md5sum-for-checksum flag set"
@@ -604,7 +605,7 @@ def check_recipe(parser, args):
         else:
             ## Check final installed data files
             try:
-                check_final_files(install_path, recipe)
+                check_final_files(install_path, recipe) if not is_metarecipe else True
             except AssertionError as e:
                 print("\n:ggd:check-recipe: !!ERROR!!", str(e))
                 print(
@@ -619,7 +620,7 @@ def check_recipe(parser, args):
             from .utils import data_file_checksum, get_checksum_dict_from_tar
 
             checksum_dict = get_checksum_dict_from_tar(bz2)
-            if not data_file_checksum(install_path, checksum_dict):
+            if not data_file_checksum(install_path, checksum_dict) and not is_metarecipe:
                 print(
                     "\n\t!!!!!!!!!!!!!!!!!!!!!!!\n\t! FAILED recipe check !\n\t!!!!!!!!!!!!!!!!!!!!!!!\n"
                 )
