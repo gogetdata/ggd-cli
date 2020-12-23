@@ -840,6 +840,77 @@ def test__build_normal_run(add_checksum=False,final_files=False,bad_files=False,
         pytest.global_tarball_testing_file = tarball_file_path
 
 
+## A global variable for a successfull tarball file created using the ggd _build function
+pytest.global_metarecipe_tarball_testing_file = ""
+pytest.global_metarecipe_ggd_recipe_path = ""
+
+def test__build_normal_metarecipe():
+    """
+    test the _build function properly builds a ggd recipe into a ggd pocakge using conda build
+    """
+    pytest_enable_socket()
+
+    import tempfile
+
+    tmpdir = tempfile.mkdtemp()
+
+    recipe_path = os.path.join(tmpdir, "tmp-geo-meta-recipe-geo-v1")
+    os.mkdir(recipe_path)
+
+    ## Download files
+    try:
+        ## checkusm
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/checksums_file.txt",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  meta.yaml
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/meta.yaml",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  metarecipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/metarecipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+        ## head parser
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/parse_geo_header.py",
+                         "--directory-prefix",
+                         recipe_path])
+        ## Post link
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/post-link.sh", 
+                         "--directory-prefix",
+                         recipe_path])
+        ## recipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/recipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+
+    except sp.CalledProcessError as e:
+        print(str(e))
+        assert False
+    
+    ## update the name
+    for f in os.listdir(recipe_path):
+        content = [x.replace("meta-recipe-geo-accession-geo-v1","tmp-geo-meta-recipe-geo-v1") for x in open(os.path.join(recipe_path,f))]
+        with open(os.path.join(recipe_path,f), "w") as out:
+            out.write("".join(content))
+    
+    ## Set global recipe path
+    pytest.global_metarecipe_ggd_recipe_path = recipe_path
+    ## Get yaml file
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_path,yaml_file)
+    ## Set global taraball file path
+    pytest.global_metarecipe_tarball_testing_file = tarball_file_path
+    assert os.path.isfile(tarball_file_path)
+    assert "noarch" in tarball_file_path
+
+
 def test__install_bad_run():
     """
     Test the _install method to properly handels a bad install 
@@ -1042,7 +1113,7 @@ def test__install_normal_run():
 
 
     ## Remove fragment files
-    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+    jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
                         {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
                         u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
                         u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
@@ -1070,7 +1141,7 @@ def test__install_package_already_installed():
     pytest_enable_socket()
 
 
-    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+    jdict  = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
                         {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
                         u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
                         u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
@@ -1088,6 +1159,121 @@ def test__install_package_already_installed():
     recipe_name = "trial-hg38-gaps-v1"
     assert check_recipe._install(bz2_file, recipe_name) == False
    
+
+def test__install_metarecipe_params():
+    """
+    Test that the _install function works when the meta-recipe paramets are set
+    """
+
+    import tarfile 
+
+    ## Original yaml
+    orig_yaml = yaml.safe_load(open(os.path.join(pytest.global_metarecipe_ggd_recipe_path, "meta.yaml")))
+
+    ## Test meta recipe with no env vars added
+    bz2_file = pytest.global_metarecipe_tarball_testing_file
+    pkg_name = "tmp-geo-meta-recipe-geo-v1"
+    env_var_tmp_dir, env_var_file_path, final_commands_files = utils.create_tmp_meta_recipe_env_file()
+
+    ## Set environ vars
+    os.environ["GGD_METARECIPE_ID"] = "GSE123"
+    os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path 
+    os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
+
+    ## Test with env_var_dir, env_var_file, and commands_file not entered
+    assert check_recipe._install(bz2 = bz2_file, 
+                                 recipe_name = pkg_name,
+                                 debug = False,
+                                 meta_recipe = True,
+                                 env_var_dir = "",
+                                 env_var_file = "",
+                                 parent_name = "geo_parent",
+                                 commands_file = "") == True
+    ## Check meta.yaml
+    bz2_file 
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(utils.conda_root(),"pkgs",os.path.basename(bz2_file)), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == ""
+    
+    ## If no env var file, then nothing will be updated
+    assert yaml_dict == orig_yaml
+
+    ## uninstall
+    sp.check_call(["conda","uninstall","tmp-geo-meta-recipe-geo-v1", "-y"])
+
+
+    ## Set environ vars
+    os.environ["GGD_METARECIPE_ID"] = "GSE123"
+    os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path 
+    os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
+
+    test__build_normal_metarecipe()
+
+    ## Test with env_var_dir, env_var_file, and commands_file not entered
+    assert check_recipe._install(bz2 = bz2_file, 
+                                 recipe_name = pkg_name,
+                                 debug = False,
+                                 meta_recipe = True,
+                                 env_var_dir = env_var_tmp_dir,
+                                 env_var_file = env_var_file_path,
+                                 parent_name = "geo_parent",
+                                 commands_file = final_commands_files) == True
+    
+    
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(utils.conda_root(),"pkgs",os.path.basename(bz2_file)), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] == orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "geo_parent"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    sp.check_call(["conda","uninstall","tmp-geo-meta-recipe-geo-v1", "-y"])
+
 
 def test_get_recipe_from_bz2():
     """
@@ -1161,6 +1347,36 @@ def test__check_build():
     build9 = "canFam3"
 
     assert check_recipe._check_build(species4, build9) == True
+
+    ## Test meta-recipe
+    meta_species = "meta-recipe" 
+    meta_build = "meta-recipe"
+
+    assert check_recipe._check_build(meta_species, meta_build) == True
+
+    ## Test bad meta-recipe
+    meta_species = "Homo_sapiens" 
+    meta_build = "meta-recipe"
+
+    try:
+        temp_stderr = StringIO()
+        with redirect_stderr(temp_stderr):
+            check_recipe._check_build(meta_species, meta_build)
+    except Exception as e:
+        output = temp_stderr.getvalue().strip() 
+        assert "ERROR: genome-build: meta-recipe not found in github repo for the Homo_sapiens species" in str(output)
+
+    meta_species = "meta-recipe" 
+    meta_build = "hg19"
+
+    try:
+        temp_stderr = StringIO()
+        with redirect_stderr(temp_stderr):
+            check_recipe._check_build(meta_species, meta_build)
+    except Exception as e:
+        output = temp_stderr.getvalue().strip() 
+        assert "ERROR: genome-build: hg19 not found in github repo for the meta-recipe species" in str(output)
+
 
     ## Test bad species
     species5 = "bad-species" 
@@ -1436,6 +1652,181 @@ def test_check_recipe_recipe_path():
     assert "ggd_trial_hg38_gaps_v1" in out
     conda_root = utils.conda_root()
     assert os.path.exists(os.path.join(conda_root,"share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-v1/1")) == True 
+
+
+def test_check_recipe_meta_recipe():
+    """
+    Test the main check_recipe function with a meta-recipe 
+    """
+
+    pytest_enable_socket()
+
+    ## Uninstall the already installed recipe
+    try:
+        sp.check_call(["conda", "uninstall", "-y", "gse123-geo-v1"])
+    except Exception as e:
+        pass
+
+    ## Check that the recipe is not installed 
+    out = utils.check_output(["conda", "list", "gse123-geo-v1"])
+    assert "gse-geo-v1" not in out
+
+    ## Check that the tar file was deleted. If not, remove it
+    bz2_file = pytest.global_metarecipe_tarball_testing_file
+    try:
+        assert not os.path.exists(bz2_file)
+        assert not os.path.isfile(bz2_file)
+    except AssertionError as e:
+        if os.path.exists(bz2_file):
+            os.remove(bz2_file)
+        else:
+            raise e
+    
+    ## Use the previously created ggd recipe path
+    recipe_path = pytest.global_metarecipe_ggd_recipe_path
+    try: 
+        assert not os.path.exists(recipe_path)
+        assert not os.path.isdir(recipe_path)
+    except AssertionError as e:
+        if os.path.exists(recipe_path):
+            shutil.rmtree(recipe_path)
+        else:
+            raise e
+
+    import tarfile 
+
+    ## build the meta-recipe
+    recipe_name = "tmp-geo-meta-recipe-geo-v1"
+    test__build_normal_metarecipe()
+    bz2_file = pytest.global_metarecipe_tarball_testing_file
+    recipe_path = pytest.global_metarecipe_ggd_recipe_path
+    orig_yaml = yaml.safe_load(open(os.path.join(recipe_path,"meta.yaml")))
+
+
+    ## Check with a good accession id and with recipe path
+    args = Namespace(command='check-recipe', debug=False, recipe_path=recipe_path, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id="GSE123")
+
+    assert check_recipe.check_recipe((),args) == True 
+
+    out = utils.check_output(["conda", "list", "gse123-geo-v1"])
+    assert "gse123-geo-v1" in out
+    conda_root = utils.conda_root()
+    assert os.path.exists(os.path.join(conda_root,"share/ggd/meta-recipe/meta-recipe/gse123-geo-v1/1")) == True 
+    assert len(os.listdir(os.path.join(conda_root,"share/ggd/meta-recipe/meta-recipe/gse123-geo-v1/1"))) > 0
+
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(utils.conda_root(),"pkgs",os.path.basename(bz2_file).replace("tmp-geo-meta-recipe-geo-v1","gse123-geo-v1")), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] != orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["name"] == "gse123-geo-v1" 
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "tmp-geo-meta-recipe-geo-v1"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    sp.check_call(["conda","uninstall","gse123-geo-v1", "-y"])
+
+
+    ## Check with a good accession id and with bz2 file
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=True, dont_add_md5sum_for_checksum=False, id="GSE123")
+   
+    assert check_recipe.check_recipe((),args) == True 
+
+    out = utils.check_output(["conda", "list", "gse123-geo-v1"])
+    assert "gse123-geo-v1" in out
+    conda_root = utils.conda_root()
+    assert os.path.exists(os.path.join(conda_root,"share/ggd/meta-recipe/meta-recipe/gse123-geo-v1/1")) == True 
+    assert len(os.listdir(os.path.join(conda_root,"share/ggd/meta-recipe/meta-recipe/gse123-geo-v1/1"))) > 0
+
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(utils.conda_root(),"pkgs",os.path.basename(bz2_file).replace("tmp-geo-meta-recipe-geo-v1","gse123-geo-v1")), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] != orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["name"] == "gse123-geo-v1" 
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "tmp-geo-meta-recipe-geo-v1"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    sp.check_call(["conda","uninstall","gse123-geo-v1", "-y"])
+
+
+    ## test without accession id
+    args = Namespace(command='check-recipe', debug=False, recipe_path=bz2_file, dont_uninstall=False, dont_add_md5sum_for_checksum=False, id=None)
+   
+    temp_stdout = StringIO()
+    with pytest.raises(SystemExit) as pytest_wrapped_e, redirect_stdout(temp_stdout):
+        check_recipe.check_recipe((),args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("1") ## Check that the exit code is 1
+    output = temp_stdout.getvalue().strip()
+    assert "!!ERROR!! Cannot check a meta-recipe without an associated test id. Please use the '--id' parameter and try again" in output
+
+    sp.check_call(["ggd","uninstall","gse123-geo-v1"])
 
 
 def test_check_recipe_uninstall_local():
