@@ -612,8 +612,7 @@ def test_make_bash():
             for line in pf:
                 ## Check new name
                 if "new_name=" in line:
-                    print(line.strip())
-                    assert line.strip() == '''new_name="$GGD_METARECIPE_ID-ucsc-v1"''' or line.strip() == """new_name=${new_name,,}""" 
+                    assert line.strip() == '''new_name="$GGD_METARECIPE_ID-ucsc-v1"''' or line.strip() == '''new_name="$(echo $new_name | tr '[:upper:]' '[:lower:]')"''' or line.strip() == """#new_name=${new_name,,} Requires bash version >= 4.2"""
                     set_new_name = True
                 ### Check the assignment of RECIPE_DIR
                 if "RECIPE_DIR=" in line:

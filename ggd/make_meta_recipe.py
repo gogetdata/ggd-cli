@@ -336,7 +336,8 @@ def make_bash(parser, args):
 set -eo pipefail -o nounset
 
 new_name="$GGD_METARECIPE_ID-{dp}-v{version}"
-new_name=${to_lower}
+#new_name=${to_lower} Requires bash version >= 4.2
+new_name="$(echo $new_name | tr '[:upper:]' '[:lower:]')"
 
 if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
     export CONDA_ROOT=$(conda info --root)
