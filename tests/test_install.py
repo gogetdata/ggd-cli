@@ -367,6 +367,92 @@ def test_check_conda_installed_with_prefix_set():
     assert os.path.exists(temp_env) == False
 
 
+def test_get_idname_from_metarecipe():
+    """
+    Method to test if the get_idname_from_metarecipe() correctly returns the right name
+    """
+
+    accession_id = "GSE123"
+    meta_recipe = "meta-recipe-geo-accession-geo-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+    new_name = install.get_idname_from_metarecipe(accession_id,  meta_recipe, ggd_jdict)
+
+    ## This method does not change case
+    assert new_name != "gse123-geo-v1"
+    assert new_name == "GSE123-geo-v1"
+
+
+    accession_id = "gds456"
+    meta_recipe = "meta-recipe-geo-accession-geo-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+    new_name = install.get_idname_from_metarecipe(accession_id,  meta_recipe, ggd_jdict)
+
+    ## This method does not change case
+    assert new_name == "gds456-geo-v1"
+
+
+    accession_id = "GsM99890"
+    meta_recipe = "meta-recipe-geo-accession-geo-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+    new_name = install.get_idname_from_metarecipe(accession_id,  meta_recipe, ggd_jdict)
+
+    ## This method does not change case
+    assert new_name == "GsM99890-geo-v1"
+
+
+    accession_id = "GsM99890"
+    meta_recipe = "meta-recipe-geo-accession-geo-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'THE-DATA-PROVIDER'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+    new_name = install.get_idname_from_metarecipe(accession_id,  meta_recipe, ggd_jdict)
+
+    ## Test that the data provider is changed to lower case 
+    assert new_name == "GsM99890-the-data-provider-v1"
+
+
+    accession_id = "GsM99890"
+    meta_recipe = "meta-recipe-geo-accession-geo-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': {u'activate.d': 
+                    False, u'version': u'THE-VERSION', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'geo'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+    new_name = install.get_idname_from_metarecipe(accession_id,  meta_recipe, ggd_jdict)
+
+    ## Test that the version is properly used
+    assert new_name == "GsM99890-geo-vTHE-VERSION"
+
+
 def test_check_S3_bucket_not_uploaded():
     """
     Test if a recipe is cached on s3 or not. 
@@ -735,6 +821,306 @@ def test_conda_install_with_prefix_set():
     except Exception:
         pass
     assert os.path.exists(temp_env) == False
+
+
+def test_conda_install_meta_recipe():
+    """
+    Test that the conda_install() method correctly install a meta recipe. 
+    """
+
+    import tarfile 
+    import tempfile
+    from ggd import check_recipe
+
+    tmpdir = tempfile.mkdtemp()
+
+    recipe_path = os.path.join(tmpdir,"gse123-geo-v1")
+    os.mkdir(recipe_path)
+
+    ## Download files
+    try:
+        ## checkusm
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/checksums_file.txt",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  meta.yaml
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/meta.yaml",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  metarecipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/metarecipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+        ## head parser
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/parse_geo_header.py",
+                         "--directory-prefix",
+                         recipe_path])
+        ## Post link
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/post-link.sh", 
+                         "--directory-prefix",
+                         recipe_path])
+        ## recipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/recipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+
+    except sp.CalledProcessError as e:
+        print(str(e))
+        assert False
+
+    ## update the name
+    for f in os.listdir(recipe_path):
+        content = [x.replace("meta-recipe-geo-accession-geo-v1","gse123-geo-v1") for x in open(os.path.join(recipe_path,f))]
+        with open(os.path.join(recipe_path,f), "w") as out:
+            out.write("".join(content))
+
+    ## Original yaml
+    orig_yaml = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_path,orig_yaml)
+    assert os.path.isfile(tarball_file_path)
+
+    ## Set up chanel metadata dict
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'gse123-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/gse123-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+
+    ## Test installing a meta recipe wihtout a meta=recipe designation 
+    passed = False
+    try:
+        install.conda_install(ggd_recipes=["gse123-geo-v1"], 
+                              ggd_channel = "genomics",
+                              ggd_jdict = ggd_jdict,
+                              debug = False,
+                              prefix = None,
+                              meta_recipe = False,
+                              meta_recipe_name = "meta-recipe-geo-accession-v1")
+        passed = True
+    except SystemExit as e:
+        pass
+    except Exception as e:
+        assert False
+
+    assert not passed 
+
+
+    ## Test meta recipe with no env vars added
+    env_var_tmp_dir, env_var_file_path, final_commands_files = utils.create_tmp_meta_recipe_env_file()
+
+    ## Set environ vars
+    os.environ["GGD_METARECIPE_ID"] = "GSE123"
+    os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path 
+    os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
+
+    ## Test that the recipe is installed, the recipe.sh file is upadated, and the meta.yaml file is updated
+    assert install.conda_install(ggd_recipes=["gse123-geo-v1"], 
+                                 ggd_channel = "genomics",
+                                 ggd_jdict = ggd_jdict,
+                                 debug = False,
+                                 prefix = None,
+                                 meta_recipe = True,
+                                 meta_recipe_name = "meta-recipe-geo-accession-v1")
+    
+    
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(utils.conda_root(),"pkgs",os.path.basename(tarball_file_path)), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] == orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "meta-recipe-geo-accession-v1"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    ## Check the installed files
+    species = "meta-recipe"
+    build = "meta-recipe"
+    name = "gse123-geo-v1"
+    version = "1"
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_family.soft.gz"))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_series_matrix.txt.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3227_jzo026-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3225_jzo016-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert not os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_RAW.tar")) ## Tar file should not exists after install it 
+
+    ## remove the temp dir
+    if os.path.exists(env_var_tmp_dir):
+        shutil.rmtree(env_var_tmp_dir)
+
+    ## uninstall
+    sp.check_call(["ggd","uninstall","gse123-geo-v1"])
+        
+
+    ## Check different prefix
+    ## Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_meta_recipe")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_meta_recipe"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_meta_recipe"])
+
+    ## Build the recipe
+    tarball_file_path = check_recipe._build(recipe_path,orig_yaml)
+    assert os.path.isfile(tarball_file_path)
+
+    ## Test meta recipe with no env vars added
+    env_var_tmp_dir, env_var_file_path, final_commands_files = utils.create_tmp_meta_recipe_env_file()
+
+    ## Set environ vars
+    os.environ["GGD_METARECIPE_ID"] = "GSE123"
+    os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path 
+    os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
+    os.environ["CONDA_SOURCE_PREFIX"] = utils.conda_root()
+
+    assert install.conda_install(ggd_recipes=["gse123-geo-v1"], 
+                                 ggd_channel = "genomics",
+                                 ggd_jdict = ggd_jdict,
+                                 debug = False,
+                                 prefix = temp_env,
+                                 meta_recipe = True,
+                                 meta_recipe_name = "meta-recipe-geo-accession-v1")
+
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(temp_env,"pkgs",os.path.basename(tarball_file_path)), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] == orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "meta-recipe-geo-accession-v1"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    ## Check the installed files
+    species = "meta-recipe"
+    build = "meta-recipe"
+    name = "gse123-geo-v1"
+    version = "1"
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSE123_family.soft.gz"))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSE123_series_matrix.txt.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSM3227_jzo026-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSM3225_jzo016-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert not os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSE123_RAW.tar")) ## Tar file should not exists after install it 
+
+    ## Check that the recipe was not installed in the current environment
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_family.soft.gz")) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_series_matrix.txt.gz")) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3227_jzo026-rp1-v5-u74av2.CEL.gz")) == False 
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3225_jzo016-rp1-v5-u74av2.CEL.gz")) == False 
+
+    ## Test that the tarfile and the pkg dir were correctly copied to the prefix
+    data_packages = get_conda_package_list(temp_env, include_local = True)
+    version = str(data_packages[name]["version"])
+    build_number = str(data_packages[name]["build"])
+    tarfile = "{}-{}-{}.tar.bz2".format(name,version,build_number)
+    pkgdir = "{}-{}-{}".format(name,version,build_number)
+
+    assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
+    assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
+
+    ### Test that the ggd_info metadata is updated with ggd pkg
+    pkg_info = get_conda_package_list(temp_env,name, include_local = True)
+    assert name in pkg_info.keys()
+    version = pkg_info[name]["version"]
+    build = pkg_info[name]["build"]
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","noarch"))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","noarch",name+"-{}-{}.tar.bz2".format(version,build)))
+    assert os.path.exists(os.path.join(temp_env,"share","ggd_info","channeldata.json"))
+    with open(os.path.join(temp_env,"share","ggd_info","channeldata.json")) as jfile:
+        channeldata = json.load(jfile)
+        assert name in channeldata["packages"]
+
+    ## Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_meta_recipe"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+    ## remove the temp dir
+    if os.path.exists(env_var_tmp_dir):
+        shutil.rmtree(env_var_tmp_dir)
+
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
 
 
 def test_get_file_location():
@@ -1142,6 +1528,132 @@ def test_install_checksum():
 #    except:
 #        pass
     
+
+def test_install_checksum_meta_recipe():
+    """
+    Test the the checksum is skipped when installing a meta-recipe
+    """
+
+    pytest_enable_socket()
+
+    import tempfile
+    from ggd import check_recipe
+
+    tmpdir = tempfile.mkdtemp()
+
+    recipe_path = os.path.join(tmpdir, "gse123-geo-v1")
+    os.mkdir(recipe_path)
+
+    ## Download files
+    try:
+        ## checkusm
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/checksums_file.txt",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  meta.yaml
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/meta.yaml",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  metarecipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/metarecipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+        ## head parser
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/parse_geo_header.py",
+                         "--directory-prefix",
+                         recipe_path])
+        ## Post link
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/post-link.sh", 
+                         "--directory-prefix",
+                         recipe_path])
+        ## recipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/recipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+
+    except sp.CalledProcessError as e:
+        print(str(e))
+        assert False
+
+    ## update the name
+    for f in os.listdir(recipe_path):
+        content = [x.replace("meta-recipe-geo-accession-geo-v1","gse123-geo-v1") for x in open(os.path.join(recipe_path,f))]
+        with open(os.path.join(recipe_path,f), "w") as out:
+            out.write("".join(content))
+
+
+    ## Set env vars
+    env_var_tmp_dir, env_var_file_path, final_commands_files = utils.create_tmp_meta_recipe_env_file()
+
+    ## Set environ vars
+    os.environ["GGD_METARECIPE_ID"] = "GSE123"
+    os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path 
+    os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
+
+
+    ## Get yaml file
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_path,yaml_file)
+    assert os.path.isfile(tarball_file_path)
+    ## Install recipe
+    assert check_recipe._install(tarball_file_path, "gse123-geo-v1") == True
+
+    
+    ## Remove the temp directories
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
+
+    if os.path.exists(env_var_tmp_dir):
+        shutil.rmtree(env_var_tmp_dir)
+
+
+    ## Get recipe info
+    meta_recipe = "gse123-geo-v1"
+    parent_meta_recipe = "meta-recipe-geo-accession-geo-v1"
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'gse123-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/gse123-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GSE123 GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+
+    ## Test wihtout parent_name
+    try:
+        install.install_checksum(pkg_names = [meta_recipe],
+                                 ggd_jdict = ggd_jdict,
+                                 prefix = utils.conda_root(),
+                                 meta_recipe = True,
+                                 meta_recipe_name = "")
+        assert False
+    except AssertionError as e:
+        assert ":ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe wihtout the parent meta-recipe name" in str(e)
+
+
+    ## Test good checksum
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+
+        install.install_checksum(pkg_names = [meta_recipe],
+                                 ggd_jdict = ggd_jdict,
+                                 prefix = utils.conda_root(),
+                                 meta_recipe = True,
+                                 meta_recipe_name = parent_meta_recipe)
+
+    output = temp_stdout.getvalue().strip() 
+    assert ":ggd:install: Initiating data file content validation using checksum" in output
+    assert ":ggd:install: Checksum for {}".format(meta_recipe) in output
+    assert ":ggd:install: NOTICE: Skipping checkusm for meta-recipe {} => {}".format(parent_meta_recipe, meta_recipe) in output
+
+    sp.check_call(["ggd","uninstall","gse123-geo-v1"])
+
 
 def test_copy_pkg_files_to_prefix():
     """
@@ -1655,3 +2167,272 @@ def test_install_main_function_with_prefix_set():
         pass
     assert os.path.exists(temp_env) == False
 
+
+def test_install_meta_recipe():
+
+    pytest_enable_socket()
+    import tarfile 
+    import tempfile
+    from ggd import check_recipe
+
+    tmpdir = tempfile.mkdtemp()
+
+    recipe_path = os.path.join(tmpdir,"meta-recipe-geo-accession-geo-v1")
+    os.mkdir(recipe_path)
+
+    ## Download files
+    try:
+        ## checkusm
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/checksums_file.txt",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  meta.yaml
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/meta.yaml",
+                         "--directory-prefix",
+                         recipe_path])
+        ##  metarecipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/metarecipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+        ## head parser
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/parse_geo_header.py",
+                         "--directory-prefix",
+                         recipe_path])
+        ## Post link
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/post-link.sh", 
+                         "--directory-prefix",
+                         recipe_path])
+        ## recipe.sh
+        sp.check_call(["wget", 
+                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/recipe.sh",
+                         "--directory-prefix",
+                         recipe_path])
+
+    except sp.CalledProcessError as e:
+        print(str(e))
+        assert False
+
+    ## Original yaml
+    orig_yaml = yaml.safe_load(open(os.path.join(recipe_path, "meta.yaml")))
+    tarball_file_path = check_recipe._build(recipe_path,orig_yaml)
+    assert os.path.isfile(tarball_file_path)
+
+    ## Test install good install with meta-recipe
+    recipes = ["meta-recipe-geo-accession-geo-v1"]
+    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=None, id = "GSE123")
+
+    ## Test install with a meta-recipe but no id
+    assert install.install((), args)
+
+    ## Check for update in the ecipe and yaml files
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(utils.conda_root(),"pkgs",os.path.basename(tarball_file_path.replace("meta-recipe-geo-accession-geo-v1","gse123-geo-v1"))), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] != orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["name"] == "gse123-geo-v1"
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "meta-recipe-geo-accession-geo-v1"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    ## Check the installed files
+    species = "meta-recipe"
+    build = "meta-recipe"
+    name = "gse123-geo-v1"
+    version = "1"
+    assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_family.soft.gz"))
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_series_matrix.txt.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3227_jzo026-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3225_jzo016-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert not os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_RAW.tar")) ## Tar file should not exists after install it 
+
+    ## Check that the file is in ggd list
+    from ggd import list_installed_pkgs
+
+    args = Namespace(command='list', pattern="gse123-geo-v1", prefix=None, reset=False)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "gse123-geo-v1" in output
+
+    ## test the it can be uninstalled
+    try:
+        sp.check_call(["ggd", "uninstall", "gse123-geo-v1"])
+    except subprocess.CalledProcessError as e:
+        print(str(e))
+        assert False
+
+
+    ## Temp different conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_geo_meta_recipe")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_geo_meta_recipe"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+
+    ###  Create the temp environment
+    sp.check_output(["conda", "create", "--name", "temp_geo_meta_recipe"])
+
+    recipes = ["meta-recipe-geo-accession-geo-v1"]
+    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=temp_env, id = "GSE123")
+
+    ## Test install with a meta-recipe but no id
+    assert install.install((), args)
+
+    ## Check for update in the ecipe and yaml files
+    recipe_contents = ""
+    yaml_dict = {}
+    with tarfile.open(os.path.join(temp_env,"pkgs",os.path.basename(tarball_file_path.replace("meta-recipe-geo-accession-geo-v1","gse123-geo-v1"))), mode="r|bz2") as tf:
+        for info in tf:
+            if info.name == "info/recipe/recipe.sh":
+                recipe_contents = tf.extractfile(info)
+                recipe_contents = recipe_contents.read().decode()
+
+            elif info.name == "info/recipe/meta.yaml.template":
+                yaml_dict = tf.extractfile(info)
+                yaml_dict = yaml.safe_load(yaml_dict.read().decode())
+
+    ## Check the recipe contents
+    assert recipe_contents == (
+"""
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/soft/GSE123_family.soft.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/matrix/GSE123_series_matrix.txt.gz" -O -J --silent
+
+curl "https://ftp.ncbi.nlm.nih.gov/geo/series/GSEnnn/GSE123/suppl/GSE123_RAW.tar" -O -J --silent
+
+tar -xf GSE123_RAW.tar
+""")
+    
+    ## check the yaml file
+    assert yaml_dict["build"]["noarch"] == orig_yaml["build"]["noarch"] 
+    assert yaml_dict["build"]["number"] == orig_yaml["build"]["number"] 
+    assert yaml_dict["package"]["name"] != orig_yaml["package"]["name"] 
+    assert yaml_dict["package"]["name"] == "gse123-geo-v1"
+    assert yaml_dict["package"]["version"] == orig_yaml["package"]["version"] 
+    assert yaml_dict["about"]["identifiers"]["genome-build"] == orig_yaml["about"]["identifiers"]["genome-build"] 
+    assert yaml_dict["about"]["identifiers"]["species"] == orig_yaml["about"]["identifiers"]["species"]
+    assert "updated-species" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["updated-species"] == "Mus musculus"
+    assert "parent-meta-recipe" in yaml_dict["about"]["identifiers"]
+    assert yaml_dict["about"]["identifiers"]["parent-meta-recipe"] == "meta-recipe-geo-accession-geo-v1"
+    assert yaml_dict["about"]["keywords"] != orig_yaml["about"]["keywords"] 
+    assert yaml_dict["about"]["summary"] != orig_yaml["about"]["summary"] 
+    assert yaml_dict["about"]["tags"]["data-provider"] == orig_yaml["about"]["tags"]["data-provider"] 
+    assert yaml_dict["about"]["tags"]["data-version"] != orig_yaml["about"]["tags"]["data-version"] 
+    assert yaml_dict["about"]["tags"]["genomic-coordinate-base"] == orig_yaml["about"]["tags"]["genomic-coordinate-base"] 
+
+    ## Check the installed files
+    species = "meta-recipe"
+    build = "meta-recipe"
+    name = "gse123-geo-v1"
+    version = "1"
+    assert os.path.exists(os.path.join(temp_env,"share","ggd",species,build,name,version))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSE123_family.soft.gz"))
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSE123_series_matrix.txt.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSM3227_jzo026-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSM3225_jzo016-rp1-v5-u74av2.CEL.gz")) ## From TAR file
+    assert not os.path.isfile(os.path.join(temp_env,"share","ggd",species,build,name,version,"GSE123_RAW.tar")) ## Tar file should not exists after install it 
+
+    ## recipe should not be isntalled in the current environmnet
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_family.soft.gz")) == False
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSE123_series_matrix.txt.gz")) == False## From TAR file
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3227_jzo026-rp1-v5-u74av2.CEL.gz")) == False  ## From TAR file
+    assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,"GSM3225_jzo016-rp1-v5-u74av2.CEL.gz")) == False ## From TAR file
+
+    ## Check that the file is in ggd list
+    from ggd import list_installed_pkgs
+
+    args = Namespace(command='list', pattern="gse123-geo-v1", prefix=temp_env, reset=False)
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_installed_pkgs.list_installed_packages((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert "gse123-geo-v1" in output
+
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", "temp_geo_meta_recipe"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
+    ## Test install without 
+    recipes = ["meta-recipe-geo-accession-geo-v1"]
+    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=None, id = None)
+
+    ## Test install with a meta-recipe but no id
+    temp_stdout = StringIO()
+    with pytest.raises(SystemExit) as pytest_wrapped_e, redirect_stdout(temp_stdout):
+        install.install((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    output = temp_stdout.getvalue().strip() 
+    assert ":ggd:install: {} is a meta-recipe. Checking meta-recipe for installation".format("meta-recipe-geo-accession-geo-v1") in output
+    assert ":ggd:install: An ID is required in order to install a GGD meta-recipe. Please add the '--id <Some ID>' flag and try again" in output
+
+
+    ## Test install with mutliple packages
+    recipes = ["grch37-chromsizes-ggd-v1","meta-recipe-geo-accession-geo-v1"]
+    args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=None, id = "GSE123")
+
+    ## Test install with a meta-recipe but no id
+    temp_stdout = StringIO()
+    with pytest.raises(SystemExit) as pytest_wrapped_e, redirect_stdout(temp_stdout):
+        install.install((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    output = temp_stdout.getvalue().strip() 
+    assert ":ggd:install: Looking for grch37-chromsizes-ggd-v1 in the 'ggd-genomics' channel" in output
+    assert ":ggd:install: grch37-chromsizes-ggd-v1 version 1 is not installed on your system" in output
+    assert ":ggd:install: grch37-chromsizes-ggd-v1 has not been installed by conda" in output
+    assert ":ggd:install: Looking for meta-recipe-geo-accession-geo-v1 in the 'ggd-genomics' channel" in output
+    assert ":ggd:install: meta-recipe-geo-accession-geo-v1 exists in the ggd-genomics channel" in output
+    assert ":ggd:install: meta-recipe-geo-accession-geo-v1 is a meta-recipe. Checking meta-recipe for installation" in output
+    assert ":ggd:install: GGD is currenlty only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command" in output
+
+
+    ## Remove tmp dir
+    if os.path.exists(tmpdir):
+        shutil.rmtree(tmpdir)
