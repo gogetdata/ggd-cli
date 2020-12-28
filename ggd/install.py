@@ -662,6 +662,7 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe = Fa
 
         ## Get checksum dict
         if meta_recipe:
+            assert meta_recipe_name != "", "\n:ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe wihtout the parent meta-recipe name"
             print("\n:ggd:install: NOTICE: Skipping checkusm for meta-recipe {} => {}".format(meta_recipe_name, ", ".join(pkg_names)))
             checksum_dict = {}
 #            try:
@@ -820,14 +821,14 @@ def install(parser, args):
             is_metarecipe = True
             metarecipe_name = pkg
 
-            ## Check number of packages
-            if len(pkg_list) > 1:
-                print("\n:ggd:install: GGD is currenlty only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command")
-                sys.exit()
-
             ## Check for an meta-recipe ID 
             if not args.id:
                 print("\n:ggd:install: An ID is required in order to install a GGD meta-recipe. Please add the '--id <Some ID>' flag and try again")
+                sys.exit()
+
+            ## Check number of packages
+            if len(pkg_list) > 1:
+                print("\n:ggd:install: GGD is currenlty only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command")
                 sys.exit()
 
             ## Id must be lower case for conda
