@@ -973,6 +973,10 @@ def get_meta_recipe_pkg(pkg_name, jdict, ggd_channel, prefix):
                     platform = subdir
                     newest_tar = pkg_tar
 
+
+    ## Get the md5sum
+    md5 = repodata_dict[channel_key][newest_tar]["md5"]
+
     ## Remove the repodata files
     del repodata_dict
     del name2tar
@@ -1021,6 +1025,12 @@ def get_meta_recipe_pkg(pkg_name, jdict, ggd_channel, prefix):
     ## Check that the exists in the target dir
     target_path = os.path.join(dest_dir,newest_tar) 
     assert (os.path.exists(target_path) and os.path.isfile(target_path)), "\n:ggd:meta-recipe: !!ERROR!! There was a problem downloading the meta-recipe pkg. It is missing from the target dir"
+
+    ## Check the the downloaded meta-recipe is was downloaded correctly using mf5sum
+    print("\n:ggd:meta-recipe: Checking md5sum")
+
+    downloaded_md5sum = get_file_md5sum(target_path)
+    assert downloaded_md5sum == md5, "\n:ggd:meta-recipe: !!ERROR!! The downloaded meta-recipe's md5 sum does not match the reference: {} !=  {}".format(downloaded_md5sum, md5) 
 
     print("\n:ggd:meta-recipe: Successfully downloaded {} to {}".format(newest_tar, dest_dir))
 
