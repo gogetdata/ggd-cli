@@ -16,7 +16,7 @@ def add_predict_path(p):
     c = p.add_parser(
         "predict-path",
         help="Predict the install file path of a data package that hasn't been installed yet. (Use for workflows, such as Snakemake)",
-        description="Get a predicted install file path for a data package before it is installed. (Use for worklows, such as Snakemake)",
+        description="Get a predicted install file path for a data package before it is installed. (Use for workflows, such as Snakemake)",
     )
     c.add_argument(
         "-c",
@@ -61,11 +61,11 @@ def get_ggd_metadata(ggd_channel):
      
     Parameters:
     ----------
-    1) ggd_channel: The name of the ggd-channel to look in
+    1) ggd_channel: (str) The name of the ggd-channel to look in
      
     Return:
     +++++++
-    1) GGD metadata as a dictionary
+    1) (dict) GGD metadata as a dictionary
 
     """
     from .search import load_json_from_url

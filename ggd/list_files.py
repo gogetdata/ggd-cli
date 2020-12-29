@@ -73,7 +73,7 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
     Method used to identify in the desired package is in the ggd-<channel>.
      If it is the the species, build, and version is returned. 
     
-     Mutliple ggd recipes can be checked, but if the return_pkg_list parameter is set to false only the 
+     Multiple ggd recipes can be checked, but if the return_pkg_list parameter is set to false only the 
       species, genome build, and version of the first ggd recipe are returned.  
      
     Parameters:
@@ -95,7 +95,7 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
       NOTE: Only the species, genome build, and version for the first recipe be returned.
     if return_pkg_list is True:
         1) the pkg list
-        2) the channel specific dicitionary of packages
+        2) the channel specific dictionary of packages
     """
 
     from .search import load_json, load_json_from_url, search_packages
@@ -138,7 +138,7 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
 
         Returns:
         ++++++++
-        1) (list) The pckages that were found
+        1) (list) The packages that were found
         """
 
         package_list = []

@@ -55,7 +55,7 @@ def add_install(p):
         "--id",
         metavar="Meta-recipe ID",
         help = ("The ID to use for the meta recipe being installed. For example, if installing the GEO meta-recipe for GEO Accession ID GSE123, use `--id GSE123`"
-                " NOTE: GGD will NOT try to correcet the ID. The ID must be accurately entered with case sensitive alphanumeric order") 
+                " NOTE: GGD will NOT try to correct the ID. The ID must be accurately entered with case sensitive alphanumeric order") 
     )
 
     c.set_defaults(func=install)
@@ -129,7 +129,8 @@ def check_if_installed(ggd_recipe, ggd_jdict, prefix=None):
     2) ggd_jdict:  (dict) The channel specific metadata file as a dictionary 
     3) prefix:     (str)  The prefix/conda environment to check in
     
-    Retruns:
+    Returns:
+    ++++++++
     1) False if not installed
     2) True if it is installed
     """
@@ -161,7 +162,7 @@ def check_conda_installation(ggd_recipe, prefix=None):
     ========================
     This method is used to check if the ggd data package has been installed by the conda system,
      without being installed by the ggd system. If it has, the recipe needs to be uninstalled and 
-     reinstalled. If not, the system continues to install the package using ggd.
+     re-installed. If not, the system continues to install the package using ggd.
 
     Parameters:
     -----------
@@ -209,7 +210,7 @@ def get_idname_from_metarecipe(accession_id, meta_recipe_name, jdict):
     ===========================
     Get the new name based on an accession id for a recipe to be installed from a meta-recipe 
 
-    Paramters:
+    Parameters:
     ----------
     1) accession_id:     (str)  The meta-recipe id for the new name 
     2) meta_recipe_name: (str)  The name of the meta recipe which is used to install the new recipe
@@ -217,7 +218,7 @@ def get_idname_from_metarecipe(accession_id, meta_recipe_name, jdict):
                                  the meta recipe is in)
     Returns:
     ++++++++
-    1) The id sepecific recipe name from the meta recipe
+    1) The id specific recipe name from the meta recipe
     """
 
     new_recipe_name = "{}-{}-v{}".format(accession_id, 
@@ -322,7 +323,7 @@ def install_from_cached(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix
         prefix=target_prefix, remove_old=False, add_packages=ggd_recipes
     )
 
-    ## Checkusm
+    ## Checksum
     try:
         install_checksum(ggd_recipes, ggd_jdict, target_prefix)
     except ChecksumError as e:
@@ -438,7 +439,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
         try:
             import json
 
-            print("\n:ggd:install: Loading Meta-Recipe ID specific environmnet variables")
+            print("\n:ggd:install: Loading Meta-Recipe ID specific environment variables")
             ## Get the updated env var list
             meta_env_vars = json.load(open(env_var_file_path)) if os.path.exists(env_var_file_path) else {}
 
@@ -466,7 +467,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
                 fsize, tsize, bsize = get_file_size(os.path.join(path,f))
                 file_size_dict[f] = fsize
 
-            ## Update meta-recipe meatada 
+            ## Update meta-recipe metadata 
             success, new_bz2 = update_metarecipe_metadata(pkg_name = pkg_name,
                                                          env_var_dict = meta_env_vars,
                                                          parent_name = meta_recipe_name,
@@ -480,7 +481,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
         except Exception as e:
             from .uninstall import check_for_installation
             import traceback
-            print("\n:ggd:install: !!ERROR!! Post-Installation problems while updaing meta-recipe metadata")
+            print("\n:ggd:install: !!ERROR!! Post-Installation problems while updating meta-recipe metadata")
             print(str(e))
             print(traceback.print_exc())
             check_for_installation(
@@ -499,7 +500,7 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
         prefix=target_prefix, remove_old=False, add_packages=ggd_recipes, include_local = True if meta_recipe else False
     )
 
-    ## Checkusm
+    ## Checksum
     try:
         install_checksum(ggd_recipes, ggd_jdict, target_prefix, meta_recipe, meta_recipe_name)
     except ChecksumError as e:
@@ -662,8 +663,8 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe = Fa
 
         ## Get checksum dict
         if meta_recipe:
-            assert meta_recipe_name != "", "\n:ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe wihtout the parent meta-recipe name"
-            print("\n:ggd:install: NOTICE: Skipping checkusm for meta-recipe {} => {}".format(meta_recipe_name, ", ".join(pkg_names)))
+            assert meta_recipe_name != "", "\n:ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe without the parent meta-recipe name"
+            print("\n:ggd:install: NOTICE: Skipping checksum for meta-recipe {} => {}".format(meta_recipe_name, ", ".join(pkg_names)))
             checksum_dict = {}
 #            try:
 #                checksum_dict = get_meta_recipe_checksum(meta_recipe_name, pkg_name) 
@@ -702,12 +703,12 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe = Fa
 
 
 def copy_pkg_files_to_prefix(prefix, pkg_names, meta_recipe = False):
-    """Method to copy the tar and package files from the current conda envrionment to the target prefix
+    """Method to copy the tar and package files from the current conda environment to the target prefix
     
     copy_pkg_files_to_prefix
     ========================
-    This method is used to copy the tarball file and the pkg file from the current conda envrionment to the 
-     target prefix if the prefix flag is set. This will support pkg info lookup for data management when installing
+    This method is used to copy the tarball file and the pkg file from the current conda environment to the 
+     target prefix if the prefix flag is set. This will support pkg info lockup for data management when installing
      a package using the prefix flag
 
     Parameters:
@@ -828,7 +829,7 @@ def install(parser, args):
 
             ## Check number of packages
             if len(pkg_list) > 1:
-                print("\n:ggd:install: GGD is currenlty only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command")
+                print("\n:ggd:install: GGD is currently only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command")
                 sys.exit()
 
             ## Id must be lower case for conda
@@ -858,7 +859,7 @@ def install(parser, args):
 
             ## Check for success
             try:
-                assert (success), "\n:ggd:install: !!ERROR!! There was a problem updating the meta-recipe to the ID speciifc recipe"
+                assert (success), "\n:ggd:install: !!ERROR!! There was a problem updating the meta-recipe to the ID specific recipe"
             except AssertionError as e:
                 print(str(e))
                 if tmpdir:
@@ -881,7 +882,7 @@ def install(parser, args):
             from .check_recipe import _build
             try:
                 new_bz2 = _build(new_recipe_path, recipe_yaml, debug = True if args.debug else False)
-                assert (os.path.exists(new_bz2)), "\n:ggd:install: !!ERRORR!! There was a problem building the new recipe"
+                assert (os.path.exists(new_bz2)), "\n:ggd:install: !!ERROR!! There was a problem building the new recipe"
             except Exception as e:
                 print(str(e))
                 if tmpdir:

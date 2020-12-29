@@ -220,7 +220,7 @@ def _install(bz2, recipe_name, debug=False, meta_recipe=False, env_var_dir = "",
     5) env_var_dir:   (str)  The path to the meta-recipe tmp env var 
     6) env_var_file:  (str)  The file path to the meta-recipe tmp env var json file
     7) parent_name:   (str)  If a meta-recipe, the name of the parent meta-recipe
-    8) commands_file: (str)  THe path to the subseted commands used for the specific Meta-Recipe ID if meta-recipe 
+    8) commands_file: (str)  The path to the subsetted commands used for the specific Meta-Recipe ID if meta-recipe 
 
     Returns:
     +++++++
@@ -277,7 +277,7 @@ def _install(bz2, recipe_name, debug=False, meta_recipe=False, env_var_dir = "",
 
             ## Check for meta-recipe environment variables
             if op.exists(env_var_file):
-                print("\n:ggd:check-recipe: Loading Meta-Recipe ID specific environmnet variables")
+                print("\n:ggd:check-recipe: Loading Meta-Recipe ID specific environment variables")
 
                 ## Load environment variables from json file
                 meta_env_vars = json.load(open(env_var_file))
@@ -352,11 +352,11 @@ def get_recipe_from_bz2(fbz2):
 
     Parameters:
     ----------
-    1) fbz2: The file path to the pre-built bz2 ggd package
+    1) fbz2: (str) The file path to the pre-built bz2 ggd package
     
     Return:
     +++++++
-    1) The meta.yaml file as a dictionary 
+    1) (dict) The meta.yaml file as a dictionary 
     """
     import tarfile
 
@@ -393,8 +393,8 @@ def _check_build(species, build):
 
     Parameters:
     -----------
-    1) species: The supplied species for the recipe being built
-    2) build: The genome build for the recipe being built
+    1) species: (str) The supplied species for the recipe being built
+    2) build:   (str) The genome build for the recipe being built
 
     Returns:
     ++++++++
@@ -507,7 +507,7 @@ def check_recipe(parser, args):
         ## Create a tmp dir to store environment variables too. 
         env_var_tmp_dir, env_var_file_path, final_commands_files = create_tmp_meta_recipe_env_file()
         
-        ## Set meta-recipe specifc env vars
+        ## Set meta-recipe specific env vars
         os.environ["GGD_METARECIPE_ID"] = args.id
         os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path
         os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
@@ -559,7 +559,6 @@ def check_recipe(parser, args):
             shutil.rmtree(env_var_tmp_dir)
             
         ## Skip header check on meta recipe files
-        #if species != "meta-recipe" and build != "meta-recipe":
         ## Check that the file has a header
         if not check_header(install_path): 
             print("\n:ggd:check-recipe: !!ERROR!!")
@@ -640,7 +639,7 @@ def check_recipe(parser, args):
     else:  ## if already installed
         print("\n:ggd:check-recipe: Package already installed on your system")
         print(
-            '\nggd:check-recipe: If the "-du" flag (dont_uninstall) is NOT set this package will be uninstalled'
+            '\n:ggd:check-recipe: If the "-du" flag (dont_uninstall) is NOT set this package will be uninstalled'
         )
         print("\n:ggd:check-recipe: To recheck this recipe")
         if args.dont_uninstall == True:
@@ -723,14 +722,14 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
 
     Parameters:
     -----------
-    1) installed_dir_path: The directory path to the installed data files, excluding the version number
-    2) yaml_file: The meta.yaml file for the recipe
-    3) recipe_checksum_file_path: The file path to the checksum recipe to update
+    1) installed_dir_path:        (str) The directory path to the installed data files, excluding the version number
+    2) yaml_file:                 (str) The meta.yaml file for the recipe
+    3) recipe_checksum_file_path: (str) The file path to the checksum recipe to update
 
     Returns:
     ++++++++
     1) Nothing is returned. The checksum file is updated with each data file and it's md5sum.
-        Each data file will be placed on its own line with a tab seperating the file's md5sum.
+        Each data file will be placed on its own line with a tab separating the file's md5sum.
     """
     print(":ggd:check-recipe: Updating md5sums for final data files\n")
     import glob
@@ -740,7 +739,7 @@ def add_to_checksum_md5sums(installed_dir_path, yaml_file, recipe_checksum_file_
     with open(recipe_checksum_file_path, "w") as cs_file:
         installed_files = glob.glob(op.join(installed_dir_path, "*"))
 
-        ## Check the number of files are the same between the yaml file and the acutal data files
+        ## Check the number of files are the same between the yaml file and the actual data files
         final_files = yaml_file["about"]["tags"]["final-files"]
         assert len(final_files) == len(installed_files), (
             ":ggd:check-recipe: The number of installed files does not match the number of final files listed in the recipe."
@@ -763,7 +762,7 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
     Method to iterate through and add each of the final data files from the processed data package to 
      the meta.yaml file of the checked recipe. (This should be called after the "check_files" function
      has passed.) 
-    The file types will be added as well. If they are common genomic file types, otherwise the 
+    The file types will be added as well. If they are common genomics file types, otherwise the 
      file extension will be used.
     The meta.yaml file will be re-written with the new file types and final files. 
     New meta.yaml fields = 
@@ -773,10 +772,10 @@ def add_final_files(installed_dir_path, yaml_dict, recipe_path, extra_files):
 
     Parameters:
     -----------
-    1) installed_dir_path: The directory path to the installed data files
-    2) yaml_dict: A dictionary of the meta.yaml file for the recipe
-    3) recipe_path: The directory path to the recipe being checked 
-    4) extra_files: The name of the extra files found from check_files method
+    1) installed_dir_path: (str)  The directory path to the installed data files
+    2) yaml_dict:          (dict) A dictionary of the meta.yaml file for the recipe
+    3) recipe_path:        (str)  The directory path to the recipe being checked 
+    4) extra_files:        (list) The name of the extra files found from check_files method
 
     Returns: 
     ++++++++
@@ -903,8 +902,8 @@ def check_final_files(installed_dir_path, yaml_file):
 
     Parameters:
     -----------
-    1) installed_dir_path: The directory path to the installed files
-    2) yaml_file: The meta.yaml file for the recipe
+    1) installed_dir_path: (str) The directory path to the installed files
+    2) yaml_file:          (str) The meta.yaml file for the recipe
 
     Returns:
     ++++++++
@@ -991,8 +990,8 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
     
     Parameters:
     -----------
-    1) bz2: The bz2 file created during the conda build process of the data package
-    2) exit_num: The exit number to exit the program with
+    1) bz2:      (str) The bz2 file created during the conda build process of the data package
+    2) exit_num: (int) The exit number to exit the program with
     """
     from .utils import get_conda_package_list, update_installed_pkg_metadata
 
@@ -1037,7 +1036,7 @@ def remove_package_after_install(bz2, recipe_name, exit_num):
 
 
 def check_header(install_path):
-    """Method to check the final genomic headers have a header or not
+    """Method to check the final genomics headers have a header or not
 
     check_header
     ============
@@ -1054,11 +1053,11 @@ def check_header(install_path):
 
     Parameters:
     -----------
-    1) install_path: The path to the directory where the files have been installed into.
+    1) install_path: (str) The path to the directory where the files have been installed into.
 
     Returns:
     +++++++
-    True or False. 
+    (bool) True or False. 
      - True if a header exist or if only a warning was given
      - False if a header does not exists and is required
 
@@ -1282,7 +1281,7 @@ def check_files(
     before_files,
     bz2,
 ):
-    """Method to check the presence of correct genomic files """
+    """Method to check the presence of correct genomics files """
     from fnmatch import fnmatch
 
     P = "{species}/{build}:{recipe_name}".format(**locals())
@@ -1304,7 +1303,7 @@ def check_files(
 
     base_tbx_tbi = [
         x[:-3] for x in tbxs if x[:-3] in nons
-    ]  # Name of files that are bgzip and tabix3d
+    ]  # Name of files that are bgzip and tabixed
 
     nons = [x for x in nons if x not in tbxs]  # files not tabixed or tbi
     nons = [x for x in nons if x not in base_tbx_tbi]  # files not tabixed or tbi

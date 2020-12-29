@@ -78,7 +78,7 @@ def get_ggd_channels():
     
     get_ggd_channels
     ================
-    This method is used to get all available/created ggd conaa channels.
+    This method is used to get all available/created ggd conda channels.
     This method will return a list of ggd conda channels.
 
     Run get_species() before running get_ggd_channels(). get_species triggers an update
@@ -257,7 +257,7 @@ def update_channel_data_files(channel):
         if not os.path.isdir(channel_dir):
             os.makedirs(channel_dir, mode=0o777)
 
-        ## Dowload json file
+        ## Download json file
         channeldata_url = os.path.join(
             "https://raw.githubusercontent.com/gogetdata/ggd-metadata/master/channeldata/",
             channel,
@@ -318,7 +318,7 @@ def get_run_deps_from_tar(tarfile_path, channel):
     Parameters:
     ----------
     1) tarfile_path: (str) Path to the package tarfile to search for deps in 
-    2) channel:      (str) The ggd chanenl the tarball file package is for
+    2) channel:      (str) The ggd channel the tarball file package is for
 
     Returns:
     +++++++
@@ -459,7 +459,7 @@ def update_installed_pkg_metadata(
     ## Get the dir to the pkgs dir
     pkg_dir = os.path.join(prefix, "pkgs")
 
-    ## Get a list of pkgs installed in a conda environemnt (Using conda list)
+    ## Get a list of pkgs installed in a conda environment (Using conda list)
     pkg_list = {}
     if add_packages:
         for add_package in add_packages:
@@ -536,7 +536,7 @@ def check_conda_pkg_dir(prefix, exclude_pkg=None):
     ===================
     Method to check that the conda pkg directory contains the tar files for installed ggd recipes. This is 
      useful if for some reason the .tar.bz2 files are removed from the conda pkg dir. This is seen to happen 
-     if someone runs `conda clean`. This will make sure that ggd tar files are maintined. 
+     if someone runs `conda clean`. This will make sure that ggd tar files are maintained. 
 
     Parameters:
     ----------
@@ -663,7 +663,7 @@ def get_conda_prefix_path(prefix):
 
     get_conda_prefix_path
     =====================
-    This method is used to get the acutal prefix path from a file path or conda environment name 
+    This method is used to get the actual prefix path from a file path or conda environment name 
 
     Parameters:
     -----------
@@ -837,7 +837,7 @@ def get_repodata(channels = ["ggd-genomics"], subdirs = ["noarch"], return_repod
     Parameters:
     -----------
     1) channels:        (list) A list of channels to check and get repodata for 
-    2) subdires:        (list) A list of subdirs (platforms) to check. ("noarch", "linux-64", etc.)
+    2) subdirs:         (list) A list of subdirs (platforms) to check. ("noarch", "linux-64", etc.)
                                 Default = ["noarch"]
     3) return_repodata: (bool) True or False, whether or not to return the repodata. If True, the repodata
                                 dict and the name 2 tar dict will be returned. If False, only the name 2 tar
@@ -874,7 +874,7 @@ def get_repodata(channels = ["ggd-genomics"], subdirs = ["noarch"], return_repod
             try:
                 repodata_json = requests.get(repodata_url).json()
             except ValueError as e:
-                print("\n:ggd:repodata: !!ERROR!! A problem occured loading the repodata for the conda channel: '{}' platform: '{}'".format(channel, subdir))
+                print("\n:ggd:repodata: !!ERROR!! A problem occurred loading the repodata for the conda channel: '{}' platform: '{}'".format(channel, subdir))
                 print(str(e))
                 sys.exit(1)
 
@@ -956,7 +956,7 @@ def get_meta_recipe_pkg(pkg_name, jdict, ggd_channel, prefix):
     newest_tar = ""
     platform = ""
 
-    ## Find the latest verion-build tar file
+    ## Find the latest version-build tar file
     for subdir in name2tar[channel_key].keys():
         
         if pkg_name in name2tar[channel_key][subdir]:
@@ -989,7 +989,7 @@ def get_meta_recipe_pkg(pkg_name, jdict, ggd_channel, prefix):
                                                                                                                     tar_file = newest_tar
                                                                                                                     )
 
-    ## Check the info identiifed 
+    ## Check the info identified 
     assert (highest_build != -1.0), "\n:ggd:meta-recipe: !!ERROR!! Could not find the recipe in the repodata"
 
     assert (platform != ""), "\n:ggd:meta-recipe: !!ERROR!! Package not found in available platforms"
@@ -1026,7 +1026,7 @@ def get_meta_recipe_pkg(pkg_name, jdict, ggd_channel, prefix):
     target_path = os.path.join(dest_dir,newest_tar) 
     assert (os.path.exists(target_path) and os.path.isfile(target_path)), "\n:ggd:meta-recipe: !!ERROR!! There was a problem downloading the meta-recipe pkg. It is missing from the target dir"
 
-    ## Check the the downloaded meta-recipe is was downloaded correctly using mf5sum
+    ## Check the the downloaded meta-recipe is was downloaded correctly using md5sum
     print("\n:ggd:meta-recipe: Checking md5sum")
 
     downloaded_md5sum = get_file_md5sum(target_path)
@@ -1043,7 +1043,7 @@ def create_tmp_meta_recipe_env_file():
     ===============================
     Method to create a tmp directory where the ID specific environment variables will be stored. The tmp dir is created,
      and the path to the meta-recipe json file is returned. Meta-recipes wishing to update the metadata for the ID specific 
-     recipe should write to file path returend from this method. 
+     recipe should write to file path returned from this method. 
 
     NOTE: This tmp dir will persist and needs to be removed by the function that calls it once the use of it is complete. 
 
@@ -1058,10 +1058,10 @@ def create_tmp_meta_recipe_env_file():
     ## create tmp directory
     tmp_dir = tempfile.mkdtemp()
 
-    ## CHeck the tmp dirs
-    assert os.path.exists(tmp_dir), "\n:ggd:meta-recipe: !!ERROR!! There was a problem creating the temporary directory for meta-recipe enviornment variables" 
+    ## Check the tmp dirs
+    assert os.path.exists(tmp_dir), "\n:ggd:meta-recipe: !!ERROR!! There was a problem creating the temporary directory for meta-recipe environment variables" 
     assert os.access(tmp_dir, os.R_OK), "\n:ggd:meta-recipe: !!ERROR!! The temporary directory created for the meta-recipe environment variables is not readable"
-    assert os.access(tmp_dir, os.W_OK), "\n:ggd:meta-recipe: !!ERROR!! The temporary directory created for the meta-recipe environment variables is not writeable"
+    assert os.access(tmp_dir, os.W_OK), "\n:ggd:meta-recipe: !!ERROR!! The temporary directory created for the meta-recipe environment variables is not writable"
 
     return(tmp_dir, os.path.join(tmp_dir,GGD_META_RECIPE_ENV_JSON), os.path.join(tmp_dir,GGD_META_RECIPE_FINAL_COMMANDS))
 
@@ -1075,13 +1075,13 @@ def extract_metarecipe_recipe_from_bz2(metarecipe_name,new_name,bz2_file_path):
 
     The recipe will be a normal recipe directory and will be hosted in the tmp dir
 
-    Once finished with the recipe it is advicesed to delete the tmp dir
+    Once finished with the recipe it is advised to delete the tmp dir
 
     Parameters:
     -----------
     1) metarecipe_name: (str) The main name of the metarecipe
     2) new_name:        (str) The new/specific name of the ID specific recipe (The ID used when installing the metarecipe)
-    3) bz2_file_path:   (str) THe file path of the metarecipe main tar.bz2 file
+    3) bz2_file_path:   (str) The file path of the metarecipe main tar.bz2 file
 
     Returns:
     ++++++++
@@ -1120,7 +1120,7 @@ def extract_metarecipe_recipe_from_bz2(metarecipe_name,new_name,bz2_file_path):
     for dir_path, dir_names, file_names in os.walk(tmp_dir):
         if "recipe" in dir_path:
             for name in file_names:
-                ## SKip the conda build confg
+                ## Skip the conda build config
                 if name != "conda_build_config.yaml" and name != "meta.yaml":
                     shutil.move(os.path.join(dir_path,name), os.path.join(new_recipe_path,name.replace(".template","")))
 
@@ -1178,21 +1178,21 @@ def update_metarecipe_metadata(pkg_name,env_var_dict, parent_name, final_file_li
     ==========================
     Method to update a the metadata of an ID specific meta-recipe tar .bz2 package file.  
      
-    The bz2 file will be creating th the tmp direcotry and be moved to the same directory path as the original bz2 file.
+    The bz2 file will be creating in the tmp directory and be moved to the same directory path as the original bz2 file.
 
     The tmpdir of the file system will be used to create the new bz2 file
 
-    Metadata is updated based on "envrionment variables" created during the meta-recipe installation sorted in a dict.
+    Metadata is updated based on "environment variables" created during the meta-recipe installation sorted in a dict.
 
     Available Meta-Recipe Environment Variables that can be used to update the metadata include:
         - GGD_METARECIPE_SUMMARY:                   A summary of the installed data
-        - GGD_METARECIPE_SPECIES:                   The speciecs of the installed data 
+        - GGD_METARECIPE_SPECIES:                   The species of the installed data 
         - GGD_METARECIPE_GENOME_BUILD:              The genome build of the installed data
         - GGD_METARECIPE_VERSION:                   The version of the data installed
-        - GGD_METARECIPE_KEYWORDS:                  A comma seperated list of key words to add to the metadata
+        - GGD_METARECIPE_KEYWORDS:                  A comma separated list of key words to add to the metadata
         - GGD_METARECIPE_DATA_PROVIDER:             The data provider of the recipe. (Should already exists. Should not be used)
-        - GGD_METARECIPE_FILE_TYPE:                 A comma seperated list of file types for the files installed by the package
-        - GGD_METARECIPE_GENOMIC_COORDINATE_BASE:   A string that reperesnted the coordinate base of the installed files  
+        - GGD_METARECIPE_FILE_TYPE:                 A comma separated list of file types for the files installed by the package
+        - GGD_METARECIPE_GENOMIC_COORDINATE_BASE:   A string that represented the coordinate base of the installed files  
 
     The metadata sections will be updated only if the Environment Variables have been set in the dict
 
@@ -1202,7 +1202,7 @@ def update_metarecipe_metadata(pkg_name,env_var_dict, parent_name, final_file_li
     2) env_var_dict:         (dict) A dictionary of meta-recipe environment variables and their values
     3) parent_name:          (str)  The name of the parent meta-recipe
     4) final_file_list:      (list) A list of the final data files installed by the meta-recipe
-    5) final_file_size_dict: (dict) A dictionary of installed files and the size of thoes files
+    5) final_file_size_dict: (dict) A dictionary of installed files and the size of those files
     6) commands_str:         (str)  A string that represents the subsetted commands used by the ID specific meta-recipe
     7) prefix:               (str)  The conda environment/prefix to update. (Default = the current conda environment)
 
@@ -1227,7 +1227,7 @@ def update_metarecipe_metadata(pkg_name,env_var_dict, parent_name, final_file_li
     ## Get bz2 file path
     pkg_list = get_conda_package_list(prefix = prefix, regex = pkg_name, include_local=True)
 
-    ## bze file path is installed into the conda root path even if installing into a prefix. 
+    ## bz2 file path is installed into the conda root path even if installing into a prefix. 
     pkg_dir = os.path.join(conda_root(), "pkgs")
 
     if pkg_name not in pkg_list:
@@ -1244,7 +1244,7 @@ def update_metarecipe_metadata(pkg_name,env_var_dict, parent_name, final_file_li
         with tarfile.open(bz2_file_path) as archive:
             archive.extractall(tmp_dir)
     except Exception as e:
-        print("\nggd:meta-recipe: !!ERROR!! Unable to read {} as a tarfile".format(bz2_file_path))
+        print("\n:ggd:meta-recipe: !!ERROR!! Unable to read {} as a tarfile".format(bz2_file_path))
         print(str(e))
         return(False, None)
 

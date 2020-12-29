@@ -112,7 +112,7 @@ def get_similar_pkg_installed_by_conda(ggd_recipe):
      
     Parameters:
     ----------
-    1) ggd_recipe: The ggd_recipe name. (May not be an actually ggd_recipe)
+    1) ggd_recipe: (str) The ggd_recipe name. (May not be an actually ggd_recipe)
      
     Returns:
     +++++++
@@ -188,9 +188,9 @@ def check_for_installation(ggd_recipes, ggd_jdict, prefix=conda_root()):
     
     Parameters:
     -----------
-    1) ggd_recipes: A list of ggd recipe names to check for installation. (Recipes being uninstalled)
-    2) ggd_jdict: The json dictionary describing the ggd recipe
-    3) prefix: The conda prefix/environment to uninstall from (Default = conda_root())
+    1) ggd_recipes: (list) A list of ggd recipe names to check for installation. (Recipes being uninstalled)
+    2) ggd_jdict:   (dict) The json dictionary describing the ggd recipe
+    3) prefix:      (str)  The conda prefix/environment to uninstall from (Default = conda_root())
     
     Returns:
     +++++++

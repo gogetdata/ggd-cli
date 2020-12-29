@@ -48,7 +48,7 @@ def add_make_bash(p):
         "-p",
         "--platform",
         default="noarch",
-        help="Whether to use noarch as the platfrom or the system platform. If set to 'none' the system platform will be used. (Default = noarch. Noarch means no architecture and is platform agnostic.)",
+        help="Whether to use noarch as the platform or the system platform. If set to 'none' the system platform will be used. (Default = noarch. Noarch means no architecture and is platform agnostic.)",
         choices=["noarch", "none"],
     )
     c2 = c.add_argument_group("required arguments")
@@ -409,7 +409,7 @@ echo 'Recipe successfully built!'
                 name=name,
                 build=args.genome_build,
                 version=args.package_version,
-                ext_string="{f#*.}",  ## Bash get extention. (.bed, .bed.gz, etc.)
+                ext_string="{f#*.}",  ## Bash get extension. (.bed, .bed.gz, etc.)
                 filename_string="{f%%.*}",
                 file_env_var="{recipe_env_file_name:-}",
             )
