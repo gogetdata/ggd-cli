@@ -10,7 +10,15 @@ import subprocess as sp
 import sys
 import traceback
 
-from .utils import check_for_meta_recipes, conda_root, extract_metarecipe_recipe_from_bz2, get_ggd_channels, get_meta_recipe_pkg, get_repodata 
+from .utils import (
+    check_for_meta_recipes,
+    conda_root,
+    extract_metarecipe_recipe_from_bz2,
+    get_ggd_channels,
+    get_meta_recipe_pkg,
+    get_repodata,
+)
+
 
 # -------------------------------------------------------------------------------------------------------------
 ## Argument Parser
@@ -54,8 +62,10 @@ def add_install(p):
     c.add_argument(
         "--id",
         metavar="Meta-recipe ID",
-        help = ("The ID to use for the meta recipe being installed. For example, if installing the GEO meta-recipe for GEO Accession ID GSE123, use `--id GSE123`"
-                " NOTE: GGD will NOT try to correct the ID. The ID must be accurately entered with case sensitive alphanumeric order") 
+        help=(
+            "The ID to use for the meta recipe being installed. For example, if installing the GEO meta-recipe for GEO Accession ID GSE123, use `--id GSE123`"
+            " NOTE: GGD will NOT try to correct the ID. The ID must be accurately entered with case sensitive alphanumeric order"
+        ),
     )
 
     c.set_defaults(func=install)
@@ -221,10 +231,12 @@ def get_idname_from_metarecipe(accession_id, meta_recipe_name, jdict):
     1) The id specific recipe name from the meta recipe
     """
 
-    new_recipe_name = "{}-{}-v{}".format(accession_id, 
-                                         jdict["packages"][meta_recipe_name]["tags"]["data-provider"].lower(), 
-                                         jdict["packages"][meta_recipe_name]["version"])
-    return(new_recipe_name)
+    new_recipe_name = "{}-{}-v{}".format(
+        accession_id,
+        jdict["packages"][meta_recipe_name]["tags"]["data-provider"].lower(),
+        jdict["packages"][meta_recipe_name]["version"],
+    )
+    return new_recipe_name
 
 
 def check_S3_bucket(ggd_recipe, ggd_jdict):
@@ -349,7 +361,15 @@ def install_from_cached(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix
     return True
 
 
-def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,  meta_recipe = False, meta_recipe_name = None):
+def conda_install(
+    ggd_recipes,
+    ggd_channel,
+    ggd_jdict,
+    debug=False,
+    prefix=None,
+    meta_recipe=False,
+    meta_recipe_name=None,
+):
     """Method to install the recipe from the ggd-channel using conda
     
     conda_install
@@ -410,11 +430,16 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
 
             ## Set up meta-recipe env var tracking
             from .utils import create_tmp_meta_recipe_env_file
-            env_var_tmp_dir, env_var_file_path, final_commands_files = create_tmp_meta_recipe_env_file()
+
+            (
+                env_var_tmp_dir,
+                env_var_file_path,
+                final_commands_files,
+            ) = create_tmp_meta_recipe_env_file()
             os.environ["GGD_METARECIPE_ENV_VAR_FILE"] = env_var_file_path
             os.environ["GGD_METARECIPE_FINAL_COMMANDS_FILE"] = final_commands_files
 
-        ## Install 
+        ## Install
         sp.check_call(command, stderr=sys.stderr, stdout=sys.stdout)
 
     except sp.CalledProcessError as e:
@@ -439,13 +464,23 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
         try:
             import json
 
-            print("\n:ggd:install: Loading Meta-Recipe ID specific environment variables")
+            print(
+                "\n:ggd:install: Loading Meta-Recipe ID specific environment variables"
+            )
             ## Get the updated env var list
-            meta_env_vars = json.load(open(env_var_file_path)) if os.path.exists(env_var_file_path) else {}
+            meta_env_vars = (
+                json.load(open(env_var_file_path))
+                if os.path.exists(env_var_file_path)
+                else {}
+            )
 
             ## Get the ID specific commands
-            commands_str = "\n".join([x.strip() for x in open(final_commands_files, "r")]) if os.path.exists(final_commands_files) else ""
-                
+            commands_str = (
+                "\n".join([x.strip() for x in open(final_commands_files, "r")])
+                if os.path.exists(final_commands_files)
+                else ""
+            )
+
             ## Remove tmp dir
             shutil.rmtree(env_var_tmp_dir)
 
@@ -460,35 +495,44 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
             recipe_files = os.listdir(path)
 
             ## Get the file sizes
-            from .utils import get_file_size, update_metarecipe_metadata
             from collections import defaultdict
+
+            from .utils import get_file_size, update_metarecipe_metadata
+
             file_size_dict = defaultdict(str)
             for f in recipe_files:
-                fsize, tsize, bsize = get_file_size(os.path.join(path,f))
+                fsize, tsize, bsize = get_file_size(os.path.join(path, f))
                 file_size_dict[f] = fsize
 
-            ## Update meta-recipe metadata 
-            success, new_bz2 = update_metarecipe_metadata(pkg_name = pkg_name,
-                                                         env_var_dict = meta_env_vars,
-                                                         parent_name = meta_recipe_name,
-                                                         final_file_list = recipe_files,
-                                                         final_file_size_dict = dict(file_size_dict),
-                                                         commands_str = commands_str,
-                                                         prefix = target_prefix)
-            
-            assert success, "\n:ggd:install: !!ERROR!! There was a problem updating the meta-recipe metadata"
+            ## Update meta-recipe metadata
+            success, new_bz2 = update_metarecipe_metadata(
+                pkg_name=pkg_name,
+                env_var_dict=meta_env_vars,
+                parent_name=meta_recipe_name,
+                final_file_list=recipe_files,
+                final_file_size_dict=dict(file_size_dict),
+                commands_str=commands_str,
+                prefix=target_prefix,
+            )
+
+            assert (
+                success
+            ), "\n:ggd:install: !!ERROR!! There was a problem updating the meta-recipe metadata"
 
         except Exception as e:
-            from .uninstall import check_for_installation
             import traceback
-            print("\n:ggd:install: !!ERROR!! Post-Installation problems while updating meta-recipe metadata")
+
+            from .uninstall import check_for_installation
+
+            print(
+                "\n:ggd:install: !!ERROR!! Post-Installation problems while updating meta-recipe metadata"
+            )
             print(str(e))
             print(traceback.print_exc())
             check_for_installation(
                 ggd_recipes, ggd_jdict, target_prefix
             )  ## .uninstall method to remove extra ggd files
             sys.exit(1)
-
 
     ## copy tarball and pkg file to target prefix
     if prefix != None and prefix != conda_root():
@@ -497,12 +541,17 @@ def conda_install(ggd_recipes, ggd_channel, ggd_jdict, debug=False, prefix=None,
     ## Update installed metadata
     print("\n:ggd:install: Updating installed package list")
     update_installed_pkg_metadata(
-        prefix=target_prefix, remove_old=False, add_packages=ggd_recipes, include_local = True if meta_recipe else False
+        prefix=target_prefix,
+        remove_old=False,
+        add_packages=ggd_recipes,
+        include_local=True if meta_recipe else False,
     )
 
     ## Checksum
     try:
-        install_checksum(ggd_recipes, ggd_jdict, target_prefix, meta_recipe, meta_recipe_name)
+        install_checksum(
+            ggd_recipes, ggd_jdict, target_prefix, meta_recipe, meta_recipe_name
+        )
     except ChecksumError as e:
         from .uninstall import check_for_installation
 
@@ -609,7 +658,9 @@ def get_file_locations(ggd_recipes, ggd_jdict, prefix=None):
     print("\n\n")
 
 
-def install_checksum(pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe = False, meta_recipe_name = ""):
+def install_checksum(
+    pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe=False, meta_recipe_name=""
+):
     """Method to check the md5sums of the installed files against the metadata md5sums
 
     install_checksum
@@ -663,14 +714,20 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe = Fa
 
         ## Get checksum dict
         if meta_recipe:
-            assert meta_recipe_name != "", "\n:ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe without the parent meta-recipe name"
-            print("\n:ggd:install: NOTICE: Skipping checksum for meta-recipe {} => {}".format(meta_recipe_name, ", ".join(pkg_names)))
+            assert (
+                meta_recipe_name != ""
+            ), "\n:ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe without the parent meta-recipe name"
+            print(
+                "\n:ggd:install: NOTICE: Skipping checksum for meta-recipe {} => {}".format(
+                    meta_recipe_name, ", ".join(pkg_names)
+                )
+            )
             checksum_dict = {}
-#            try:
-#                checksum_dict = get_meta_recipe_checksum(meta_recipe_name, pkg_name) 
-#            except SystemExit as e:
-#                print(str(e))
-#                raise ChecksumError(pkg_name)
+        #            try:
+        #                checksum_dict = get_meta_recipe_checksum(meta_recipe_name, pkg_name)
+        #            except SystemExit as e:
+        #                print(str(e))
+        #                raise ChecksumError(pkg_name)
         else:
             checksum_dict = get_checksum_dict_from_tar(tarfile_path)
 
@@ -702,7 +759,7 @@ def install_checksum(pkg_names, ggd_jdict, prefix=conda_root(), meta_recipe = Fa
     return True
 
 
-def copy_pkg_files_to_prefix(prefix, pkg_names, meta_recipe = False):
+def copy_pkg_files_to_prefix(prefix, pkg_names, meta_recipe=False):
     """Method to copy the tar and package files from the current conda environment to the target prefix
     
     copy_pkg_files_to_prefix
@@ -735,7 +792,9 @@ def copy_pkg_files_to_prefix(prefix, pkg_names, meta_recipe = False):
     if os.path.exists(os.path.join(prefix, "pkgs")) == False:
         os.mkdir(os.path.join(prefix, "pkgs"))
 
-    data_packages = get_conda_package_list(prefix, include_local = True if meta_recipe else False)
+    data_packages = get_conda_package_list(
+        prefix, include_local=True if meta_recipe else False
+    )
     for pkg_name in pkg_names:
         ## Get the file paths for the tar file and package
         version = str(data_packages[pkg_name]["version"])
@@ -815,31 +874,45 @@ def install(parser, args):
         if ggd_jsonDict == None:
             sys.exit()
 
-        ## Check if pkg is a meta-recipe 
-        if check_for_meta_recipes(name = pkg, jdict = ggd_jsonDict):
+        ## Check if pkg is a meta-recipe
+        if check_for_meta_recipes(name=pkg, jdict=ggd_jsonDict):
 
-            print("\n:ggd:install: {} is a meta-recipe. Checking meta-recipe for installation".format(pkg))
+            print(
+                "\n:ggd:install: {} is a meta-recipe. Checking meta-recipe for installation".format(
+                    pkg
+                )
+            )
             is_metarecipe = True
             metarecipe_name = pkg
 
-            ## Check for an meta-recipe ID 
+            ## Check for an meta-recipe ID
             if not args.id:
-                print("\n:ggd:install: An ID is required in order to install a GGD meta-recipe. Please add the '--id <Some ID>' flag and try again")
+                print(
+                    "\n:ggd:install: An ID is required in order to install a GGD meta-recipe. Please add the '--id <Some ID>' flag and try again"
+                )
                 sys.exit()
 
             ## Check number of packages
             if len(pkg_list) > 1:
-                print("\n:ggd:install: GGD is currently only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command")
+                print(
+                    "\n:ggd:install: GGD is currently only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command"
+                )
                 sys.exit()
 
             ## Id must be lower case for conda
             meta_recipe_id = args.id.lower()
 
             ## Get the new name
-            new_recipe_name = get_idname_from_metarecipe(meta_recipe_id, pkg, ggd_jsonDict)
-            print("\n:ggd:install: The ID specific recipe to be installed is '{}'.".format(new_recipe_name))
+            new_recipe_name = get_idname_from_metarecipe(
+                meta_recipe_id, pkg, ggd_jsonDict
+            )
+            print(
+                "\n:ggd:install: The ID specific recipe to be installed is '{}'.".format(
+                    new_recipe_name
+                )
+            )
 
-            ## update the meta data dict with the new recipe 
+            ## update the meta data dict with the new recipe
             ggd_jsonDict["packages"][new_recipe_name] = ggd_jsonDict["packages"][pkg]
 
             ## Check if already installed
@@ -848,18 +921,26 @@ def install(parser, args):
 
             ## Download the meta recipe pkg
             try:
-                prefix_pkg_dir, tarball_name, tarball_path = get_meta_recipe_pkg(pkg, ggd_jsonDict, args.channel, conda_prefix)
+                prefix_pkg_dir, tarball_name, tarball_path = get_meta_recipe_pkg(
+                    pkg, ggd_jsonDict, args.channel, conda_prefix
+                )
             except AssertionError as e:
-                print("\n:ggd:install: !!ERROR!! There was a problem during the installation of the the meta-recipe pkg file")
+                print(
+                    "\n:ggd:install: !!ERROR!! There was a problem during the installation of the the meta-recipe pkg file"
+                )
                 print(str(e))
                 sys.exit(1)
-                
+
             ## Create the new id specific recipe from the meta-recipe
-            success, new_recipe_path, tmpdir = extract_metarecipe_recipe_from_bz2(pkg, new_recipe_name, tarball_path)
+            success, new_recipe_path, tmpdir = extract_metarecipe_recipe_from_bz2(
+                pkg, new_recipe_name, tarball_path
+            )
 
             ## Check for success
             try:
-                assert (success), "\n:ggd:install: !!ERROR!! There was a problem updating the meta-recipe to the ID specific recipe"
+                assert (
+                    success
+                ), "\n:ggd:install: !!ERROR!! There was a problem updating the meta-recipe to the ID specific recipe"
             except AssertionError as e:
                 print(str(e))
                 if tmpdir:
@@ -868,10 +949,15 @@ def install(parser, args):
 
             ## Open the new recipe yaml file
             import yaml
+
             try:
-                recipe_yaml = yaml.safe_load(open(os.path.join(new_recipe_path, "meta.yaml")))
+                recipe_yaml = yaml.safe_load(
+                    open(os.path.join(new_recipe_path, "meta.yaml"))
+                )
             except Exception as e:
-                print("\n:ggd:install: !!ERROR!! Unable to read the new recipe yaml file")
+                print(
+                    "\n:ggd:install: !!ERROR!! Unable to read the new recipe yaml file"
+                )
                 print(str(e))
                 if tmpdir:
                     shutil.rmtree(tmpdir)
@@ -880,9 +966,14 @@ def install(parser, args):
             ## Build the tar.bz2 file for the new recipe
             print("\n:ggd:install: Building new ID specific pkg\n")
             from .check_recipe import _build
+
             try:
-                new_bz2 = _build(new_recipe_path, recipe_yaml, debug = True if args.debug else False)
-                assert (os.path.exists(new_bz2)), "\n:ggd:install: !!ERROR!! There was a problem building the new recipe"
+                new_bz2 = _build(
+                    new_recipe_path, recipe_yaml, debug=True if args.debug else False
+                )
+                assert os.path.exists(
+                    new_bz2
+                ), "\n:ggd:install: !!ERROR!! There was a problem building the new recipe"
             except Exception as e:
                 print(str(e))
                 if tmpdir:
@@ -890,7 +981,7 @@ def install(parser, args):
                 sys.exit(1)
 
             print("\n:ggd:install: Successfully built new ID specific meta recipe")
-            
+
             ## Remove the tmpdir
             if tmpdir:
                 shutil.rmtree(tmpdir)
@@ -922,7 +1013,11 @@ def install(parser, args):
 
     ## Provide a warning if the id parameter was set but no meta-recipes are being installed
     if not is_metarecipe and args.id:
-        print("\n:ggd:install: WARNING: The '--id' argument was set but no meta-recipes are being installed. ID {} will not be used".format(args.id))
+        print(
+            "\n:ggd:install: WARNING: The '--id' argument was set but no meta-recipes are being installed. ID {} will not be used".format(
+                args.id
+            )
+        )
 
     ## Identify any non_cached packages
     cached = []
@@ -968,8 +1063,8 @@ def install(parser, args):
             ggd_jsonDict,
             debug=args.debug,
             prefix=conda_prefix,
-            meta_recipe = is_metarecipe,
-            meta_recipe_name = metarecipe_name
+            meta_recipe=is_metarecipe,
+            meta_recipe_name=metarecipe_name,
         )
 
     ## If something is installed, show the installed pkg info

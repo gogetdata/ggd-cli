@@ -1,10 +1,9 @@
 from __future__ import print_function
 
 import os
-
 from shutil import copyfile
 
-from .utils import get_builds, get_ggd_channels, get_species 
+from .utils import get_builds, get_ggd_channels, get_species
 
 SPECIES_LIST = sorted(get_species())
 GENOME_BUILDS = sorted(get_builds("*"))
@@ -24,7 +23,6 @@ def add_make_metarecipe(p):
         help="Make a new ggd data meta-recipe",
         description="Make a ggd data meta-recipe",
     )
-
 
     c.add_argument(
         "-c",
@@ -55,21 +53,21 @@ def add_make_metarecipe(p):
         "-s",
         "--species",
         help="The species recipe is for. Use 'meta-recipe` for a metarecipe file",
-        default = "meta-recipe"
+        default="meta-recipe",
     )
 
     c.add_argument(
         "-g",
         "--genome-build",
         help="The genome build the recipe is for. Use 'metarecipe' for a metarecipe file",
-        default = "meta-recipe"
+        default="meta-recipe",
     )
 
     c.add_argument(
         "-dv",
         "--data-version",
         help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127). Use 'metarecipe' for a metarecipe",
-        default = "meta-recipe"
+        default="meta-recipe",
     )
 
     c.add_argument(
@@ -77,14 +75,14 @@ def add_make_metarecipe(p):
         "--coordinate-base",
         choices=GENOMIC_COORDINATE_LIST,
         help="The genomic coordinate basing for the file(s) in the recipe. Use 'NA' for a metarecipe",
-        default = "NA"
+        default="NA",
     )
 
     c.add_argument(
         "--extra-scripts",
-        metavar = "Extra Scripts",
-        nargs = "*",
-        help = "Any additional scripts used for the metarecipe that are not the main bash script"
+        metavar="Extra Scripts",
+        nargs="*",
+        help="Any additional scripts used for the metarecipe that are not the main bash script",
     )
 
     c2 = c.add_argument_group("required arguments")
@@ -127,7 +125,6 @@ def add_make_metarecipe(p):
         required=True,
     )
 
-
     c2.add_argument(
         "-n",
         "--name",
@@ -137,8 +134,7 @@ def add_make_metarecipe(p):
     )
 
     c2.add_argument(
-        "script",
-        help="bash script that contains the commands for the metarecipe.",
+        "script", help="bash script that contains the commands for the metarecipe.",
     )
 
     c.set_defaults(func=make_bash)
@@ -224,8 +220,7 @@ def make_bash(parser, args):
 
     from .check_recipe import _check_build
 
-
-#    if args.genome_build != "meta-recipe":
+    #    if args.genome_build != "meta-recipe":
     print(":ggd:make-recipe: checking", args.genome_build)
     _check_build(args.species, args.genome_build)
 
@@ -300,8 +295,8 @@ def make_bash(parser, args):
         }
     yml2 = {"extra": {"authors": args.authors}}
     yml3 = {"package": {"name": name, "version": args.package_version}}
-    #yml3 = {"package": {"name": "{{ GGD_NAME_ID }}-" + args.data_provider.lower() + "-v" + args.package_version , "version": args.package_version}}
-    #yml3 = {"package": {"name": """{{ environ.get("GGD_NAME_ID") }}-""" + args.data_provider.lower() + "-v" + args.package_version , "version": args.package_version}}
+    # yml3 = {"package": {"name": "{{ GGD_NAME_ID }}-" + args.data_provider.lower() + "-v" + args.package_version , "version": args.package_version}}
+    # yml3 = {"package": {"name": """{{ environ.get("GGD_NAME_ID") }}-""" + args.data_provider.lower() + "-v" + args.package_version , "version": args.package_version}}
     yml4 = {"requirements": {"build": non_ggd_deps[:], "run": deps[:]}}
     yml5 = {"source": {"path": "."}}
     yml6 = {
@@ -429,7 +424,7 @@ echo 'Recipe successfully built!'
         fh.write("#!/bin/sh\nset -eo pipefail -o nounset\n")
         fh.write(open(args.script).read())
 
-    ## create empty recipe.sh script 
+    ## create empty recipe.sh script
     open(os.path.join(name, "recipe.sh"), "a").close()
 
     ## Create empty checksum file
@@ -441,10 +436,8 @@ echo 'Recipe successfully built!'
         % name
     )
 
-
     ## Copy all extra scripts to the meta recipe directory
     for f in args.extra_scripts:
         copyfile(f, os.path.join(os.getcwd(), name, os.path.basename(f)))
-        
 
     return True

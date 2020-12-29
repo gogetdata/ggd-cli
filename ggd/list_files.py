@@ -6,8 +6,8 @@ from __future__ import print_function
 import os
 import sys
 
+from .list_installed_pkgs import GGD_INFO, METADATA, get_metadata
 from .utils import get_builds, get_ggd_channels, get_species
-from .list_installed_pkgs import  get_metadata, GGD_INFO, METADATA
 
 SPECIES_LIST = sorted(get_species())
 GENOME_BUILDS = sorted(get_builds("*"))
@@ -65,7 +65,9 @@ def add_list_files(p):
 # -------------------------------------------------------------------------------------------------------------
 
 
-def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_list = False):
+def in_ggd_channel(
+    ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_list=False
+):
     """Method to check if the desired ggd recipe is in the ggd channel
 
     in_ggd_channel
@@ -111,7 +113,7 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
         ==================
         Load the local install ggd packages from a json file into a dict.
         """
-    
+
         ## Get local install list
         local_json_dict = get_metadata(C_ROOT, GGD_INFO, METADATA)
 
@@ -121,10 +123,9 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
             if value["tags"]["ggd-channel"] != ggd_channel:
                 rm_pkgs.append(pkg)
 
-        [local_json_dict["packages"].pop(key) for key in rm_pkgs] 
+        [local_json_dict["packages"].pop(key) for key in rm_pkgs]
 
         return local_json_dict
-
 
     def get_package_list(j_dict):
         """
@@ -145,8 +146,7 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
         if len(json_dict["packages"].keys()) > 0:
             package_list = search_packages(j_dict, ggd_recipes)
 
-        return(package_list)
-
+        return package_list
 
     json_dict = {"channeldata_version": 1, "packages": {}}
     if check_for_internet_connection(3):
@@ -169,11 +169,11 @@ def in_ggd_channel(ggd_recipes, ggd_channel, C_ROOT, reporting=True, return_pkg_
     package_list = get_package_list(json_dict)
 
     ## If no pkgs, check the local installed files
-    if not all(True if recipe in package_list else False for recipe in ggd_recipes ):
+    if not all(True if recipe in package_list else False for recipe in ggd_recipes):
         json_dict["packages"].update(get_local_pkg_dict()["packages"])
         package_list = get_package_list(json_dict)
 
-    if all(True if recipe in package_list else False for recipe in ggd_recipes ):
+    if all(True if recipe in package_list else False for recipe in ggd_recipes):
         if return_pkg_list:
             return (package_list, json_dict)
         else:

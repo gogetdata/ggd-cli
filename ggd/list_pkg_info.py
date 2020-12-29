@@ -45,7 +45,7 @@ def add_pkg_info(p):
 # -------------------------------------------------------------------------------------------------------------
 
 
-def check_if_ggd_recipe(ggd_recipe, ggd_channel, prefix = conda_root()):
+def check_if_ggd_recipe(ggd_recipe, ggd_channel, prefix=conda_root()):
     """Method to check if a ggd recipe is in designated ggd channel or not 
 
     check_if_ggd_recipe
@@ -76,7 +76,9 @@ def check_if_ggd_recipe(ggd_recipe, ggd_channel, prefix = conda_root()):
         return False
 
 
-def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel, prefix = conda_root()):
+def get_meta_yaml_info(
+    tarball_info_object, ggd_recipe, ggd_channel, prefix=conda_root()
+):
     """Method to get information from the meta.yaml file of an installed ggd package
 
     get_meta_yaml_info
@@ -111,11 +113,19 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel, prefix = co
         )
         utils.add_yaml_literal_block(yaml)
 
-    species = yaml_dict["about"]["identifiers"]["species"] 
-    genome_build = yaml_dict["about"]["identifiers"]["genome-build"] 
+    species = yaml_dict["about"]["identifiers"]["species"]
+    genome_build = yaml_dict["about"]["identifiers"]["genome-build"]
 
-    report_species = yaml_dict["about"]["identifiers"]["species"] if "updated-species" not in yaml_dict["about"]["identifiers"] else "(Updated) " +  yaml_dict["about"]["identifiers"]["updated-species"] 
-    report_genome_build = yaml_dict["about"]["identifiers"]["genome-build"] if "updated-genome-build" not in yaml_dict["about"]["identifiers"] else "(Updated) " + yaml_dict["about"]["identifiers"]["updated-genome-build"]
+    report_species = (
+        yaml_dict["about"]["identifiers"]["species"]
+        if "updated-species" not in yaml_dict["about"]["identifiers"]
+        else "(Updated) " + yaml_dict["about"]["identifiers"]["updated-species"]
+    )
+    report_genome_build = (
+        yaml_dict["about"]["identifiers"]["genome-build"]
+        if "updated-genome-build" not in yaml_dict["about"]["identifiers"]
+        else "(Updated) " + yaml_dict["about"]["identifiers"]["updated-genome-build"]
+    )
 
     version = yaml_dict["package"]["version"]
 
@@ -125,7 +135,11 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel, prefix = co
     )
     if "parent-meta-recipe" in yaml_dict["about"]["identifiers"]:
         results.append(
-            "\t" + "\033[1m" + "GGD Parent Meta-Recipe:" + "\033[0m" + " {}".format(yaml_dict["about"]["identifiers"]["parent-meta-recipe"])
+            "\t"
+            + "\033[1m"
+            + "GGD Parent Meta-Recipe:"
+            + "\033[0m"
+            + " {}".format(yaml_dict["about"]["identifiers"]["parent-meta-recipe"])
         )
     results.append(
         "\t" + "\033[1m" + "GGD-Channel:" + "\033[0m" + " ggd-{}".format(ggd_channel)
@@ -140,9 +154,15 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel, prefix = co
         + "\033[0m"
         + " {}".format(yaml_dict["about"]["summary"])
     )
-    results.append("\t" + "\033[1m" + "Species:" + "\033[0m" + " {}".format(report_species))
     results.append(
-        "\t" + "\033[1m" + "Genome Build:" + "\033[0m" + " {}".format(report_genome_build)
+        "\t" + "\033[1m" + "Species:" + "\033[0m" + " {}".format(report_species)
+    )
+    results.append(
+        "\t"
+        + "\033[1m"
+        + "Genome Build:"
+        + "\033[0m"
+        + " {}".format(report_genome_build)
     )
     if "keywords" in yaml_dict["about"] and yaml_dict["about"]["keywords"]:
         results.append(
@@ -278,7 +298,7 @@ def print_recipe(tarball_info_object, ggd_recipe):
     return True
 
 
-def get_pkg_info(ggd_recipe, ggd_channel, show_recipe, prefix = conda_root()):
+def get_pkg_info(ggd_recipe, ggd_channel, show_recipe, prefix=conda_root()):
     """Method to get the package info from an installed package
 
     get_pkg_info
@@ -298,7 +318,7 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe, prefix = conda_root()):
     from .utils import get_conda_package_list
 
     ## Get a list of installed ggd packages using conda list
-    conda_package_list = get_conda_package_list(prefix, include_local = True)
+    conda_package_list = get_conda_package_list(prefix, include_local=True)
 
     ## Check if ggd recipe in the list
     if ggd_recipe in conda_package_list.keys():
@@ -334,10 +354,7 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe, prefix = conda_root()):
 def info(parser, args):
     """Main method to run list_pkg_info"""
 
-    from .utils import (
-        get_conda_prefix_path,
-        prefix_in_conda,
-    )
+    from .utils import get_conda_prefix_path, prefix_in_conda
 
     ## Check prefix
     CONDA_ROOT = (

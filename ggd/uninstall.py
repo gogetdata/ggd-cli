@@ -50,13 +50,19 @@ def get_channeldata(ggd_recipes, ggd_channel):
      check_for_installation() method if it is found within the channeldata.json file
 
     """
-    
+
     from .list_files import in_ggd_channel
 
     ## Check if recipe is in the ggd channel
     package_list = []
     try:
-        package_list, jdict = in_ggd_channel(ggd_recipes, ggd_channel, conda_root(), reporting = False, return_pkg_list = True)
+        package_list, jdict = in_ggd_channel(
+            ggd_recipes,
+            ggd_channel,
+            conda_root(),
+            reporting=False,
+            return_pkg_list=True,
+        )
     except SystemExit:
         pass
 
@@ -70,7 +76,11 @@ def get_channeldata(ggd_recipes, ggd_channel):
                     % (recipe, ggd_channel)
                 )
             else:
-                print("\n:ggd:uninstall: The '{}' channel is not a ggd conda channel".format(ggd_channel))
+                print(
+                    "\n:ggd:uninstall: The '{}' channel is not a ggd conda channel".format(
+                        ggd_channel
+                    )
+                )
 
             similar_pkgs = get_similar_pkg_installed_by_conda(recipe)
             if len(similar_pkgs) > 0:
@@ -291,7 +301,7 @@ def uninstall(parser, args):
         sys.exit()
 
     ## Get the installed ggd data package names
-    installed_ggd_packages = get_conda_package_list(conda_root(), include_local = True)
+    installed_ggd_packages = get_conda_package_list(conda_root(), include_local=True)
 
     ## Check for GGD package as run deps
     ### Add them to the uninstall list

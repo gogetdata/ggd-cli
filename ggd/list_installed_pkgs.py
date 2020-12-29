@@ -201,10 +201,10 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
         print(
             (
                 "#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
-                " package(s) are installed, but the package metadata has been removed from conda storage. This" 
+                " package(s) are installed, but the package metadata has been removed from conda storage. This"
                 " happens when one of the following happen: \n 1) The package represents an ID specific meta-"
                 "recipe installed by GGD. \n 2) When the recipe is built locally using 'ggd check-recipe' and"
-                " has not been uninstalled. (Commonly for private data packages).\n  Or \n 3) The package is" 
+                " has not been uninstalled. (Commonly for private data packages).\n  Or \n 3) The package is"
                 " uninstalled using conda rather then ggd. The package is still available for use and is in"
                 " the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
                 " the package with 'ggd uninstall' and re-install with 'ggd install'.\n"
@@ -212,7 +212,7 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
         )
 
 
-def get_metadata(C_ROOT,GGD_INFO_DIR, METADATA_FILE):
+def get_metadata(C_ROOT, GGD_INFO_DIR, METADATA_FILE):
     """
     get_metadata
     =============
@@ -228,14 +228,14 @@ def get_metadata(C_ROOT,GGD_INFO_DIR, METADATA_FILE):
     ++++++++
     1) (dict) Metadata json file loaded as a dictionary
     """
-    
+
     try:
         metadata_dict = load_json(os.path.join(C_ROOT, GGD_INFO_DIR, METADATA_FILE))
     except IOError as e:
         print(str(e))
         sys.exit("\n:ggd:list: !!ERROR!! Unable to load the local metadata")
 
-    return(metadata_dict)
+    return metadata_dict
 
 
 def list_installed_packages(parser, args):
@@ -282,7 +282,7 @@ def list_installed_packages(parser, args):
         update_installed_pkg_metadata(prefix=CONDA_ROOT)
 
     ## Load json metadata data as dictionary
-    #metadata = load_json(os.path.join(CONDA_ROOT, GGD_INFO, METADATA))
+    # metadata = load_json(os.path.join(CONDA_ROOT, GGD_INFO, METADATA))
     metadata = get_metadata(CONDA_ROOT, GGD_INFO, METADATA)
 
     ## Get the environment variables
