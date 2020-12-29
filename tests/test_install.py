@@ -1546,46 +1546,46 @@ def test_install_checksum_meta_recipe():
 
     ## Download files
     try:
-        ## checkusm
-        sp.check_call(["wget", 
-                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/checksums_file.txt",
-                         "--directory-prefix",
-                         recipe_path])
-        ##  meta.yaml
-        sp.check_call(["wget", 
-                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/meta.yaml",
-                         "--directory-prefix",
-                         recipe_path])
-        ##  metarecipe.sh
-        sp.check_call(["wget", 
-                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/metarecipe.sh",
-                         "--directory-prefix",
-                         recipe_path])
-        ## head parser
-        sp.check_call(["wget", 
-                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/parse_geo_header.py",
-                         "--directory-prefix",
-                         recipe_path])
-        ## Post link
-        sp.check_call(["wget", 
-                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/post-link.sh", 
-                         "--directory-prefix",
-                         recipe_path])
-        ## recipe.sh
-        sp.check_call(["wget", 
-                         "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/recipe.sh",
-                         "--directory-prefix",
-                         recipe_path])
+       ## checkusm
+       sp.check_call(["wget", 
+                        "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/checksums_file.txt",
+                        "--directory-prefix",
+                        recipe_path])
+       ##  meta.yaml
+       sp.check_call(["wget", 
+                        "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/meta.yaml",
+                        "--directory-prefix",
+                        recipe_path])
+       ##  metarecipe.sh
+       sp.check_call(["wget", 
+                        "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/metarecipe.sh",
+                        "--directory-prefix",
+                        recipe_path])
+       ## head parser
+       sp.check_call(["wget", 
+                        "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/parse_geo_header.py",
+                        "--directory-prefix",
+                        recipe_path])
+       ## Post link
+       sp.check_call(["wget", 
+                        "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/post-link.sh", 
+                        "--directory-prefix",
+                        recipe_path])
+       ## recipe.sh
+       sp.check_call(["wget", 
+                        "https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/recipes/genomics/meta-recipe/meta-recipe/meta-recipe-geo-accession-geo-v1/recipe.sh",
+                        "--directory-prefix",
+                        recipe_path])
 
     except sp.CalledProcessError as e:
-        print(str(e))
-        assert False
+       print(str(e))
+       assert False
 
     ## update the name
     for f in os.listdir(recipe_path):
-        content = [x.replace("meta-recipe-geo-accession-geo-v1","gse123-geo-v1") for x in open(os.path.join(recipe_path,f))]
-        with open(os.path.join(recipe_path,f), "w") as out:
-            out.write("".join(content))
+       content = [x.replace("meta-recipe-geo-accession-geo-v1","gse123-geo-v1") for x in open(os.path.join(recipe_path,f))]
+       with open(os.path.join(recipe_path,f), "w") as out:
+           out.write("".join(content))
 
 
     ## Set env vars
@@ -1604,53 +1604,53 @@ def test_install_checksum_meta_recipe():
     ## Install recipe
     assert check_recipe._install(tarball_file_path, "gse123-geo-v1") == True
 
-    
+
     ## Remove the temp directories
     if os.path.exists(tmpdir):
-        shutil.rmtree(tmpdir)
+       shutil.rmtree(tmpdir)
 
     if os.path.exists(env_var_tmp_dir):
-        shutil.rmtree(env_var_tmp_dir)
+       shutil.rmtree(env_var_tmp_dir)
 
 
     ## Get recipe info
     meta_recipe = "gse123-geo-v1"
     parent_meta_recipe = "meta-recipe-geo-accession-geo-v1"
     ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'gse123-geo-v1': {u'activate.d': 
-                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
-                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
-                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
-                    u'noarch/gse123-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
-                    u'summary': u'GSE123 GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
-                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+                   False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                   u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                   False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                   u'noarch/gse123-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                   u'summary': u'GSE123 GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                   u'meta-recipe', u'species': u'meta-recipe'}}}}
 
 
     ## Test wihtout parent_name
     try:
-        install.install_checksum(pkg_names = [meta_recipe],
-                                 ggd_jdict = ggd_jdict,
-                                 prefix = utils.conda_root(),
-                                 meta_recipe = True,
-                                 meta_recipe_name = "")
-        assert False
+       install.install_checksum(pkg_names = [meta_recipe],
+                                ggd_jdict = ggd_jdict,
+                                prefix = utils.conda_root(),
+                                meta_recipe = True,
+                                meta_recipe_name = "")
+       assert False
     except AssertionError as e:
-        assert ":ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe wihtout the parent meta-recipe name" in str(e)
+       assert ":ggd:install: !!ERROR!! Unable to preform checksum on a meta-recipe without the parent meta-recipe name" in str(e)
 
 
     ## Test good checksum
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
 
-        install.install_checksum(pkg_names = [meta_recipe],
-                                 ggd_jdict = ggd_jdict,
-                                 prefix = utils.conda_root(),
-                                 meta_recipe = True,
-                                 meta_recipe_name = parent_meta_recipe)
+       install.install_checksum(pkg_names = [meta_recipe],
+                                ggd_jdict = ggd_jdict,
+                                prefix = utils.conda_root(),
+                                meta_recipe = True,
+                                meta_recipe_name = parent_meta_recipe)
 
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:install: Initiating data file content validation using checksum" in output
     assert ":ggd:install: Checksum for {}".format(meta_recipe) in output
-    assert ":ggd:install: NOTICE: Skipping checkusm for meta-recipe {} => {}".format(parent_meta_recipe, meta_recipe) in output
+    assert ":ggd:install: NOTICE: Skipping checksum for meta-recipe {} => {}".format(parent_meta_recipe, meta_recipe) in output
 
     sp.check_call(["ggd","uninstall","gse123-geo-v1"])
 
@@ -1658,7 +1658,7 @@ def test_install_checksum_meta_recipe():
 def test_copy_pkg_files_to_prefix():
     """
     Test that the copy_pkg_files_to_prefix method correctly copies the tarball and pkg files from the current 
-     conda environment to the target prefix
+    conda environment to the target prefix
     """
     pytest_enable_socket()
 
@@ -1667,9 +1667,9 @@ def test_copy_pkg_files_to_prefix():
     ### Remove temp env if it already exists
     sp.check_output(["conda", "env", "remove", "--name", "temp_env6"])
     try:
-        shutil.rmtree(temp_env)
+       shutil.rmtree(temp_env)
     except Exception:
-        pass
+       pass
 
     ###  Create the temp environment
     sp.check_output(["conda", "create", "--name", "temp_env6"])
@@ -1710,13 +1710,13 @@ def test_copy_pkg_files_to_prefix():
     assert os.path.isdir(os.path.join(utils.conda_root(),"pkgs",pkgdir))
     assert os.path.isfile(os.path.join(temp_env,"pkgs",tarfile))
     assert os.path.isdir(os.path.join(temp_env,"pkgs",pkgdir))
-    
+
     ### Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "temp_env6"])
     try:
-        shutil.rmtree(temp_env)
+       shutil.rmtree(temp_env)
     except Exception:
-        pass
+       pass
     assert os.path.exists(temp_env) == False
 
 
@@ -1731,9 +1731,9 @@ def test_non_prefix_capable_package():
     ### Remove temp env if it already exists
     sp.check_output(["conda", "env", "remove", "--name", "non_prefix_capable"])
     try:
-        shutil.rmtree(temp_env)
+       shutil.rmtree(temp_env)
     except Exception:
-        pass
+       pass
 
     ## Test a good install into a designated prefix
     ###  Create the temp environment
@@ -1742,17 +1742,17 @@ def test_non_prefix_capable_package():
     ## Test a package that is not set up to be installed with the --prefix flag
     args = Namespace(channel='genomics', command='install', debug=False, name=["danrer10-gtf-ensembl-v1"], file=[] ,prefix=temp_env, id = None)
     with pytest.raises(AssertionError) as pytest_wrapped_e:
-        install.install((), args)
+       install.install((), args)
     assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! the --prefix flag was set but the 'danrer10-gtf-ensembl-v1' data package is not set up to be installed into a different prefix. GGD is unable to fulfill the install request. Remove the --prefix flag to install this data package. Notify the ggd team if you would like this recipe to be updated for --prefix install compatibility")
 
     ### Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", "non_prefix_capable"])
     try:
-        shutil.rmtree(temp_env)
+       shutil.rmtree(temp_env)
     except Exception:
-        pass
+       pass
     assert os.path.exists(temp_env) == False
-    
+
 
 def test_install_main_function():
     """
@@ -1768,7 +1768,7 @@ def test_install_main_function():
     args = Namespace(channel='genomics', command='install', debug=False, name=[], file=[] ,prefix=None, id = None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        install.install((), args)
+       install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match(":ggd:install: !!ERROR!! Either a data package name or a file name with --file is required. Neither option was provided.") ## Check that the exit code is 1
 
@@ -1776,20 +1776,20 @@ def test_install_main_function():
     args = Namespace(channel='genomics', command='install', debug=False, name=[], file=["FaKe_FilE.Txt"] ,prefix=None, id = None)
 
     try:
-        install.install((), args)
-        assert False
+       install.install((), args)
+       assert False
     except AssertionError as e:
-        assert ":ggd:install: !!ERROR!! The FaKe_FilE.Txt file provided does not exists" in str(e)
+       assert ":ggd:install: !!ERROR!! The FaKe_FilE.Txt file provided does not exists" in str(e)
     except Exception as e:
-        print(str(e))
-        assert False
+       print(str(e))
+       assert False
 
     ## Test a non ggd recipe
     ggd_recipe1 = "Fake-hg19-gaps"
     args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe1], file=[] ,prefix=None, id = None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        install.install((), args)
+       install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
     ## Install pfam
@@ -1797,7 +1797,7 @@ def test_install_main_function():
     args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None, id = None)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        install.install((), args)
+       install.install((), args)
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:install: hg19-pfam-domains-ucsc-v1 version 1 is not installed on your system" in output
     assert ":ggd:install: hg19-pfam-domains-ucsc-v1 has not been installed by conda" in output
@@ -1811,10 +1811,10 @@ def test_install_main_function():
 
     ## Test an already installed ggd recipe
     args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_recipe], file=[], prefix=None, id = None)
-    
+
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        install.install((), args)
+       install.install((), args)
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:install: 'hg19-pfam-domains-ucsc-v1' is already installed." in output
     assert "You can find hg19-pfam-domains-ucsc-v1 here:" in output
@@ -1831,11 +1831,11 @@ def test_install_main_function():
 
     path = os.path.join(CONDA_ROOT,"share","ggd",species,build,ggd_recipe,version)
     for f in os.listdir(path):
-        os.remove(os.path.join(path,f))
+       os.remove(os.path.join(path,f))
     os.rmdir(path)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        install.install((), args)
+       install.install((), args)
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
 
     remove_pfam()
@@ -1857,7 +1857,7 @@ def test_install_main_function_multiple_recipes():
     args = Namespace(channel='genomics', command='install', debug=False, name=recipes, file=[], prefix=None, id = None)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        install.install((), args)
+       install.install((), args)
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:install: grch37-chromsizes-ggd-v1 version 1 is not installed on your system" in output
     assert ":ggd:install: grch37-chromsizes-ggd-v1 has not been installed by conda" in output
@@ -1873,44 +1873,44 @@ def test_install_main_function_multiple_recipes():
     assert ":ggd:install: Environment Variables" in output
 
     for name in recipes:
-        jdict = install.check_ggd_recipe(name,"genomics")
-        species = jdict["packages"][name]["identifiers"]["species"]
-        build = jdict["packages"][name]["identifiers"]["genome-build"]
-        version = jdict["packages"][name]["version"]
-        file1 = "{}.txt".format(name)
-        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
-        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
+       jdict = install.check_ggd_recipe(name,"genomics")
+       species = jdict["packages"][name]["identifiers"]["species"]
+       build = jdict["packages"][name]["identifiers"]["genome-build"]
+       version = jdict["packages"][name]["version"]
+       file1 = "{}.txt".format(name)
+       assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+       assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
 
     for name in recipes:
-        try:
-            args = Namespace(channel='genomics', command='uninstall', names=[name])
-            uninstall.uninstall((),args)
-        except:
-            pass
+       try:
+           args = Namespace(channel='genomics', command='uninstall', names=[name])
+           uninstall.uninstall((),args)
+       except:
+           pass
 
 
     ## Test install with mutliple packages with --files
     recipes = ["grch38-chromsizes-ggd-v1","hg38-chromsizes-ggd-v1"]
     args = Namespace(channel='genomics', command='install', debug=False, name=[], file=recipes, prefix=None, id = None)
-    
+
     ## Catch bad file 
     try:
-        install.install((),args)
-        assert False
+       install.install((),args)
+       assert False
     except AssertionError as e:
-        assert ":ggd:install: !!ERROR!! The grch38-chromsizes-ggd-v1 file provided does not exists" in str(e)
+       assert ":ggd:install: !!ERROR!! The grch38-chromsizes-ggd-v1 file provided does not exists" in str(e)
     except Exception:
-        assert False
+       assert False
 
     ### Create install file 
     install_file = CreateRecipe(
     """
     install_path:
-        install.txt: |
-            grch38-chromsizes-ggd-v1
-            hg38-chromsizes-ggd-v1
+       install.txt: |
+           grch38-chromsizes-ggd-v1
+           hg38-chromsizes-ggd-v1
     """, from_string=True)
-    
+
     install_file.write_recipes()
     install_file_dir_path = install_file.recipe_dirs["install_path"]   
     install_file_path = os.path.join(install_file_dir_path,"install.txt")
@@ -1918,7 +1918,7 @@ def test_install_main_function_multiple_recipes():
     ## Try good file
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
-        install.install((), args)
+       install.install((), args)
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:install: grch38-chromsizes-ggd-v1 version 1 is not installed on your system" in output
     assert ":ggd:install: grch38-chromsizes-ggd-v1 has not been installed by conda" in output
@@ -1934,20 +1934,20 @@ def test_install_main_function_multiple_recipes():
     assert ":ggd:install: Environment Variables" in output
 
     for name in recipes:
-        jdict = install.check_ggd_recipe(name,"genomics")
-        species = jdict["packages"][name]["identifiers"]["species"]
-        build = jdict["packages"][name]["identifiers"]["genome-build"]
-        version = jdict["packages"][name]["version"]
-        file1 = "{}.txt".format(name)
-        assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
-        assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
+       jdict = install.check_ggd_recipe(name,"genomics")
+       species = jdict["packages"][name]["identifiers"]["species"]
+       build = jdict["packages"][name]["identifiers"]["genome-build"]
+       version = jdict["packages"][name]["version"]
+       file1 = "{}.txt".format(name)
+       assert os.path.exists(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version))
+       assert os.path.isfile(os.path.join(utils.conda_root(),"share","ggd",species,build,name,version,file1))
 
     for name in recipes:
-        try:
-            args = Namespace(channel='genomics', command='uninstall', names=[name])
-            uninstall.uninstall((),args)
-        except:
-            pass
+       try:
+           args = Namespace(channel='genomics', command='uninstall', names=[name])
+           uninstall.uninstall((),args)
+       except:
+           pass
 
 ## Reduce test time
 ##    ## Test install with multiple files
@@ -2430,7 +2430,7 @@ tar -xf GSE123_RAW.tar
     assert ":ggd:install: Looking for meta-recipe-geo-accession-geo-v1 in the 'ggd-genomics' channel" in output
     assert ":ggd:install: meta-recipe-geo-accession-geo-v1 exists in the ggd-genomics channel" in output
     assert ":ggd:install: meta-recipe-geo-accession-geo-v1 is a meta-recipe. Checking meta-recipe for installation" in output
-    assert ":ggd:install: GGD is currenlty only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command" in output
+    assert ":ggd:install: GGD is currently only able to install a single meta-recipe at a time. Please remove other pkgs and install them with a subsequent command" in output
 
 
     ## Remove tmp dir
