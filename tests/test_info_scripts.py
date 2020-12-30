@@ -322,7 +322,7 @@ def test_remove_env_variable_different_prefix():
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True
 
     dir_main_env_var = "ggd_hg19_pfam_domains_ucsc_v1_dir"
@@ -441,7 +441,7 @@ def test_in_ggd_channel():
     ## Test that in_ggd_channel properly returns the species, genome-build, and versoin if it is in the channel
     ggd_package = "hg19-gaps-ucsc-v1"
     channel = "genomics"
-    species, build, version = list_files.in_ggd_channel(ggd_package, channel)
+    species, build, version = list_files.in_ggd_channel([ggd_package], channel, utils.conda_root())
     assert species == "Homo_sapiens"
     assert build == "hg19"
     assert version == "1"
@@ -450,7 +450,7 @@ def test_in_ggd_channel():
     ggd_package = "hg19-gaps-ucsc-v1"
     channel = "not_a_real_channel"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        list_files.in_ggd_channel(ggd_package, channel)
+        list_files.in_ggd_channel([ggd_package], channel, utils.conda_root())
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
     assert pytest_wrapped_e.match("The '{c}' channel is not a ggd conda channel".format(c=channel)) ## check that the exit code is 1
 
@@ -459,7 +459,7 @@ def test_in_ggd_channel():
     ggd_package = "NOT_A_REAL_PACKAGE_NAME"
     channel = "genomics"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        list_files.in_ggd_channel(ggd_package, channel)
+        list_files.in_ggd_channel([ggd_package], channel, utils.conda_root())
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## check that the exit code is 1
 
@@ -600,7 +600,7 @@ def test_list_files_with_prefix():
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id=None)
     assert install.install((), install_args) == True
 
 
@@ -672,10 +672,11 @@ def test_check_if_ggd_recipe():
     ## Test a normal package name but bad channel
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "BAD_CHANNEL"
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel)
-    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
-    assert pytest_wrapped_e.match("The '{c}' channel is not a ggd conda channel".format(c=ggd_channel)) ## check that the exit code is 1
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        assert list_pkg_info.check_if_ggd_recipe(ggd_package, ggd_channel) == False
+    output = temp_stdout.getvalue().strip() 
+    assert "The hg19-gaps-ucsc-v1 package is not in the ggd-{c} channel.".format(c=ggd_channel) in output
 
     ## Test a bad package name and normal channel
     ggd_package = "BAD_Recipe"
@@ -908,6 +909,115 @@ def test_get_meta_yaml_info():
         raise AssertionError(e)
     finally:
         f.close()
+
+    ## Test get_meta_yaml_info function correctly returns output meta-recipe updated meta.yaml files
+
+    recipe = CreateRecipe(
+
+        """
+        fake-meta-recipe1:
+            meta.yaml: |
+                build:
+                  binary_relocation: false
+                  detect_binary_files_with_prefix: false
+                  noarch: generic
+                  number: 1
+                extra:
+                  authors: me
+                package:
+                  name: fake-meta-recipe1
+                  version: '1'
+                requirements:
+                  build:
+                  - gsort
+                  - htslib
+                  - zlib
+                  run:
+                  - gsort
+                  - htslib
+                  - zlib
+                source:
+                  path: .
+                about:
+                  identifiers:
+                    parent-meta-recipe: fake-meta-recipe0
+                    genome-build: meta-recipe
+                    updated-genome-build: UPDATED-meta-recipe
+                    species: meta-recipe
+                    updated-species: UPDATED-meta-recipe
+                  keywords:
+                  - gaps
+                  - region
+                  summary: A fake meta-recipe for testing 
+                  tags:
+                    data-provider: ME
+                    data-version: Today
+                    file-type:
+                    - something
+                    final-files:
+                    - fake3.something.gz
+                    - fake3.something.gz.tbi
+                    genomic-coordinate-base: 0-based-inclusive
+                    ggd-channel: fake3 
+
+
+        """, from_string=True)
+
+    recipe.write_recipes()
+
+    ggd_package = "fake-meta-recipe1"
+    ggd_channel = "fake3"
+    meta_yaml_file = os.path.join(recipe.recipe_dirs[ggd_package],"meta.yaml")
+
+    try:
+        f = open(meta_yaml_file, "r")
+
+        temp_stdout = StringIO()
+        with redirect_stdout(temp_stdout):
+            list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel)
+        output = temp_stdout.getvalue().strip() 
+        print("OUTPUT: '''", output, "'''")
+        assert "\t\x1b[1mGGD-Package:\x1b[0m fake-meta-recipe1" in output
+        assert "\t\x1b[1mGGD Parent Meta-Recipe:\x1b[0m fake-meta-recipe0" in output
+        assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-fake3" in output
+        assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+        assert "\t\x1b[1mSummary:\x1b[0m A fake meta-recipe for testing" in output
+        assert "\t\x1b[1mSpecies:\x1b[0m (Updated) UPDATED-meta-recipe" in output
+        assert "\t\x1b[1mGenome Build:\x1b[0m (Updated) UPDATED-meta-recipe" in output
+        assert "\t\x1b[1mKeywords:\x1b[0m gaps, region" in output
+        assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" not in output
+        assert "\t\x1b[1mData Provider:\x1b[0m ME" in output
+        assert "\t\x1b[1mData Version:\x1b[0m Today" in output
+        assert "\t\x1b[1mFile type(s):\x1b[0m something" in output
+        assert "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive" in output
+        assert "\t\x1b[1mIncluded Data Files:\x1b[0m " in output
+        assert "\t\tfake3.something.gz"  in output
+        assert "\t\tfake3.something.gz.tbi" in output
+        conda_root = utils.conda_root()
+        assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/meta-recipe/meta-recipe/fake-meta-recipe1/1".format(conda_root) in output 
+        assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
+        f.close()
+
+        f = open(meta_yaml_file, "r")
+        assert list_pkg_info.get_meta_yaml_info(f,ggd_package,ggd_channel) == True
+        f.close()
+
+    except IOError as e:
+        print("IO Error")
+        print(e)
+        f.close()
+        assert False
+    except AssertionError as e:
+        print("Assertion Error")
+        print(e)
+        f.close()
+        raise AssertionError(e)
+    except Exception as e:
+        print(e)
+        f.close()
+        raise AssertionError(e)
+    finally:
+        f.close()
     
 
 def test_print_recipe():
@@ -973,7 +1083,7 @@ def test_info_main():
     ## Normal run
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False, prefix = None)
     assert list_pkg_info.info((),args) == True
 
     temp_stdout = StringIO()
@@ -1007,7 +1117,7 @@ def test_info_main():
     ## Normal run with print recipes 
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True, prefix = None)
     assert list_pkg_info.info((),args) == True
 
     temp_stdout = StringIO()
@@ -1028,7 +1138,7 @@ def test_info_main():
     ## Bad recipe run
     ggd_package = "Bad-recipe"
     ggd_channel = "genomics"
-    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False, prefix = None)
     assert list_pkg_info.info((),args) == False
 
     temp_stdout = StringIO()
@@ -1041,7 +1151,7 @@ def test_info_main():
     ## Bad recipe run with print recipe
     ggd_package = "Bad-recipe"
     ggd_channel = "genomics"
-    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True)
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=True, prefix = None)
     assert list_pkg_info.info((),args) == False
 
     temp_stdout = StringIO()
@@ -1049,6 +1159,69 @@ def test_info_main():
         list_pkg_info.info((),args)
     output = temp_stdout.getvalue().strip() 
     assert ":ggd:pkg-info: The {} package is not in the ggd-{} channel.".format(ggd_package, ggd_channel) in output 
+
+
+def test_info_main_in_different_prefix():
+
+    ## Test using a different prefix
+    ### Temp conda environment 
+    temp_env = os.path.join(utils.conda_root(), "envs", "temp_pkg_info_env")
+    ### Remove temp env if it already exists
+    sp.check_output(["conda", "env", "remove", "--name", "temp_pkg_info_env"])
+    try: 
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass 
+    ### Create conda environmnet 
+    sp.check_output(["conda", "create", "--name", "temp_pkg_info_env"])
+
+    ### Install ggd recipe using conda into temp_env
+    ggd_package = "hg19-gaps-ucsc-v1"
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id = None)
+    assert install.install((), install_args) == True 
+
+
+    ## Test different prefix 
+
+    ggd_channel = "genomics"
+    args = Namespace(channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False, prefix = temp_env)
+    assert list_pkg_info.info((),args) == True
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        list_pkg_info.info((),args)
+    output = temp_stdout.getvalue().strip() 
+    ## Include checks for meta yaml tag keys like final files and approximate file sizes
+    assert "\t\x1b[1mGGD-Package:\x1b[0m hg19-gaps-ucsc-v1" in output 
+    assert "\t\x1b[1mGGD-Channel:\x1b[0m ggd-genomics" in output
+    assert "\t\x1b[1mGGD Pkg Version:\x1b[0m 1" in output
+    assert "\t\x1b[1mSummary:\x1b[0m Assembly gaps from UCSC in bed fromat. Scaffoldings that are not contained in the hg19.genome file are removed" in output
+    assert "\t\x1b[1mSpecies:\x1b[0m Homo_sapiens" in output
+    assert "\t\x1b[1mGenome Build:\x1b[0m hg19" in output
+    assert "\t\x1b[1mKeywords:\x1b[0m gaps, regions, gap-locations, Assembly-Gaps, clone-gaps, contig-gaps, centromere-gaps, telomere-gaps, heterochromatin-gaps, short-arm-gaps" in output
+    assert "\t\x1b[1mCached:\x1b[0m uploaded_to_aws" in output
+
+    assert "\t\x1b[1mData Provider:\x1b[0m UCSC" in output
+    assert "\t\x1b[1mData Version:\x1b[0m 22-Mar-2020" in output
+    assert "\t\x1b[1mFile type(s):\x1b[0m bed" in output
+    assert "\t\x1b[1mData file coordinate base:\x1b[0m 0-based-inclusive" in output
+    assert "\t\x1b[1mIncluded Data Files:\x1b[0m" in output
+    assert "\t\x1b[1mApproximate Data File Sizes:\x1b[0m" in output
+
+    conda_root = temp_env
+    assert "\t\x1b[1mPkg File Path:\x1b[0m {}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1".format(conda_root) in output 
+    assert "\t\x1b[1mInstalled Pkg Files:\x1b[0m " in output
+    assert "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz.tbi".format(conda_root) in output
+    assert "\t\t{}/share/ggd/Homo_sapiens/hg19/hg19-gaps-ucsc-v1/1/hg19-gaps-ucsc-v1.bed.gz".format(conda_root) in output
+
+
+    ## Remove temp env created in test_get_environment_variables()
+    sp.check_output(["conda", "env", "remove", "--name", "temp_pkg_info_env"])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
 
 
 ### list (List installed packages)
@@ -1111,7 +1284,7 @@ def test_get_environment_variables():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package2 = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     env_vars = list_installed_pkgs.get_environment_variables(temp_env)
@@ -1165,6 +1338,26 @@ def test_list_pkg_info():
     assert "The environment variables are only available when you are using the '{p}' conda environment".format(p=prefix) in output
     assert "Name" in output and "Pkg-Version" in output and "Pkg-Build" in output and "Channel" in output and "Environment-Variables" in output
 
+
+def test_get_metadata():
+    """
+    Test the "get_metadata" function correctly returns the local meta-data json file
+    """
+
+    GGD_INFO = "share/ggd_info"
+    METADATA = "channeldata.json"
+
+    ## Get json dict
+    metadata_dict = list_installed_pkgs.get_metadata(utils.conda_root(), GGD_INFO, METADATA)
+    assert "packages" in metadata_dict
+    assert "hg19-gaps-ucsc-v1" in metadata_dict["packages"]
+
+    ## Test a bad file
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        list_installed_pkgs.get_metadata(utils.conda_root(), GGD_INFO, "BAD_METADATA_FILE.json")
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match(":ggd:list: !!ERROR!! Unable to load the local metadata")
+    
 
 def test_list_installed_packages():
     """
@@ -1254,11 +1447,15 @@ def test_list_installed_packages():
     output = temp_stdout.getvalue().strip() 
     assert "hg19-pfam-domains-ucsc-v1" in output
     assert "[WARNING: Present in GGD but missing from Conda]" in str(output)
-    assert ("NOTE: Packages with the ' [WARNING: Present in GGD but missing from Conda]' messages represent packages where the ggd"
-           " packages is installed, but the package metadata has been removed from conda storage. This happens when the packages is"
-           " uninstalled using conda rather then ggd. The package is still available for use and is in the same state as before the"
-           " 'conda uninstall'. To fix the problem on conda's side, uninstall the package with 'ggd uninstall' and re-install with" 
-           " 'ggd install'") in output
+    assert ("NOTE: Packages with the '[WARNING: Present in GGD but missing from Conda]' messages represent packages where the ggd"
+            " package(s) are installed, but the package metadata has been removed from conda storage. This" 
+            " happens when one of the following happen: \n 1) The package represents an ID specific meta-"
+            "recipe intsalled by GGD. \n 2) When the recipe is built locally using 'ggd check-recipe' and"
+            " has not been uninstalled. (Commonly for private data packages).\n  Or \n 3) The package is" 
+            " uninstalled using conda rather then ggd. The package is still available for use and is in"
+            " the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
+            " the package with 'ggd uninstall' and re-install with 'ggd install'.\n"
+            )
 
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
@@ -1386,7 +1583,7 @@ def test_predict_path():
 
 
     ## Test the predict path is the same path as an installed file
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=["grch37-autosomal-dominant-genes-berg-v1"], file=[], prefix=None)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=["grch37-autosomal-dominant-genes-berg-v1"], file=[], prefix=None, id = None)
     assert install.install((), install_args) == True 
 
     list_files

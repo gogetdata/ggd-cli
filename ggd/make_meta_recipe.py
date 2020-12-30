@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import os
+from shutil import copyfile
 
 from .utils import get_builds, get_ggd_channels, get_species
 
@@ -16,12 +17,13 @@ GENOMIC_COORDINATE_LIST = [
 ]
 
 
-def add_make_bash(p):
+def add_make_metarecipe(p):
     c = p.add_parser(
-        "make-recipe",
-        help="Make a new ggd data recipe with a user developed bash script",
-        description="Make a ggd data recipe from a bash script",
+        "make-meta-recipe",
+        help="Make a new ggd data meta-recipe",
+        description="Make a ggd data meta-recipe",
     )
+
     c.add_argument(
         "-c",
         "--channel",
@@ -29,6 +31,7 @@ def add_make_bash(p):
         choices=[x.decode("ascii") for x in CHANNEL_LIST],
         default="genomics",
     )
+
     c.add_argument(
         "-d",
         "--dependency",
@@ -37,13 +40,7 @@ def add_make_bash(p):
         help="any software dependencies (in bioconda, conda-forge) or data-dependency (in ggd)"
         + ". May be as many times as needed.",
     )
-    c.add_argument(
-        "-e",
-        "--extra-file",
-        default=[],
-        action="append",
-        help="any files that the recipe creates that are not a *.gz and *.gz.tbi pair or *.fa and *.fai pair. May be used more than once",
-    )
+
     c.add_argument(
         "-p",
         "--platform",
@@ -51,52 +48,72 @@ def add_make_bash(p):
         help="Whether to use noarch as the platform or the system platform. If set to 'none' the system platform will be used. (Default = noarch. Noarch means no architecture and is platform agnostic.)",
         choices=["noarch", "none"],
     )
-    c2 = c.add_argument_group("required arguments")
-    c2.add_argument(
+
+    c.add_argument(
         "-s",
         "--species",
-        help="The species recipe is for",
-        choices=[str(x) for x in SPECIES_LIST],
-        required=True,
+        help="The species recipe is for. Use 'meta-recipe` for a metarecipe file",
+        default="meta-recipe",
     )
-    c2.add_argument(
+
+    c.add_argument(
         "-g",
         "--genome-build",
-        choices=[str(x) for x in GENOME_BUILDS],
-        help="The genome build the recipe is for",
-        required=True,
+        help="The genome build the recipe is for. Use 'metarecipe' for a metarecipe file",
+        default="meta-recipe",
     )
+
+    c.add_argument(
+        "-dv",
+        "--data-version",
+        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127). Use 'metarecipe' for a metarecipe",
+        default="meta-recipe",
+    )
+
+    c.add_argument(
+        "-cb",
+        "--coordinate-base",
+        choices=GENOMIC_COORDINATE_LIST,
+        help="The genomic coordinate basing for the file(s) in the recipe. Use 'NA' for a metarecipe",
+        default="NA",
+    )
+
+    c.add_argument(
+        "--extra-scripts",
+        metavar="Extra Scripts",
+        nargs="*",
+        help="Any additional scripts used for the metarecipe that are not the main bash script",
+    )
+
+    c2 = c.add_argument_group("required arguments")
+
     c2.add_argument(
         "--authors",
-        help="The author(s) of the data recipe being created, (This recipe)",
+        help="The author(s) of the data metarecipe being created, (This recipe)",
         default=os.environ.get("USER", ""),
     )
+
     c2.add_argument(
         "-pv",
         "--package-version",
         help="The version of the ggd package. (First time package = 1, updated package > 1)",
         required=True,
     )
-    c2.add_argument(
-        "-dv",
-        "--data-version",
-        help="The version of the data (itself) being downloaded and processed (EX: dbsnp-127)"
-        + " If there is no data version apparent we recommend you use the date associated with the files"
-        + " or something else that can uniquely identify the 'version' of the data",
-        required=True,
-    )
+
     c2.add_argument(
         "-dp",
         "--data-provider",
         required=True,
         help="The data provider where the data was accessed. (Example: UCSC, Ensembl, gnomAD, etc.)",
     )
+
     c2.add_argument(
         "--summary",
         help="A detailed comment describing the recipe",
         default="",
         required=True,
     )
+
     c2.add_argument(
         "-k",
         "--keyword",
@@ -107,15 +124,7 @@ def add_make_bash(p):
         default=[],
         required=True,
     )
-    c2.add_argument(
-        "-cb",
-        "--coordinate-base",
-        required=True,
-        choices=GENOMIC_COORDINATE_LIST,
-        help="The genomic coordinate basing for the file(s) in the recipe. That is, the coordinates start at genomic coordinate 0 or 1,"
-        + " and the end coordinate is either inclusive (everything up to and including the end coordinate) or exclusive (everything up to but not including the end coordinate)"
-        + " Files that do not have coordinate basing, like fasta files, specify NA for not applicable.",
-    )
+
     c2.add_argument(
         "-n",
         "--name",
@@ -123,9 +132,9 @@ def add_make_bash(p):
         + " This will not be the final name of the recipe, but will specific to the data gathered and processed by the recipe",
         required=True,
     )
+
     c2.add_argument(
-        "script",
-        help="bash script that contains the commands to obtain and process the data",
+        "script", help="bash script that contains the commands for the metarecipe.",
     )
 
     c.set_defaults(func=make_bash)
@@ -211,6 +220,7 @@ def make_bash(parser, args):
 
     from .check_recipe import _check_build
 
+    #    if args.genome_build != "meta-recipe":
     print(":ggd:make-recipe: checking", args.genome_build)
     _check_build(args.species, args.genome_build)
 
@@ -252,12 +262,6 @@ def make_bash(parser, args):
     ## Get non-ggd dependencies
     non_ggd_deps = [x for x in deps if x not in ggd_packages]
 
-    extra_files = []
-    for f in args.extra_file:
-        flist = f.strip().split(".")
-        flist[0] = name
-        extra_files.append(".".join(flist))
-
     ## Check coordinates
     assert (
         args.coordinate_base in GENOMIC_COORDINATE_LIST
@@ -289,8 +293,10 @@ def make_bash(parser, args):
                 "number": 0,
             }
         }
-    yml2 = {"extra": {"authors": args.authors, "extra-files": extra_files,}}
+    yml2 = {"extra": {"authors": args.authors}}
     yml3 = {"package": {"name": name, "version": args.package_version}}
+    # yml3 = {"package": {"name": "{{ GGD_NAME_ID }}-" + args.data_provider.lower() + "-v" + args.package_version , "version": args.package_version}}
+    # yml3 = {"package": {"name": """{{ environ.get("GGD_NAME_ID") }}-""" + args.data_provider.lower() + "-v" + args.package_version , "version": args.package_version}}
     yml4 = {"requirements": {"build": non_ggd_deps[:], "run": deps[:]}}
     yml5 = {"source": {"path": "."}}
     yml6 = {
@@ -324,18 +330,22 @@ def make_bash(parser, args):
             """#!/bin/bash
 set -eo pipefail -o nounset
 
+new_name="$GGD_METARECIPE_ID-{dp}-v{version}"
+#new_name=${to_lower} Requires bash version >= 4.2
+new_name="$(echo $new_name | tr '[:upper:]' '[:lower:]')"
+
 if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
     export CONDA_ROOT=$(conda info --root)
     env_dir=$CONDA_ROOT
-    export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
+    export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/$new_name/{version}
 elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
     export CONDA_ROOT=$(conda info --root)
     env_dir=$CONDA_ROOT
-    export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/{name}/{version}
+    export RECIPE_DIR=$CONDA_ROOT/share/ggd/{species}/{build}/$new_name/{version}
 else
     env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
     export CONDA_ROOT=$env_dir
-    export RECIPE_DIR=$env_dir/share/ggd/{species}/{build}/{name}/{version}
+    export RECIPE_DIR=$env_dir/share/ggd/{species}/{build}/$new_name/{version}
 fi
 
 
@@ -348,25 +358,17 @@ fi
 
 mkdir -p $RECIPE_DIR
 
-(cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+SCRIPTS_PATH="$PKG_DIR/info/recipe/"
+
+(cd $RECIPE_DIR && bash $SCRIPTS_PATH/metarecipe.sh $GGD_METARECIPE_ID $SCRIPTS_PATH "$GGD_METARECIPE_ENV_VAR_FILE" "$GGD_METARECIPE_FINAL_COMMANDS_FILE")
 
 cd $RECIPE_DIR
-
-## Iterate over new files and replace file name with data package name and data version  
-for f in *; do
-    ext="${ext_string}"
-    filename="{filename_string}"
-    if [[ ! -f "{name}.$ext" ]]  
-    then
-        (mv $f "{name}.$ext")
-    fi  
-done
 
 ## Add environment variables 
 #### File
 if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
 then
-    recipe_env_file_name="ggd_{name}_file"
+    recipe_env_file_name="ggd_""$new_name""_file"
     recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g' | sed 's/\./_/g')"
     file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
 
@@ -375,14 +377,14 @@ then
     indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
     if [[ ! -z "$indexed_file" ]] ## If index file exists
     then
-        recipe_env_file_name="ggd_{name}_file"
+        recipe_env_file_name="ggd_""$new_name""_file"
         recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g' | sed 's/\./_/g')"
         file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
     fi
 fi 
 
 #### Dir
-recipe_env_dir_name="ggd_{name}_dir"
+recipe_env_dir_name="ggd_""$new_name""_dir"
 recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g' | sed 's/\./_/g')"
 
 activate_dir="$env_dir/etc/conda/activate.d"
@@ -405,6 +407,8 @@ fi
 
 echo 'Recipe successfully built!'
 """.format(
+                to_lower="{new_name,,}",
+                dp=args.data_provider.lower(),
                 species=args.species,
                 name=name,
                 build=args.genome_build,
@@ -415,17 +419,25 @@ echo 'Recipe successfully built!'
             )
         )
 
-    with open(os.path.join(name, "recipe.sh"), "w") as fh:
+    ## Create metarecipe.sh script file
+    with open(os.path.join(name, "metarecipe.sh"), "w") as fh:
         fh.write("#!/bin/sh\nset -eo pipefail -o nounset\n")
         fh.write(open(args.script).read())
+
+    ## create empty recipe.sh script
+    open(os.path.join(name, "recipe.sh"), "a").close()
 
     ## Create empty checksum file
     open(os.path.join(name, "checksums_file.txt"), "a").close()
 
     print("\n:ggd:make-recipe: Wrote output to %s/" % name)
     print(
-        "\n:ggd:make-recipe: To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\t$ ggd check-recipe %s/"
+        "\n:ggd:make-recipe: To test that the recipe is working, and before pushing the new recipe to gogetdata/ggd-recipes, please run: \n\n\t$ ggd check-recipe %s/ --id <Testing ID>\n"
         % name
     )
+
+    ## Copy all extra scripts to the meta recipe directory
+    for f in args.extra_scripts:
+        copyfile(f, os.path.join(os.getcwd(), name, os.path.basename(f)))
 
     return True

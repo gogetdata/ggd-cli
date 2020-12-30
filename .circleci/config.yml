@@ -115,10 +115,7 @@ workflows:
   version: 2
   ggd-cli-unit-tests:
     jobs:
-      - test-linux-python2
       - test-linux-python3
-      - test-macos-python2-part1
-      - test-macos-python2-part2
       - test-macos-python3
   ggd-cli-nightly-build:
     triggers:
@@ -129,8 +126,5 @@ workflows:
               only:
                 - master
     jobs:
-      - test-linux-python2
       - test-linux-python3
-      - test-macos-python2-part1
-      - test-macos-python2-part2
       - test-macos-python3

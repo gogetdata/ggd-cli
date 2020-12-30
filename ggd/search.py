@@ -89,10 +89,10 @@ def load_json(jfile):
 
     Parameters:
     ---------
-    1) jfile: The path to the json file
+    1) jfile: (str) The path to the json file
 
     Returns:
-    1) A dictionary of a json object 
+    1) (dict) A dictionary of a json object 
     """
     import json
 
@@ -110,11 +110,11 @@ def load_json_from_url(json_url):
    
     Parameters:
     ---------
-    1) json_url: The url to the json path
+    1) json_url: (str) The url to the json path
    
     Returns:
     ++++++++
-    1) A dictionary of a json object 
+    1) (dict) A dictionary of a json object 
     """
     import json
     import traceback
@@ -143,18 +143,18 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
 
     Parameters:
     ---------
-    1) json_dict: A json file loaded into a dictionary. (The file to search)
-                  the load_json_from_url() method creates the dictionary 
-    2) search_terms: A list of terms representing package names or keywords to search for
-    3) search_type: A string matching either 'both', 'combined-only', or 'non-combined-only',
-                     representing how to use the search terms.
-    4) score_cutoff: A number between 0 and 100 that represent which matches to return
-                        (Default = 50)
+    1) json_dict:    (dict) A json file loaded into a dictionary. (The file to search)
+                             the load_json_from_url() method creates the dictionary 
+    2) search_terms: (list) A list of terms representing package names or keywords to search for
+    3) search_type:  (str)  A string matching either 'both', 'combined-only', or 'non-combined-only',
+                             representing how to use the search terms.
+    4) score_cutoff: (int)  A number between 0 and 100 that represent which matches to return
+                             (Default = 50)
 
 
     Returns:
     ++++++++
-    1) A list of pkg names who's either name or keyword match score reached the score cutoff
+    1) (dict) A list of pkg names who's either name or keyword match score reached the score cutoff
     """
     from collections import defaultdict
 
@@ -254,15 +254,15 @@ def filter_by_identifiers(iden_keys, json_dict, filter_terms):
 
     Parameters:
     ----------
-    1) iden_keys: A list of he identifiers keys. Example = ["species","genome-build"] 
-    2) json_dict: The json dictionary created from laod_json()
-    3) filter_terms: A list of the term(s) to filter by. Example: ["Homo_sapiens","hg19"]
+    1) iden_keys:    (list) A list of he identifiers keys. Example = ["species","genome-build"] 
+    2) json_dict:    (dict) The json dictionary created from load_json()
+    3) filter_terms: (list) A list of the term(s) to filter by. Example: ["Homo_sapiens","hg19"]
 
     NOTE: List order of iden_keys should match list order of filter_terms
 
     Returns:
     ++++++++
-    1) Updated/filtered json_dict
+    1) (dict) Updated/filtered json_dict
     """
     import copy
 
@@ -309,11 +309,11 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
 
     Parameters:
     ---------
-    1) search_terms: The search terms from the user
-    2) json_dict: The json dictionary from the load_json() method
-    3) match_list: The filtered and final set of searched recipes
-    4) isntalled_pkgs: A set of pkg names that are installed
-    5) installed_paths: A dictionary with keys = pkg names, values = installed paths
+    1) search_terms:    (list) The search terms from the user
+    2) json_dict:       (dict) The json dictionary from the load_json() method
+    3) match_list:      (list) The filtered and final set of searched recipes
+    4) installed_pkgs:  (set)  A set of pkg names that are installed
+    5) installed_paths: (dict) A dictionary with keys = pkg names, values = installed paths
 
     Returns:
     +++++++

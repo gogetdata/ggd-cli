@@ -51,10 +51,10 @@ def load_json(jfile):
 
     Parameters:
     ---------
-    1) jfile: The path to the json file
+    1) jfile: (str) The path to the json file
 
     Returns:
-    1) A dictionary of a json object 
+    1) (dict) A dictionary of a json object 
     """
 
     with open(jfile) as jsonFile:
@@ -70,11 +70,11 @@ def get_environment_variables(prefix):
 
     Parameters:
     -----------
-    1) prefix: The conda environment/prefix to get environment variables for 
+    1) prefix: (str) The conda environment/prefix to get environment variables for 
 
     Returns:
     ++++++++
-    1) A dictionary with each key == env_var, and values == the path the environment variable is for
+    1) (dict) A dictionary with each key == env_var, and values == the path the environment variable is for
     """
 
     env_var_path = os.path.join(prefix, "etc", "conda", "activate.d", "env_vars.sh")
@@ -105,12 +105,12 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
 
     Parameters:
     -----------
-    1) pkg_names: A list of package names to show. (List comes from ggd_info metadata file)
-    2) pks_dict: The ggd_info metadata file as a dictionary (To get version and channel info)
-    3) env_vars: A dictionary of environment variables. (Key = env_var name, value = path to file/dir)
-    4) conda_list: A dictionary representing conda list output (from utils.get_conda_package_list())
-    5) prefix: The prefix/conda environment to display information for. 
-    6) prefix_set: True or False, whether the user set a prefix or not.
+    1) pkg_names:  (list) A list of package names to show. (List comes from ggd_info metadata file)
+    2) pkgs_dict:  (dict) The ggd_info metadata file as a dictionary (To get version and channel info)
+    3) env_vars:   (dict) A dictionary of environment variables. (Key = env_var name, value = path to file/dir)
+    4) conda_list: (dict) A dictionary representing conda list output (from utils.get_conda_package_list())
+    5) prefix:     (str)  The prefix/conda environment to display information for. 
+    6) prefix_set: (bool) True or False, whether the user set a prefix or not.
     """
 
     ## Create a 2d list for string formatting
@@ -201,12 +201,41 @@ def list_pkg_info(pkg_names, pkgs_dict, env_vars, conda_list, prefix, prefix_set
         print(
             (
                 "#\n# NOTE: Packages with the '{}' messages represent packages where the ggd"
-                " packages is installed, but the package metadata has been removed from conda storage. This happens when"
-                " the packages is uninstalled using conda rather then ggd. The package is still available for use and is"
-                " in the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
+                " package(s) are installed, but the package metadata has been removed from conda storage. This"
+                " happens when one of the following happen: \n 1) The package represents an ID specific meta-"
+                "recipe installed by GGD. \n 2) When the recipe is built locally using 'ggd check-recipe' and"
+                " has not been uninstalled. (Commonly for private data packages).\n  Or \n 3) The package is"
+                " uninstalled using conda rather then ggd. The package is still available for use and is in"
+                " the same state as before the 'conda uninstall'. To fix the problem on conda's side, uninstall"
                 " the package with 'ggd uninstall' and re-install with 'ggd install'.\n"
-            ).format(missing_message)
+            ).format(missing_message.strip())
         )
+
+
+def get_metadata(C_ROOT, GGD_INFO_DIR, METADATA_FILE):
+    """
+    get_metadata
+    =============
+    Method to load local ggd specific metadata from json into dict
+
+    Parameters:
+    -----------
+    1) C_ROOT:        (str) The conda prefix/root 
+    2) GGD_INFO_DIR:  (str) The directory path where ggd metadata info is stored
+    3) METADATA_FILE: (str) The file name of the metadata 
+
+    Returns:
+    ++++++++
+    1) (dict) Metadata json file loaded as a dictionary
+    """
+
+    try:
+        metadata_dict = load_json(os.path.join(C_ROOT, GGD_INFO_DIR, METADATA_FILE))
+    except IOError as e:
+        print(str(e))
+        sys.exit("\n:ggd:list: !!ERROR!! Unable to load the local metadata")
+
+    return metadata_dict
 
 
 def list_installed_packages(parser, args):
@@ -253,7 +282,8 @@ def list_installed_packages(parser, args):
         update_installed_pkg_metadata(prefix=CONDA_ROOT)
 
     ## Load json metadata data as dictionary
-    metadata = load_json(os.path.join(CONDA_ROOT, GGD_INFO, METADATA))
+    # metadata = load_json(os.path.join(CONDA_ROOT, GGD_INFO, METADATA))
+    metadata = get_metadata(CONDA_ROOT, GGD_INFO, METADATA)
 
     ## Get the environment variables
     env_vars = get_environment_variables(CONDA_ROOT)

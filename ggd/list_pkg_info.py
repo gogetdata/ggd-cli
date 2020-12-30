@@ -31,6 +31,11 @@ def add_pkg_info(p):
         action="store_true",
         help="(Optional) When the flag is set, the recipe will be printed to the stdout. This will provide info on where the data is hosted and how it was processed. (NOTE: -sr flag does not accept arguments)",
     )
+    c.add_argument(
+        "--prefix",
+        default=None,
+        help="(Optional) The name or the full directory path to a conda environment where a ggd recipe is stored. (Only needed if listing pkg data info for a pkg not installed in the current environment)",
+    )
     c.add_argument("name", help="the name of the recipe to get info about")
     c.set_defaults(func=info)
 
@@ -40,7 +45,7 @@ def add_pkg_info(p):
 # -------------------------------------------------------------------------------------------------------------
 
 
-def check_if_ggd_recipe(ggd_recipe, ggd_channel):
+def check_if_ggd_recipe(ggd_recipe, ggd_channel, prefix=conda_root()):
     """Method to check if a ggd recipe is in designated ggd channel or not 
 
     check_if_ggd_recipe
@@ -49,38 +54,20 @@ def check_if_ggd_recipe(ggd_recipe, ggd_channel):
 
     Parameters:
     ----------
-    1) ggd_recipe: The ggd recipe name
-    2) ggd_channel: The ggd channel to look at
+    1) ggd_recipe:  (str) The ggd recipe name
+    2) ggd_channel: (str) The ggd channel to look at
+    3) prefix:      (str) The conda prefix/environment to check
     """
-    from .search import load_json, load_json_from_url, search_packages
-    from .utils import (
-        check_for_internet_connection,
-        get_channel_data,
-        get_channeldata_url,
-    )
 
-    jdict = {"channeldata_version": 1, "packages": {}}
-    if check_for_internet_connection(3):
-        CHANNEL_DATA_URL = get_channeldata_url(ggd_channel)
-        jdict = load_json_from_url(CHANNEL_DATA_URL)
-        ## Remove the ggd key if it exists
-        ggd_key = jdict["packages"].pop("ggd", None)
-    else:
-        try:
-            ## If no internet connection just load from the local file
-            jdict = load_json(get_channel_data(ggd_channel))
-            ## Remove the ggd key if it exists
-            ggd_key = jdict["packages"].pop("ggd", None)
-        except:
-            pass
+    from .list_files import in_ggd_channel
 
-    package_list = []
-    if len(jdict["packages"].keys()) > 0:
-        package_list = search_packages(jdict, [ggd_recipe])
-
-    if ggd_recipe in package_list:
-        return True
-    else:
+    ## Check if recipe is in the ggd channel
+    try:
+        if in_ggd_channel([ggd_recipe], ggd_channel, prefix, reporting=False):
+            return True
+        else:
+            return False
+    except SystemExit as e:
         print(
             "\n:ggd:pkg-info: The %s package is not in the ggd-%s channel. You can use 'ggd list', 'ggd get-files', 'ggd install', or 'conda list' to identify"
             % (ggd_recipe, ggd_channel),
@@ -89,7 +76,9 @@ def check_if_ggd_recipe(ggd_recipe, ggd_channel):
         return False
 
 
-def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
+def get_meta_yaml_info(
+    tarball_info_object, ggd_recipe, ggd_channel, prefix=conda_root()
+):
     """Method to get information from the meta.yaml file of an installed ggd package
 
     get_meta_yaml_info
@@ -101,9 +90,10 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
      
     Parameters:
     -----------
-    1) tarball_info_object: a object made from using the tarfile module to extract files
-    2) ggd_recipe: the ggd recipe name
-    3) ggd_channel: the ggd channel name
+    1) tarball_info_object: (tarfile object) A object made from using the tarfile module to extract files
+    2) ggd_recipe:          (str) The ggd recipe name
+    3) ggd_channel:         (str) The ggd channel name
+    4) prefix:              (str) The prefix where the package is installed
 
     """
     import glob
@@ -125,12 +115,32 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
 
     species = yaml_dict["about"]["identifiers"]["species"]
     genome_build = yaml_dict["about"]["identifiers"]["genome-build"]
+
+    report_species = (
+        yaml_dict["about"]["identifiers"]["species"]
+        if "updated-species" not in yaml_dict["about"]["identifiers"]
+        else "(Updated) " + yaml_dict["about"]["identifiers"]["updated-species"]
+    )
+    report_genome_build = (
+        yaml_dict["about"]["identifiers"]["genome-build"]
+        if "updated-genome-build" not in yaml_dict["about"]["identifiers"]
+        else "(Updated) " + yaml_dict["about"]["identifiers"]["updated-genome-build"]
+    )
+
     version = yaml_dict["package"]["version"]
 
     results = []
     results.append(
         "\n\t" + "\033[1m" + "GGD-Package:" + "\033[0m" + " {}".format(ggd_recipe)
     )
+    if "parent-meta-recipe" in yaml_dict["about"]["identifiers"]:
+        results.append(
+            "\t"
+            + "\033[1m"
+            + "GGD Parent Meta-Recipe:"
+            + "\033[0m"
+            + " {}".format(yaml_dict["about"]["identifiers"]["parent-meta-recipe"])
+        )
     results.append(
         "\t" + "\033[1m" + "GGD-Channel:" + "\033[0m" + " ggd-{}".format(ggd_channel)
     )
@@ -144,9 +154,15 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
         + "\033[0m"
         + " {}".format(yaml_dict["about"]["summary"])
     )
-    results.append("\t" + "\033[1m" + "Species:" + "\033[0m" + " {}".format(species))
     results.append(
-        "\t" + "\033[1m" + "Genome Build:" + "\033[0m" + " {}".format(genome_build)
+        "\t" + "\033[1m" + "Species:" + "\033[0m" + " {}".format(report_species)
+    )
+    results.append(
+        "\t"
+        + "\033[1m"
+        + "Genome Build:"
+        + "\033[0m"
+        + " {}".format(report_genome_build)
     )
     if "keywords" in yaml_dict["about"] and yaml_dict["about"]["keywords"]:
         results.append(
@@ -228,10 +244,10 @@ def get_meta_yaml_info(tarball_info_object, ggd_recipe, ggd_channel):
             )
 
     path = os.path.join(
-        conda_root(), "share", "ggd", species, genome_build, ggd_recipe, version
+        prefix, "share", "ggd", species, genome_build, ggd_recipe, version
     )
     files_path = os.path.join(
-        conda_root(), "share", "ggd", species, genome_build, ggd_recipe, version, "*"
+        prefix, "share", "ggd", species, genome_build, ggd_recipe, version, "*"
     )
     files = glob.glob(files_path)
 
@@ -260,8 +276,8 @@ def print_recipe(tarball_info_object, ggd_recipe):
      
     Parameters:
     ----------
-    1) tarball_info_object: An tarball info object created from extracting a file using the tarfile module
-    2) ggd_recipe: The ggd recipe name
+    1) tarball_info_object: (tarfile object) An tarball info object created from extracting a file using the tarfile module
+    2) ggd_recipe:          (str) The ggd recipe name
     """
 
     print("\n%s recipe file:" % ggd_recipe)
@@ -282,7 +298,7 @@ def print_recipe(tarball_info_object, ggd_recipe):
     return True
 
 
-def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
+def get_pkg_info(ggd_recipe, ggd_channel, show_recipe, prefix=conda_root()):
     """Method to get the package info from an installed package
 
     get_pkg_info
@@ -292,23 +308,24 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
      
     Parameters:
     ----------
-    1) ggd_recipe: The ggd recipe name
-    2) ggd_channel: The ggd channel name
-    3) show_recipe: A bool value, where if true will print the recipe.sh script
+    1) ggd_recipe:  (str)  The ggd recipe name
+    2) ggd_channel: (str)  The ggd channel name
+    3) show_recipe: (bool) A bool value, where if true will print the recipe.sh script
+    4) prefix:      (str)  The conda prefix/environment the package is installed in
     """
     import tarfile
 
     from .utils import get_conda_package_list
 
     ## Get a list of installed ggd packages using conda list
-    conda_package_list = get_conda_package_list(conda_root())
+    conda_package_list = get_conda_package_list(prefix, include_local=True)
 
     ## Check if ggd recipe in the list
     if ggd_recipe in conda_package_list.keys():
         pkg_version = conda_package_list[ggd_recipe]["version"]
         pkg_build = conda_package_list[ggd_recipe]["build"]
         pkg_tar_file = "{}-{}-{}.tar.bz2".format(ggd_recipe, pkg_version, pkg_build)
-        file_path = os.path.join(conda_root(), "pkgs", pkg_tar_file)
+        file_path = os.path.join(prefix, "pkgs", pkg_tar_file)
         with tarfile.open(file_path, "r:bz2") as tarball_file:
             get_meta_yaml_info(
                 tarball_file.extractfile(
@@ -316,6 +333,7 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
                 ),
                 ggd_recipe,
                 ggd_channel,
+                prefix,
             )
             if show_recipe:
                 print_recipe(
@@ -336,8 +354,17 @@ def get_pkg_info(ggd_recipe, ggd_channel, show_recipe):
 def info(parser, args):
     """Main method to run list_pkg_info"""
 
-    if check_if_ggd_recipe(args.name, args.channel):
-        get_pkg_info(args.name, args.channel, args.show_recipe)
+    from .utils import get_conda_prefix_path, prefix_in_conda
+
+    ## Check prefix
+    CONDA_ROOT = (
+        get_conda_prefix_path(args.prefix)
+        if args.prefix != None and prefix_in_conda(args.prefix)
+        else conda_root()
+    )
+
+    if check_if_ggd_recipe(args.name, args.channel, CONDA_ROOT):
+        get_pkg_info(args.name, args.channel, args.show_recipe, CONDA_ROOT)
         return True
     else:
         return False

@@ -26,7 +26,7 @@ def show_env(parser, args):
     show_env
     ========
     This method is used to show the ggd environment variables created during a ggd package installation 
-     in the current conda environemnt. It will print out the active and inactive environment variables 
+     in the current conda environment. It will print out the active and inactive environment variables 
      and indicate how to active inactive environment variables.
     """
     import sys
@@ -87,8 +87,8 @@ def remove_env_variable(env_var, prefix=None):
 
     Parameters:
     -----------
-    1) env_var: The environment variable to remove
-    2) prefix: The conda environment/prefix to remove the environment var from
+    1) env_var: (str) The environment variable to remove
+    2) prefix:  (str) The conda environment/prefix to remove the environment var from
     """
 
     from .utils import conda_root
@@ -125,7 +125,7 @@ def remove_env_variable(env_var, prefix=None):
 def activate_environment_variables():
     """Method to activate the current environment variables
 
-    acticate_environment_variables
+    activate_environment_variables
     ==============================
     This method is used to activate the environments in the current active environment 
     """
@@ -142,17 +142,17 @@ def test_vars(env_vars):
 
     test_vars
     =========
-    This mehtod is used to get the active and inactive environment variables for a specific conda environment
+    This method is used to get the active and inactive environment variables for a specific conda environment
      created by ggd.
 
     Parameters:
     -----------
-    1) env_vars: The list of environment variables to check for activity  
+    1) env_vars: (list) The list of environment variables to check for activity  
 
     Return:
     +++++++
-    1) A list of the active environment variables
-    2) A list of the inactive environment variables
+    1) (list) A list of the active environment variables
+    2) (list) A list of the inactive environment variables
     """
 
     active_vars = []

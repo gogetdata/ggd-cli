@@ -141,7 +141,7 @@ def test_in_ggd_channel_internet_free():
     ## Test that in_ggd_channel properly returns the species, genome-build, and versoin if it is in the channel
     ggd_package = "hg19-gaps-ucsc-v1"
     channel = "genomics"
-    species, build, version = list_files.in_ggd_channel(ggd_package, channel)
+    species, build, version = list_files.in_ggd_channel([ggd_package], channel, utils.conda_root())
     assert species == "Homo_sapiens"
     assert build == "hg19"
     assert version == "1"
@@ -150,7 +150,7 @@ def test_in_ggd_channel_internet_free():
     ggd_package = "hg19-gaps-ucsc-v1"
     channel = "not_a_real_channel"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        list_files.in_ggd_channel(ggd_package, channel)
+        list_files.in_ggd_channel([ggd_package], channel, utils.conda_root())
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## check that the exit code is 1
     
@@ -158,7 +158,7 @@ def test_in_ggd_channel_internet_free():
     ggd_package = "NOT_A_REAL_PACKAGE_NAME"
     channel = "genomics"
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        list_files.in_ggd_channel(ggd_package, channel)
+        list_files.in_ggd_channel([ggd_package], channel, utils.conda_root())
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that systemexit was raised by sys.exit() 
     assert pytest_wrapped_e.match("2") ## check that the exit code is 1
 
@@ -301,7 +301,7 @@ def test_list_file_with_prefix_internet_free():
 
     ## Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
     
 
@@ -578,7 +578,7 @@ def test_info_main_internet_free():
     ## Normal run
     ggd_package = "hg19-gaps-ucsc-v1"
     ggd_channel = "genomics"
-    args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False)
+    args = Namespace(all_versions=False, channel=ggd_channel, command='pkg-info', name=ggd_package, show_recipe=False, prefix = None)
     assert list_pkg_info.info((),args) == True
 
     temp_stdout = StringIO()

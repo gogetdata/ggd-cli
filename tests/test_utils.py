@@ -85,7 +85,8 @@ def test_get_species():
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
-    assert len(species) == 5
+    assert "meta-recipe" in species 
+    assert len(species) == 6
 
     ## Test not_updating repo
     species = utils.get_species(update_files=False)
@@ -95,7 +96,8 @@ def test_get_species():
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
-    assert len(species) == 5
+    assert "meta-recipe" in species 
+    assert len(species) == 6
 
     ## Test that the full dictionary with species as keys and build as values is returned
     species_dict = utils.get_species(update_files=False,full_dict=True)
@@ -105,7 +107,8 @@ def test_get_species():
     assert "Drosophila_melanogaster" in species
     assert "Canis_familiaris" in species
     assert "Danio_rerio" in species 
-    assert len(species) == 5
+    assert "meta-recipe" in species 
+    assert len(species) == 6
 
     for key in species:
         assert len(species_dict[key]) > 0
@@ -115,6 +118,7 @@ def test_get_species():
     assert "hg38" in species_dict["Homo_sapiens"]
     assert "GRCh37" in species_dict["Homo_sapiens"]
     assert "GRCh38" in species_dict["Homo_sapiens"]
+    assert "meta-recipe" in species_dict["meta-recipe"]
 
     ## Test genomic metadata file path
     assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/species_to_build.json"))
@@ -279,14 +283,17 @@ def test_get_build():
             assert "danRer11" in builds
             assert "GRCz10" in builds
             assert "GRCz11" in builds
+        elif species == "meta-recipe":
+            assert len(builds) == 1
+            assert "meta-recipe" in builds
         else:
             assert False
 
     builds2 = utils.get_builds("*")
     assert "hg19" in builds2 and "hg38" in builds2 and "GRCh37" in builds2 and "GRCh38" in builds2 and "mm10" in builds2 and \
     "mm9" in builds2 and "dm3" in builds2 and "dm6" in builds2 and "canFam3" in builds2 and "danRer10" in builds2 and \
-    "danRer11" in builds2 and "GRCz10" in builds2 and "GRCz11" in builds2
-    assert len(builds2) == 13
+    "danRer11" in builds2 and "GRCz10" in builds2 and "GRCz11" in builds2 and "meta-recipe" in builds2
+    assert len(builds2) == 14
 
     ## Test genomic metadata file path
     assert os.path.exists(os.path.expanduser("~/.config/ggd-info/genome_metadata/build_to_species.json"))
@@ -577,7 +584,7 @@ def test_update_installed_pkg_metadata():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package2 = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package2], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     ggd_info_dir2 = os.path.join(temp_env,"share","ggd_info")
@@ -848,7 +855,7 @@ def test_check_conda_pkg_dir():
 
     ### Install ggd recipe using conda into temp_env
     ggd_package = "hg19-pfam-domains-ucsc-v1"
-    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env)
+    install_args = Namespace(channel='genomics', command='install', debug=False, name=[ggd_package], file=[], prefix = temp_env, id = None)
     assert install.install((), install_args) == True 
 
     ## Check that there is no errors
@@ -1002,6 +1009,60 @@ def test_get_conda_prefix_path():
     prefix_path = utils.get_conda_prefix_path(env_name)
     assert prefix_path == temp_env
 
+    ### Remove temp env
+    sp.check_output(["conda", "env", "remove", "--name", env_name])
+    try:
+        shutil.rmtree(temp_env)
+    except Exception:
+        pass
+    assert os.path.exists(temp_env) == False
+
+
+def test_get_base_env():
+    """
+    Method to test the get_base_env() method returns the correct base env
+    """
+
+    ## Get the base environmnet
+    from conda.core.envs_manager import list_all_known_prefixes
+    base = min(list_all_known_prefixes())
+
+    ## Test that the base conda root is returned correctly 
+    base_prefix = utils.get_base_env(cur_prefix = utils.conda_root())
+    assert base_prefix == base
+
+    ## Test that the prefix is or is not in the environmnets   
+    ### List of enviroments
+    environments = [os.path.join(x+"/") for x in utils.check_output(["conda", "info", "--env"]).strip().replace("*","").replace("\n"," ").split(" ") if os.path.isdir(x)]
+    base_env = min(environments)
+    env_name = "temp_env_not_base"
+    temp_env = os.path.join(utils.conda_root(), "envs", env_name)
+
+    try:
+        utils.prefix_in_conda(temp_env)
+    except utils.CondaEnvironmentNotFound as e:
+        assert "The prefix supplied is not a conda environment: {}".format(temp_env) in str(e) 
+    except Exception as e:
+        assert False
+
+    ## Test that a non-conda prefix is handled 
+    try:
+        utils.get_base_env(cur_prefix = env_name)
+        assert False
+    except utils.CondaEnvironmentNotFound as e: 
+        pass
+
+    ## Create the env
+    sp.check_output(["conda", "create", "--name", env_name])
+
+    ## Test get_base_env on the new env
+    base_prefix = utils.get_base_env(cur_prefix = env_name)
+    assert base_prefix == base
+
+    ## Test get_base_env on the new env
+    base_prefix = utils.get_base_env(cur_prefix = temp_env)
+    assert base_prefix == base
+    
     ### Remove temp env
     sp.check_output(["conda", "env", "remove", "--name", env_name])
     try:
@@ -1177,12 +1238,596 @@ def test_add_yaml_literal_block():
     if os.path.exists(tempdir):
         shutil.rmtree(tempdir)
 
+def test_get_repodata():
+    """
+    Method to test the  get_repodata() method correctly downloads the metadata repodata from the Anaconda cloud
+    """
+
+    ## Test get_repodata
+    repodata_dict, name2tar = utils.get_repodata(channels = ["ggd-genomics"], subdirs = ["noarch"], return_repodata = True)
+    assert len(repodata_dict.keys()) == 1
+    assert set(["ggd-genomics"]) == set(repodata_dict.keys())
+    tar_files = list(repodata_dict["ggd-genomics"].keys())
+    pkg_names = dict()
+    for tar in tar_files:
+        pkg_names[repodata_dict["ggd-genomics"][tar]["name"]] = tar
+
+    
+    name2tar = utils.get_repodata(channels = ["ggd-genomics"], subdirs = ["noarch"], return_repodata = False)
+    assert len(name2tar.keys()) == 1
+    assert set(["ggd-genomics"]) == set(name2tar.keys())
+    assert set(["noarch"]) == set(name2tar["ggd-genomics"].keys())
+    for name, tar in pkg_names.items():
+        assert tar in name2tar["ggd-genomics"]["noarch"][name]
+
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        utils.get_repodata(channels = ["bad-ggd-genomics"], subdirs = ["noarch"], return_repodata = True)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("1") 
+
+
+def test_check_for_meta_recipes():
+    """
+    Method to test the check_for_meta_recipes() method correctly determines if a recipe is a meta-recipe or not
+    """
+
+    ## Test an empty dict
+    jdict = {}
+    name = "hg19-gaps-ucsc-v1"
+    assert utils.check_for_meta_recipes(name, jdict) == False
+
+
+    ## Test non meta-recipe 
+    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+                        {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
+                        u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
+                        u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
+                        u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
+                        u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
+
+    name = "trial-hg38-gaps-v1"
+    assert utils.check_for_meta_recipes(name, jdict) == False
+
+    ## Test non meta-recipe with wrong name 
+    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'trial-hg38-gaps-v1': 
+                        {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomics', 
+                        u'data-version': u'11-Mar-2019'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
+                        u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/trial-hg38-gaps-v1-1-0.tar.bz2', 
+                        u'pre_link': False, u'keywords': [u'gaps', u'region'], u'summary': u'hg38 Assembly gaps from USCS', 
+                        u'text_prefix': False, u'identifiers': {u'genome-build': u'hg38', u'species': u'Homo_sapiens'}}}}
+
+    name = "hg38-gaps-v1"
+    assert utils.check_for_meta_recipes(name, jdict) == False
+
+    ## Test meta-recipe 
+    jdict = ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': 
+                        {u'activate.d': False, u'version': u'1', u'tags': {u'ggd-channel': u'genomic', 
+                        u'data-version': u'NA'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, 
+                        u'pre_unlink': False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', 
+                        u'pre_link': False, u'keywords': [u'GEO', u'Gene-Expression-Omnibus','GEO-Accession-ID'], u'summary': u'hg38 Assembly gaps from USCS', 
+                        u'text_prefix': False, u'identifiers': {u'genome-build': u'meta-recipe', u'species': u'meta-recipe'}}}}
+
+    name = "meta-recipe-geo-accession-geo-v1"
+    assert utils.check_for_meta_recipes(name, jdict) == True
+
+
+def test_get_meta_recipe_pkg():
+    """
+    Test the get_meta_recipe_pkg() method correctly downloads the .tar.bz2 file of a meta-recipe from the Anaconda cloud
+    """
+
+    from ggd import search
+
+    ## Test a bad package
+    ggd_channel = "genomics"
+    jdict = search.load_json_from_url(utils.get_channeldata_url(ggd_channel))
+    pkg_name = "BAD-PACKAGE-v1"
+    prefix = utils.conda_root()
+
+    try:
+        utils.get_meta_recipe_pkg(pkg_name = pkg_name, jdict = jdict, ggd_channel = ggd_channel, prefix = prefix)
+        assert False
+    except AssertionError as e:
+        assert ":ggd:meta-recipe: !!ERROR!! Could not find the {} data package in the repodata".format(pkg_name) in str(e)
+
+
+    ## Test a good package
+    ggd_channel = "genomics"
+    jdict = search.load_json_from_url(utils.get_channeldata_url(ggd_channel))
+    pkg_name = "hg19-gaps-ucsc-v1"
+
+    dest, new_tar, target_path = utils.get_meta_recipe_pkg(pkg_name = pkg_name, jdict = jdict, ggd_channel = ggd_channel, prefix = prefix)
+    assert dest == os.path.join(prefix,"pkgs")
+    assert pkg_name in new_tar and ".tar.bz2" in new_tar and "v1" in new_tar
+    assert target_path == os.path.join(prefix,"pkgs",new_tar)
+
+
+    ## Test that the pkgs dir is created if it doesn't exists
+    ggd_channel = "genomics"
+    jdict = search.load_json_from_url(utils.get_channeldata_url(ggd_channel))
+    pkg_name = "hg19-gaps-ucsc-v1"
+    prefix2 = os.path.join(utils.conda_root(), "UNIT_TEST")
+    assert os.path.exists(prefix2) == False
+
+    dest, new_tar, target_path = utils.get_meta_recipe_pkg(pkg_name = pkg_name, jdict = jdict, ggd_channel = ggd_channel, prefix = prefix2)
+    assert dest == os.path.join(prefix2,"pkgs")
+    assert pkg_name in new_tar and ".tar.bz2" in new_tar and "v1" in new_tar
+    assert target_path == os.path.join(prefix2,"pkgs",new_tar)
+
+    assert os.path.exists(prefix2) == True
+    assert os.path.exists(os.path.join(prefix2, "pkgs"))
+
+    shutil.rmtree(prefix2)
+    assert os.path.exists(prefix2) == False
+
+def test_create_tmp_meta_recipe_env_file():
+    """
+    Test that the create_tmp_meta_recipe_env_file() method creates a tmp dir for meta-recipe env info 
+    """
+
+    tmp_dir, env_json, env_commands = utils.create_tmp_meta_recipe_env_file()
+
+    ## Check that the dir exits and that it is writeable
+    assert os.path.exists(tmp_dir) 
+    assert os.access(tmp_dir, os.R_OK)
+    assert os.access(tmp_dir, os.W_OK)
+
+    ## Check the paths for the json file and commands do not exists. They should only exists if they are updated by a meta-recipe
+    assert os.path.exists(env_json) == False
+    assert os.path.exists(env_commands) == False
+
+    ## Check names of json and command files
+    assert os.path.basename(env_json) == "GGD_METARECIPE_ENVIRONMENT_VARIABLES.json"
+    assert os.path.basename(env_commands) == "GGD_METARECIPE_FINAL_COMMANDS.sh"
+
+    ## The tmp dir must be removed by the parent process 
+    shutil.rmtree(tmp_dir)
+    assert os.path.exists(tmp_dir) == False 
+
+
+def test_extract_metarecipe_recipe_from_bz2():
+    """
+    Method to test the extract_metarecipe_recipe_from_bz2() function correctly extracts a recipe from a bz2 file
+    """
+    pytest_enable_socket()
+
+    bad_tar = CreateRecipe(
+    """
+    trial-recipe-v1.tar.bz2:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: trial-recipe-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                genomic-coordinate-base: 0-based-inclusive
+                data-version: 11-Mar-2019
+                data-provider: UCSC
+                file-type: 
+                - bed
+                final-files: 
+                - trial-recipe-v1.bed.gz
+                - trial-recipe-v1.bed.gz.tbi
+                ggd-channel: genomics
+    """, from_string=True)
+
+    bad_tar.write_recipes()
+
+    ## build tar.bz2 file
+    tarball_path = bad_tar.recipe_dirs["trial-recipe-v1.tar.bz2"] 
+    pkg = "trial-recipe-v1"
+    new_recipe_name = "id-specific-recipe-v1"
+
+    ## Test a .tar.bz2 file 
+    success, new_recipe_path, tmpdir = utils.extract_metarecipe_recipe_from_bz2(pkg, new_recipe_name, tarball_path)
+    assert success == False
+    assert new_recipe_path is None
+    assert tmpdir is None
+
+    shutil.rmtree(tarball_path)
+    assert os.path.exists(tarball_path) == False
+
+
+    ## Test a recipe from .tar.bz2 file is correctly extracted 
+    recipe = CreateRecipe(
+    """
+    trial-recipe-v1:
+        meta.yaml: |
+            build:
+              binary_relocation: false
+              detect_binary_files_with_prefix: false
+              noarch: generic
+              number: 0
+            extra:
+              authors: mjc 
+              extra-files: []
+            package:
+              name: trial-recipe-v1
+              version: '1' 
+            requirements:
+              build:
+              - gsort
+              - htslib
+              - zlib
+              run:
+              - gsort
+              - htslib
+              - zlib
+            source:
+              path: .
+            about:
+              identifiers:
+                genome-build: hg38
+                species: Homo_sapiens
+              keywords:
+              - gaps
+              - region
+              summary: hg38 Assembly gaps from USCS
+              tags:
+                genomic-coordinate-base: 0-based-inclusive
+                data-version: 11-Mar-2019
+                data-provider: UCSC
+                file-type: 
+                - bed
+                final-files: 
+                - trial-recipe-v1.bed.gz
+                - trial-recipe-v1.bed.gz.tbi
+                ggd-channel: genomics
+
+        recipe.sh: |
+
+        
+        metarecipe.sh: |
+            #!/bin/sh
+            set -eo pipefail -o nounset
+
+            genome=https://raw.githubusercontent.com/gogetdata/ggd-recipes/master/genomes/Homo_sapiens/hg38/hg38.genome
+            wget --quiet -O - http://hgdownload.cse.ucsc.edu/goldenpath/hg38/database/gap.txt.gz \\
+            | gzip -dc \\
+            | awk -v OFS="\t" 'BEGIN {print "#chrom\tstart\tend\tsize\ttype\tstrand"} {print $2,$3,$4,$7,$8,"+"}' \\
+            | gsort /dev/stdin $genome \\
+            | bgzip -c > trial-recipe-v1.bed.gz
+
+            tabix trial-recipe-v1.bed.gz 
+        
+        post-link.sh: |
+            set -eo pipefail -o nounset
+
+            if [[ -z $(conda info --envs | grep "*" | grep -o "\/.*") ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            elif [[ $(conda info --envs | grep "*" | grep -o "\/.*") == "base" ]]; then
+                export CONDA_ROOT=$(conda info --root)
+                env_dir=$CONDA_ROOT
+                export RECIPE_DIR=$CONDA_ROOT/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            else
+                env_dir=$(conda info --envs | grep "*" | grep -o "\/.*")
+                export CONDA_ROOT=$env_dir
+                export RECIPE_DIR=$env_dir/share/ggd/Homo_sapiens/hg38/trial-hg38-gaps-ucsc-v1/1
+            fi
+
+            PKG_DIR=`find "$CONDA_SOURCE_PREFIX/pkgs/" -name "$PKG_NAME-$PKG_VERSION*" | grep -v ".tar.bz2" |  grep "$PKG_VERSION.*$PKG_BUILDNUM$"`
+
+            if [ -d $RECIPE_DIR ]; then
+                rm -r $RECIPE_DIR
+            fi
+
+            mkdir -p $RECIPE_DIR
+
+            (cd $RECIPE_DIR && bash $PKG_DIR/info/recipe/recipe.sh)
+
+            cd $RECIPE_DIR
+
+            ## Iterate over new files and replace file name with data package name and data version  
+            for f in *; do
+                ext="${f#*.}"
+                filename="{f%%.*}"
+                (mv $f "trial-hg38-gaps-ucsc-v1.$ext")
+            done
+
+            ## Add environment variables 
+            #### File
+            if [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 1 ]] ## If only one file
+            then
+                recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                file_path="$(find $RECIPE_DIR -type f -maxdepth 1)"
+
+            elif [[ `find $RECIPE_DIR -type f -maxdepth 1 | wc -l | sed 's/ //g'` == 2 ]] ## If two files
+            then
+                indexed_file=`find $RECIPE_DIR -type f \( -name "*.tbi" -or -name "*.fai" -or -name "*.bai" -or -name "*.crai" -or -name "*.gzi" \) -maxdepth 1`
+                if [[ ! -z "$indexed_file" ]] ## If index file exists
+                then
+                    recipe_env_file_name="ggd_trial-hg38-gaps-ucsc-v1_file"
+                    recipe_env_file_name="$(echo "$recipe_env_file_name" | sed 's/-/_/g')"
+                    file_path="$(echo $indexed_file | sed 's/\.[^.]*$//')" ## remove index extension
+                fi  
+            fi 
+
+            #### Dir
+            recipe_env_dir_name="ggd_trial-hg38-gaps-ucsc-v1_dir"
+            recipe_env_dir_name="$(echo "$recipe_env_dir_name" | sed 's/-/_/g')"
+
+            activate_dir="$env_dir/etc/conda/activate.d"
+            deactivate_dir="$env_dir/etc/conda/deactivate.d"
+
+            mkdir -p $activate_dir
+            mkdir -p $deactivate_dir
+
+            echo "export $recipe_env_dir_name=$RECIPE_DIR" >> $activate_dir/env_vars.sh
+            echo "unset $recipe_env_dir_name">> $deactivate_dir/env_vars.sh
+
+            #### File
+            if [[ ! -z "${recipe_env_file_name:-}" ]] ## If the file env variable exists, set the env file var
+            then
+                echo "export $recipe_env_file_name=$file_path" >> $activate_dir/env_vars.sh
+                echo "unset $recipe_env_file_name">> $deactivate_dir/env_vars.sh
+            fi
+
+            echo 'Recipe successfully built!'
+
+        checksums_file.txt: |
+            trial-recipe-v1.bed.gz\t7f15bfe96b36a261fa36ae6d5a68b977
+            trial-recipe-v1.bed.gz.tbi\t41ef3698f44adc8f0c7b0f0e1fef6637
+
+    """, from_string=True)
+
+    recipe.write_recipes()
+
+    ## build tar.bz2 file
+    from ggd import check_recipe
+    recipe_dir_path = recipe.recipe_dirs["trial-recipe-v1"] 
+    yaml_file = yaml.safe_load(open(os.path.join(recipe_dir_path, "meta.yaml")))
+    tarball_path = check_recipe._build(recipe_dir_path,yaml_file)
+
+
+    pkg = "trial-recipe-v1"
+    new_recipe_name = "id-specific-recipe-v1"
+
+    ## Test a good .tar.bz2 file 
+    success, new_recipe_path, tmpdir = utils.extract_metarecipe_recipe_from_bz2(pkg, new_recipe_name, tarball_path)
+
+    ## Check the results
+    assert success 
+    assert os.path.exists(tmpdir)
+    assert os.path.exists(new_recipe_path)
+    assert os.path.exists(os.path.join(new_recipe_path, "meta.yaml"))
+    assert os.path.exists(os.path.join(new_recipe_path, "post-link.sh"))
+    assert os.path.exists(os.path.join(new_recipe_path, "checksums_file.txt"))
+    assert os.path.exists(os.path.join(new_recipe_path, "metarecipe.sh"))
+    assert os.path.exists(os.path.join(new_recipe_path, "recipe.sh"))
+
+    ## Check that the old name has been removed and the new name has replaced it
+    new_name_count = 0
+    for dir_path, dir_names, file_names in os.walk(new_recipe_path):
+        if file_names:
+            for name in file_names:
+                file_path = os.path.join(dir_path, name)
+                if os.path.isfile(file_path):
+                    try:
+                        with open(file_path) as fh:
+                            for line in fh:
+                                assert pkg not in line
+                                new_name_count += 1 if new_recipe_name in line else 0
+                    except IOError as e:
+                        print("!!ERROR!! Problem reading file: {}".format(file_path))
+                        print(str(e))
+                        sys.exit(1)
+
+    ## Check that the new name exists 7 different places 
+    assert new_name_count == 7
+
+    ## Check that the recipe name is updated
+    assert os.path.basename(new_recipe_path) == new_recipe_name
+    assert os.path.basename(new_recipe_path) != pkg
+
+    ## Remove the tmp dir
+    shutil.rmtree(tmpdir)
+    shutil.rmtree(recipe_dir_path)
+    assert os.path.exists(tmpdir) == False
+    assert os.path.exists(recipe_dir_path) == False
+                                    
+
+def test_update_metarecipe_metadata(): 
+    """
+    Test that the update_metarecipe_metadata() function correctly updates the metadata for a meta-recipe if the files exists
+    """
+
+    ## Test with bad package
+    pkg_name = "trial-recipe-v1" 
+    env_var_dict = {}
+    parent_name = "parent-trial-recipe-v1" 
+    final_file_list = []
+    final_file_size_dict = {}
+    commands_str = ""
+    prefix = utils.conda_root()
+
+    success, new_bz2 = utils.update_metarecipe_metadata(pkg_name, env_var_dict, parent_name, final_file_list, final_file_size_dict, commands_str, prefix)
+    assert success == False
+    assert new_bz2 is None
+
+
+    ## Test an empty update
+    pkg_name = "hg19-gaps-ucsc-v1" 
+    env_var_dict = {}
+    parent_name = "parent-hg19-gaps-ucsc-v1" 
+    final_file_list = []
+    final_file_size_dict = {}
+    commands_str = ""
+    prefix = utils.conda_root()
+    
+    ## Install it
+    try:
+        install_hg19_gaps_ucsc_v1()
+    except Exception:
+        pass
+
+    try:
+        from ggd import check_recipe
+
+        pkg_list = utils.get_conda_package_list(prefix = prefix, regex = pkg_name)
+        assert pkg_name in pkg_list
+        tarfile_path = os.path.join(prefix,"pkgs","{}-{}-{}.tar.bz2".format(pkg_name, pkg_list[pkg_name]["version"], pkg_list[pkg_name]["build"]))
+
+        orig_meta = check_recipe.get_recipe_from_bz2(tarfile_path)
+        import tarfile
+
+        with tarfile.open(tarfile_path, mode="r|bz2") as tar:
+            for info in tar:
+                if info.name == "info/recipe/recipe.sh":
+                    break
+            recipe_file = tar.extractfile(info)
+            orig_recipe = recipe_file.read()
+        
+        success, new_bz2 = utils.update_metarecipe_metadata(pkg_name, env_var_dict, parent_name, final_file_list, final_file_size_dict, commands_str, prefix)
+        assert success
+        assert os.path.exists(new_bz2)
+
+        new_meta = check_recipe.get_recipe_from_bz2(new_bz2)
+        with tarfile.open(tarfile_path, mode="r|bz2") as tar:
+            for info in tar:
+                if info.name == "info/recipe/recipe.sh":
+                    break
+            recipe_file = tar.extractfile(info)
+            new_recipe = recipe_file.read()
+
+        ## check for no changes in the meta.yaml
+        assert new_meta["build"]["noarch"] == orig_meta["build"]["noarch"]
+        assert new_meta["build"]["number"] == orig_meta["build"]["number"]
+        assert new_meta["extra"]["authors"] == orig_meta["extra"]["authors"]
+        assert new_meta["package"]["name"] == orig_meta["package"]["name"]
+        assert new_meta["package"]["version"] == orig_meta["package"]["version"]
+        assert new_meta["about"]["identifiers"]["parent-meta-recipe"] == "parent-hg19-gaps-ucsc-v1" and  "parent-meta-recipe" not in orig_meta["about"]["identifiers"]
+        assert new_meta["about"]["identifiers"]["genome-build"] == orig_meta["about"]["identifiers"]["genome-build"]
+        assert new_meta["about"]["identifiers"]["species"] == orig_meta["about"]["identifiers"]["species"]
+        assert "updated-species" not in new_meta["about"]["identifiers"] and "updated-species" not in orig_meta["about"]["identifiers"]
+        assert "updated-genome-build" not in new_meta["about"]["identifiers"] and "updated-genome-build" not in orig_meta["about"]["identifiers"]
+        assert new_meta["about"]["keywords"] == orig_meta["about"]["keywords"]
+        assert new_meta["about"]["tags"]["data-provider"] == orig_meta["about"]["tags"]["data-provider"]
+        assert new_meta["about"]["summary"] == orig_meta["about"]["summary"]
+        assert new_meta["about"]["tags"]["data-version"] == orig_meta["about"]["tags"]["data-version"]
+        assert new_meta["about"]["tags"]["file-type"] == orig_meta["about"]["tags"]["file-type"]
+        assert new_meta["about"]["tags"]["final-files"] == [] and len(orig_meta["about"]["tags"]["final-files"]) > 0
+        assert new_meta["about"]["tags"]["final-file-sizes"] == {} and len(orig_meta["about"]["tags"]["final-files"]) > 0
+        assert new_meta["about"]["tags"]["genomic-coordinate-base"] == orig_meta["about"]["tags"]["genomic-coordinate-base"]
+        assert new_meta["about"]["tags"]["ggd-channel"] == orig_meta["about"]["tags"]["ggd-channel"]
+
+        ## Check that the recipe was not updated
+        assert new_recipe == orig_recipe
+
+       
+        ## Test an non_empty update
+        pkg_name = "hg19-gaps-ucsc-v1" 
+        ## Update env var dict with every available key
+        env_var_dict = {"GGD_METARECIPE_SUMMARY": "A new Summary",
+                        "GGD_METARECIPE_SPECIES": "An updated Species",
+                        "GGD_METARECIPE_GENOME_BUILD": "An updated genome build",
+                        "GGD_METARECIPE_VERSION": "An updated version",
+                        "GGD_METARECIPE_KEYWORDS": "NEW, Key, WORDS",
+                        "GGD_METARECIPE_DATA_PROVIDER": "NEW DP",
+                        "GGD_METARECIPE_FILE_TYPE": "New file type",
+                        "GGD_METARECIPE_GENOMIC_COORDINATE_BASE": "NEW C-BASE"}
+        parent_name = "parent2-hg19-gaps-ucsc-v1" 
+        final_file_list = ["New_file_1", "New_file_2"]
+        final_file_size_dict = {"New_file_1":"1M", "New_file_2": "2M"}
+        commands_str = "SOME NEW COMMANDS HERE"
+        prefix = utils.conda_root()
+        
+        success, new_bz2 = utils.update_metarecipe_metadata(pkg_name, env_var_dict, parent_name, final_file_list, final_file_size_dict, commands_str, prefix)
+        assert success
+        assert os.path.exists(new_bz2)
+
+        new_meta = check_recipe.get_recipe_from_bz2(new_bz2)
+        with tarfile.open(tarfile_path, mode="r|bz2") as tar:
+            for info in tar:
+                if info.name == "info/recipe/recipe.sh":
+                    break
+            recipe_file = tar.extractfile(info)
+            new_recipe = recipe_file.read().decode()
+
+        ## check for no changes in the meta.yaml
+        assert new_meta["build"]["noarch"] == orig_meta["build"]["noarch"]
+        assert new_meta["build"]["number"] == orig_meta["build"]["number"]
+        assert new_meta["extra"]["authors"] == orig_meta["extra"]["authors"]
+        assert new_meta["package"]["name"] == orig_meta["package"]["name"]
+        assert new_meta["package"]["version"] == orig_meta["package"]["version"]
+        assert new_meta["about"]["identifiers"]["parent-meta-recipe"] == "parent2-hg19-gaps-ucsc-v1" and  "parent-meta-recipe" not in orig_meta["about"]["identifiers"]
+        assert new_meta["about"]["identifiers"]["genome-build"] == orig_meta["about"]["identifiers"]["genome-build"]
+        assert new_meta["about"]["identifiers"]["species"] == orig_meta["about"]["identifiers"]["species"]
+        assert "updated-species"in new_meta["about"]["identifiers"] and "updated-species" not in orig_meta["about"]["identifiers"]
+        assert new_meta["about"]["identifiers"]["updated-species"] == env_var_dict["GGD_METARECIPE_SPECIES"]
+        assert "updated-genome-build" in new_meta["about"]["identifiers"] and "updated-genome-build" not in orig_meta["about"]["identifiers"]
+        assert new_meta["about"]["identifiers"]["updated-genome-build"] == env_var_dict["GGD_METARECIPE_GENOME_BUILD"]
+        assert new_meta["about"]["keywords"] != orig_meta["about"]["keywords"]
+        assert new_meta["about"]["keywords"] == orig_meta["about"]["keywords"] + [x.strip() for x in env_var_dict["GGD_METARECIPE_KEYWORDS"].strip().split(",")]
+        assert new_meta["about"]["summary"] != orig_meta["about"]["summary"]
+        assert new_meta["about"]["summary"] ==  env_var_dict["GGD_METARECIPE_SUMMARY"]
+        assert new_meta["about"]["tags"]["data-provider"] != orig_meta["about"]["tags"]["data-provider"]
+        assert new_meta["about"]["tags"]["data-provider"] == env_var_dict["GGD_METARECIPE_DATA_PROVIDER"]
+        assert new_meta["about"]["tags"]["data-version"] != orig_meta["about"]["tags"]["data-version"]
+        assert new_meta["about"]["tags"]["data-version"] == env_var_dict["GGD_METARECIPE_VERSION"]
+        assert new_meta["about"]["tags"]["file-type"] != orig_meta["about"]["tags"]["file-type"]
+        assert new_meta["about"]["tags"]["file-type"] == [env_var_dict["GGD_METARECIPE_FILE_TYPE"]]
+        assert new_meta["about"]["tags"]["final-files"] == final_file_list 
+        assert new_meta["about"]["tags"]["final-file-sizes"] == final_file_size_dict 
+        assert new_meta["about"]["tags"]["genomic-coordinate-base"] != orig_meta["about"]["tags"]["genomic-coordinate-base"]
+        assert new_meta["about"]["tags"]["genomic-coordinate-base"] == env_var_dict["GGD_METARECIPE_GENOMIC_COORDINATE_BASE"] 
+        assert new_meta["about"]["tags"]["ggd-channel"] == orig_meta["about"]["tags"]["ggd-channel"]
+
+        ## Check that the recipe was not updated
+        assert new_recipe != orig_recipe
+        assert new_recipe == commands_str
+
+    finally:
+        try:
+            uninstall_hg19_gaps_ucsc_v1()
+        except:
+            pass
+        
+    try:
+        uninstall_hg19_gaps_ucsc_v1()
+    except:
+        pass
+
 
 def test_get_conda_package_list():
     """
     Test that the get_conda_package_list properly returns the correct installed packages from the conda list
     """
     pytest_enable_socket()
+
+    ## Install it
+    try:
+        install_hg19_gaps_ucsc_v1()
+    except Exception:
+        pass
 
     ## Get the available ggd data packages in the ggd-genomics channel
     channeldata_path = utils.get_channel_data("genomics")
@@ -1221,6 +1866,33 @@ def test_get_conda_package_list():
     sp.check_output(["conda", "env", "remove", "--name", "temp_env"])
 
     ## TODO: add regex test, where a pacakge is listed based off the prefix and pattern (regex) provided
+
+
+def test_get_meta_recipe_checksum():
+    """
+    Test the get_meta_recipe_checksum() function properly provides the checksum values for meta-recipe files that have been pre-computed
+    """
+
+    ## Test a meta-recipe id 
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        utils.get_meta_recipe_checksum(meta_recipe_name = "bad-recipe-v1", id_specific_name = "gse123")
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("1") 
+
+    ## Test a bad json file name
+    with pytest.raises(SystemExit) as pytest_wrapped_e:
+        utils.get_meta_recipe_checksum(meta_recipe_name = "meta-recipe-geo-accession-geo-v1", id_specific_name = "gse123", file_name = "BADName.json")
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    assert pytest_wrapped_e.match("1") 
+
+    ## Test a bad id 
+    checksum_dict = utils.get_meta_recipe_checksum(meta_recipe_name = "meta-recipe-geo-accession-geo-v1", id_specific_name = "BAD ID")
+    assert checksum_dict == {}
+    
+    ## Test a good id 
+    checksum_dict = utils.get_meta_recipe_checksum(meta_recipe_name = "meta-recipe-geo-accession-geo-v1", id_specific_name = "gse123-geo-v1")
+    assert "GSE123_family.soft.gz" in checksum_dict
+    assert "GSE123_series_matrix.txt.gz" in checksum_dict
 
 
 def test_get_file_md5sum():
@@ -1652,7 +2324,7 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict2)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The number of installed files does not match the number of checksum files" in output)
+    assert ("!!ERROR!! The number of installed files does not match the number of checksum files" in output)
 
 
     ## Test bad md5sums
@@ -1675,8 +2347,8 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict3)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz") in output) or \
-           ("!!ERROR!!: The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz.tbi") in output)
+    assert ("!!ERROR!! The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz") in output) or \
+           ("!!ERROR!! The {f} file's checksums don't match, suggesting that the file wasn't installed properly".format(f = "cpg.bed.gz.tbi") in output)
 
 
     ## Test differint names within checksum_file and installed files
@@ -1698,7 +2370,7 @@ def test_data_file_checksum():
     with redirect_stdout(temp_stdout):
         utils.data_file_checksum(bed_files_path,checksum_dict4)
     output = temp_stdout.getvalue().strip() 
-    assert ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
+    assert ("!!ERROR!! The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz") in output) or ("!!ERROR!!: The installed file {f} is not one of the checksum files".format(f = "cpg.bed.gz.tbi") in output)
 
 
 def test_get_file_size():
