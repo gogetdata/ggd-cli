@@ -461,7 +461,10 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
                     % installed_paths[pkg]
                 )
             else:
-                results.append("\n\tTo install run:\n\t\tggd install %s" % pkg)
+                from .utils import check_for_meta_recipes
+
+                results.append("\n\tTo install run:\n\t\tggd install %s %s" %(pkg, "--id <meta-recipe ID>" if check_for_meta_recipes(pkg,json_dict) else "" ))
+         
         print("\n\n".join(results))
         print("\n", dash)
 
