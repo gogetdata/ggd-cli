@@ -1505,7 +1505,7 @@ def test_predict_path():
     ## Testing with grch37-autosomal-dominant-genes-berg-v1 data package
     
     ## Test bad package name
-    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='bad_package_name-grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='bad_package_name-grch37-autosomal-dominant-genes-berg-v1', prefix=None, dir_path = False, id = None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         predict_path.predict_path((), args)
@@ -1514,7 +1514,7 @@ def test_predict_path():
 
 
     ## Test bad file name
-    args = Namespace(channel='genomics', command='predict-path', file_name='autodom-genes-berg', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    args = Namespace(channel='genomics', command='predict-path', file_name='autodom-genes-berg', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None,  dir_path = False, id = None)
 
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         predict_path.predict_path((), args)
@@ -1523,7 +1523,7 @@ def test_predict_path():
 
 
     ## Test closest file name
-    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None,  dir_path = False, id = None)
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -1533,7 +1533,7 @@ def test_predict_path():
     
 
     ## Test closest file name
-    args = Namespace(channel='genomics', command='predict-path', file_name='berg-v1.compliment', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    args = Namespace(channel='genomics', command='predict-path', file_name='berg-v1.compliment', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None,  dir_path = False, id = None)
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -1543,7 +1543,7 @@ def test_predict_path():
 
 
     ## Test full name file name
-    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None,  dir_path = False, id = None)
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
@@ -1551,6 +1551,17 @@ def test_predict_path():
     output = temp_stdout.getvalue().strip() 
     assert os.path.join(utils.conda_root(),"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") in str(output)
     
+
+    ## Test no file-name or dir-path
+    args = Namespace(channel='genomics', command='predict-path', file_name=None, package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None,  dir_path = False, id = None)
+
+    temp_stdout = StringIO()
+    with pytest.raises(SystemExit) as pytest_wrapped_e, redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
+    output = temp_stdout.getvalue().strip() 
+    assert ":ggd:predict-path: !!ERROR!! Either the '--file-name' or the '--dir-path' argument is required. Neither was given" in output
+
 
     ## Test prdiction in different environmnet
     ### Temp conda environment 
@@ -1565,13 +1576,75 @@ def test_predict_path():
     sp.check_output(["conda", "create", "--name", "predict-path"])
 
     ## Test full name file name
-    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env)
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env,  dir_path = False, id = None)
 
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         predict_path.predict_path((), args)
     output = temp_stdout.getvalue().strip() 
     assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") in str(output)
+
+
+    ## Test full name file name and that the ID is ignored for a non meta-recipe
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env,  dir_path = False, id = "SOME ID")
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") in str(output)
+
+
+    ## Test full name file name and dir-path. (File name should be used over dir path)
+    args = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env,  dir_path = True, id = None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") in str(output)
+
+    ## Test dir path
+    args = Namespace(channel='genomics', command='predict-path', file_name=None, package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env,  dir_path = True, id = None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1") in str(output)
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") not in str(output)
+
+
+    ## Test dir path and that the ID is ignored for a non meta-recipe
+    args = Namespace(channel='genomics', command='predict-path', file_name=None, package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=temp_env,  dir_path = True, id = "SOME_ID")
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1") in str(output)
+    assert os.path.join(temp_env,"share","ggd", "Homo_sapiens","GRCh37","grch37-autosomal-dominant-genes-berg-v1","1","grch37-autosomal-dominant-genes-berg-v1.bed.gz.tbi") not in str(output)
+
+
+    ## Test meta-recipe without an ID
+    args = Namespace(channel='genomics', command='predict-path', file_name=None, package_name='meta-recipe-geo-accession-geo-v1', prefix=temp_env,  dir_path = True, id = None)
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "meta-recipe","meta-recipe","meta-recipe-geo-accession-geo-v1","1") in str(output)
+
+
+    ## Test meta-recipe with an ID and  that the id is set to lower case
+    args = Namespace(channel='genomics', command='predict-path', file_name=None, package_name='meta-recipe-geo-accession-geo-v1', prefix=temp_env,  dir_path = True, id = "GSE123")
+
+    temp_stdout = StringIO()
+    with redirect_stdout(temp_stdout):
+        predict_path.predict_path((), args)
+    output = temp_stdout.getvalue().strip() 
+    assert os.path.join(temp_env,"share","ggd", "meta-recipe","meta-recipe","gse123-geo-v1","1") in str(output)
+
 
     ## Remove temp env created in test_get_environment_variables()
     sp.check_output(["conda", "env", "remove", "--name", "predict-path"])
@@ -1594,7 +1667,7 @@ def test_predict_path():
     output = str(temp_stdout.getvalue().strip()) 
     assert os.path.exists(str(output))
 
-    args2 = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None)
+    args2 = Namespace(channel='genomics', command='predict-path', file_name='grch37-autosomal-dominant-genes-berg-v1.bed.gz', package_name='grch37-autosomal-dominant-genes-berg-v1', prefix=None,  dir_path = False, id = None)
     temp_stdout = StringIO()
     with redirect_stdout(temp_stdout):
         predict_path.predict_path((), args2)
@@ -1602,8 +1675,7 @@ def test_predict_path():
 
     assert str(output2) == str(output)
 
-    args = Namespace(channel='genomics', command='uninstall', names=["grch37-autosomal-dominant-genes-berg-v1"])
-    uninstall.uninstall((),args)
+    sp.check_call(["ggd","uninstall","grch37-autosomal-dominant-genes-berg-v1"])
 
 
 #--------------------------------------------------------
