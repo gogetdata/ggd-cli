@@ -512,12 +512,35 @@ def test_print_summary():
     installed_paths = []
     assert search.print_summary(search_term,json_dict,matches,installed_pkgs,installed_paths) == True
 
+
     ## Test that a match that does not exists in the json_dict is handeled correctly
     search_term = ["gaps"]
     matches = ["hg19-gaps", "bad-package"]
     installed_pkgs = set()
     installed_paths = []
     assert search.print_summary(search_term,json_dict,matches,installed_pkgs,installed_paths) == True
+
+
+    ## Test a meta-recipe
+    ggd_jdict = {u'channeldata_version': 1, u'subdirs': [u'noarch'], u'packages': {u'meta-recipe-geo-accession-geo-v1': {u'activate.d': 
+                    False, u'version': u'1', u'tags': {u'cached': [], u'ggd-channel': u'genomics', u'data-version': 
+                    u'', u'data-provider': u'GEO'}, u'post_link': True, u'binary_prefix': False, u'run_exports': {}, u'pre_unlink': 
+                    False, u'subdirs': [u'noarch'], u'deactivate.d': False, u'reference_package': 
+                    u'noarch/meta-recipe-geo-accession-geo-v1-1-0.tar.bz2', u'pre_link': False, u'keywords': [u'GEO', u'Gene Expression Omnibus'], 
+                    u'summary': u'GEO Meta-Recipe', u'text_prefix': False, u'identifiers': {u'genome-build': 
+                    u'meta-recipe', u'species': u'meta-recipe'}}}}
+     
+    search_term = ["GEO"]
+    matches = ["meta-recipe-geo-accession-geo-v1"]
+    installed_pkgs = set()
+    installed_paths = []
+
+    temp_stdout = StringIO()
+    args = Namespace(channel='genomics', command='search', display_number=100, genome_build=[], match_score='75', search_type = "both", search_term=['reference','grch37'], species=[])
+    with redirect_stdout(temp_stdout):
+        assert search.print_summary(search_term,ggd_jdict,matches,installed_pkgs,installed_paths) == True
+    output = temp_stdout.getvalue().strip() 
+    assert "ggd install meta-recipe-geo-accession-geo-v1 --id <meta-recipe ID>" in output
 
 
 def test_main_search():
@@ -693,5 +716,12 @@ def test_main_search():
     assert "SystemExit" in str(pytest_wrapped_e.exconly()) ## test that SystemExit was raised by sys.exit() 
     assert pytest_wrapped_e.match("") ## Check that the exit code is 1
 
+    ## test meta-recipe
+    temp_stdout = StringIO()
+    args = Namespace(channel='genomics', command='search', display_number=1, genome_build=[], match_score='75', search_type = "both", search_term=['GEO'], species=[])
+    with redirect_stdout(temp_stdout):
+        search.search(parser,args) 
+    output = temp_stdout.getvalue().strip() 
+    assert "ggd install meta-recipe-geo-accession-geo-v1 --id <meta-recipe ID>" in output
 
 
