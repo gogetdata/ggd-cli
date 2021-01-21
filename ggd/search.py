@@ -62,8 +62,8 @@ def add_search(p):
     c.add_argument(
         "-m",
         "--match-score",
-        default="75",
-        help="(Optional) A score between 0 and 100 to use to filter the results by. (Default = 75). The lower the number the more results will be output",
+        default="90",
+        help="(Optional) A score between 0 and 100 to use to filter the results by. (Default = 90). The lower the number the more results will be output",
     )
     c.add_argument(
         "-c",
@@ -156,6 +156,7 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
     ++++++++
     1) (dict) A list of pkg names who's either name or keyword match score reached the score cutoff
     """
+    import re
     from collections import defaultdict
 
     from fuzzywuzzy import fuzz, process
@@ -186,7 +187,12 @@ def search_packages(json_dict, search_terms, search_type="both", score_cutoff=50
             keyword_max_score = max(
                 [
                     fuzz.ratio(term.lower(), x.lower())
-                    for x in json_dict["packages"][pkg]["keywords"]
+                    for x in [
+                        subkeyword
+                        for keyword in json_dict["packages"][pkg]["keywords"]
+                        for subkeyword in re.split("-|_", keyword.strip())
+                    ]
+                    + json_dict["packages"][pkg]["keywords"]
                 ]
             )
 
@@ -463,8 +469,16 @@ def print_summary(search_terms, json_dict, match_list, installed_pkgs, installed
             else:
                 from .utils import check_for_meta_recipes
 
-                results.append("\n\tTo install run:\n\t\tggd install %s %s" %(pkg, "--id <meta-recipe ID>" if check_for_meta_recipes(pkg,json_dict) else "" ))
-         
+                results.append(
+                    "\n\tTo install run:\n\t\tggd install %s %s"
+                    % (
+                        pkg,
+                        "--id <meta-recipe ID>"
+                        if check_for_meta_recipes(pkg, json_dict)
+                        else "",
+                    )
+                )
+
         print("\n\n".join(results))
         print("\n", dash)
 
