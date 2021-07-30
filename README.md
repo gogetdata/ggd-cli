@@ -13,6 +13,8 @@ ggd-cli: The command line interface for gogetdata
 
 The command-line interface to Go Get Data (GGD). 
 
+Please cite the [Nature Communications GGD paper](https://www.nature.com/articles/s41467-021-22381-z) if you used GGD.  
+
 Search, and install genomic data packages. Build and check new ggd data packages. 
 
 ggd provides easy access to processed genomic data. It removes the difficulties and complexities with finding and processing the data sets and annotations germane to your experiments and/or analyses. You can quickly and easily search and install data package using ggd. ggd also offers tools to easily create and contribute data packages to ggd. (From more information see the [ggd docs](https://gogetdata.github.io/index.html#).
