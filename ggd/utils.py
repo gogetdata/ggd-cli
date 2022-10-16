@@ -1150,7 +1150,26 @@ def extract_metarecipe_recipe_from_bz2(metarecipe_name, new_name, bz2_file_path)
     try:
         ## Extract all files in the tarfile to "ggd_tmp"
         with tarfile.open(bz2_file_path) as archive:
-            archive.extractall(tmp_dir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(archive, tmp_dir)
     except Exception as e:
         print("\n:ggd:ERROR: Unable to read {} as a tarfile".format(bz2_file_path))
         print(str(e))
@@ -1319,7 +1338,26 @@ def update_metarecipe_metadata(
     try:
         ## Extract all files in the tarfile to "ggd_tmp"
         with tarfile.open(bz2_file_path) as archive:
-            archive.extractall(tmp_dir)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(archive, tmp_dir)
     except Exception as e:
         print(
             "\n:ggd:meta-recipe: !!ERROR!! Unable to read {} as a tarfile".format(
